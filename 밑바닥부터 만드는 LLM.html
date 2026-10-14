@@ -1,0 +1,1381 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>밑바닥부터 만드는 LLM — 초심자용 원리 가이드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Nanum+Gothic+Coding&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FAF9F6;
+  --paper-2:#f3f1eb;
+  --ink:#26292d;
+  --ink-2:#4b4f55;
+  --ink-3:#7a7d82;
+  --rule:#e2dfd6;
+  --rule-2:#ece9e2;
+  --rule-3:#b7b3a8;
+  --navy:#1f3a5f;
+  --navy-bg:#eef1f6;
+  --warn:#9a4a3c;
+  --code-bg:#1b2733;
+  --code-line:#2c3a48;
+  --code-fg:#dfe4ea;
+  --code-dim:#7f8ea0;
+  --code-str:#a9cfa4;
+  --code-kw:#93b7de;
+  --code-num:#dcc08e;
+  --code-fn:#e3c9a8;
+
+  --serif:"Noto Serif KR","Nanum Myeongjo","AppleMyungjo",serif;
+  --sans:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --hangul-mono:"Nanum Gothic Coding","IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --sym:Menlo,Consolas,"DejaVu Sans Mono","Segoe UI Symbol","Apple Symbols",monospace;
+
+  --text-w:42rem;
+  --wide-w:58rem;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--serif);font-size:17px;line-height:1.9;
+  word-break:keep-all;overflow-wrap:break-word;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+.wrap{display:grid;grid-template-columns:256px minmax(0,1fr);max-width:1320px;margin:0 auto}
+
+/* 이모지 표식은 내용 그대로 두되 색을 눌러 조용하게 */
+.mk{filter:grayscale(1);opacity:.62;font-style:normal;margin-right:.12em}
+
+/* ── 목차 ─────────────────────────────── */
+nav.toc{
+  position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;
+  padding:3rem 1.1rem 3rem 1.6rem;border-right:1px solid var(--rule);
+  font-family:var(--sans);font-size:13.5px;line-height:1.5;
+}
+nav.toc .toc-head{
+  font-size:11.5px;font-weight:600;letter-spacing:.12em;color:var(--ink-3);
+  margin:0 0 1.1rem;padding-left:.75rem;display:flex;justify-content:space-between;align-items:center;
+}
+nav.toc ol{list-style:none;margin:0;padding:0}
+nav.toc a{
+  display:flex;align-items:baseline;padding:.32rem .5rem .32rem .75rem;color:var(--ink-2);text-decoration:none;
+  border-left:2px solid transparent;transition:color .15s,border-color .15s;
+}
+nav.toc a:hover{color:var(--ink)}
+nav.toc a .n{flex:none;width:2.9em;color:var(--ink-3);font-variant-numeric:tabular-nums}
+nav.toc > ol > li > a.active{color:var(--navy);border-left-color:var(--navy);font-weight:600}
+nav.toc > ol > li > a.active .n{color:var(--navy)}
+nav.toc ol ol{display:none;margin:.1rem 0 .5rem}
+nav.toc li.open > ol{display:block}
+nav.toc ol ol a{padding:.2rem .5rem .2rem calc(.75rem + 2.9em);font-size:12.4px;color:var(--ink-3)}
+nav.toc ol ol a .n{width:2.6em}
+nav.toc ol ol a.active{color:var(--navy);border-left-color:var(--rule-3)}
+.toc-toggle{
+  display:none;background:none;border:0;padding:0;cursor:pointer;
+  font-family:var(--sans);font-size:12.5px;letter-spacing:0;color:var(--navy);
+  text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule-3);
+}
+
+main{padding:3.6rem 3.6rem 9rem;min-width:0}
+main > *{max-width:var(--wide-w)}
+
+/* ── 표지 ─────────────────────────────── */
+.cover{border-bottom:1px solid var(--rule-3);padding-bottom:2.6rem;margin-bottom:4.5rem}
+.cover h1{
+  font-family:var(--serif);font-size:2.6rem;line-height:1.3;font-weight:700;
+  letter-spacing:-.02em;margin:0 0 1.4rem;
+}
+.cover > p{color:var(--ink-2)}
+
+/* ── 장 머리 ──────────────────────────── */
+section.ch{margin:0 0 6.5rem}
+.chead{border-bottom:1px solid var(--rule);padding:0 0 1.6rem;margin-bottom:2.2rem}
+.chead .cno{font-family:var(--sans);font-size:12.5px;font-weight:500;color:var(--ink-3);letter-spacing:.1em}
+.chead h2{
+  font-family:var(--serif);font-size:2.2rem;line-height:1.35;font-weight:700;
+  letter-spacing:-.015em;margin:.4rem 0 .8rem;
+}
+.chead .lede-label{margin:1.2rem 0 .15rem;font-family:var(--sans);font-size:12px;font-weight:600;color:var(--ink-3);letter-spacing:.04em}
+.chead .lede{margin:0 0 .9rem;color:var(--ink-2);font-size:17.5px;line-height:1.85;max-width:var(--text-w)}
+.chead .meta{margin:0;font-family:var(--sans);font-size:13px;color:var(--ink-3)}
+
+/* ── 본문 계층 ────────────────────────── */
+h3{
+  font-family:var(--sans);font-size:1.28rem;font-weight:600;line-height:1.5;
+  margin:3.4rem 0 1rem;letter-spacing:-.01em;max-width:var(--text-w);scroll-margin-top:1.5rem;
+}
+h3 .hn{color:var(--navy);margin-right:.6em;font-variant-numeric:tabular-nums}
+h4{font-family:var(--sans);font-size:1.06rem;font-weight:600;margin:2.4rem 0 .7rem;max-width:var(--text-w)}
+.chead + h3{margin-top:0}
+p{margin:0 0 1.15rem;max-width:var(--text-w)}
+ul,ol{max-width:var(--text-w);padding-left:1.4rem;margin:0 0 1.3rem}
+li{margin:0 0 .4rem}
+li::marker{color:var(--ink-3)}
+li > p{margin:0}
+a{color:var(--navy);text-decoration:underline;text-decoration-color:var(--rule-3);text-underline-offset:3px;text-decoration-thickness:1px;word-break:break-all}
+a:hover{text-decoration-color:var(--navy)}
+strong{font-weight:700;color:var(--ink)}
+em{font-style:normal;color:var(--navy)}
+code{font-family:var(--mono);font-size:.84em;background:var(--paper-2);padding:.08em .34em;border-radius:2px;color:var(--ink)}
+
+/* 손계산 머리말 */
+p.calc-lead{font-family:var(--sans);font-size:15px;color:var(--ink-2);margin:1.8rem 0 .6rem}
+p.calc-lead strong{color:var(--navy);font-weight:600}
+/* 단계 머리말(① 점수 … 처럼 굵은 글만 있는 문단) */
+p.step{font-family:var(--sans);font-size:15.5px;margin:1.8rem 0 .5rem}
+p.step strong{font-weight:600}
+
+/* ── 고정폭 블록 공통 : 한글 2칸 · 기호 1칸으로 정렬 고정 ── */
+pre{margin:0;overflow-x:auto;tab-size:4}
+pre .w{display:inline-block;font-size:1.1em;width:calc(2ch / 1.1);line-height:1;text-align:center;font-family:"IBM Plex Mono",var(--hangul-mono)}
+pre .a{display:inline-block;width:1ch;text-align:center;font-family:"IBM Plex Mono",var(--sym)}
+pre .w .mk{margin:0}
+
+/* 그림(도식) — 상자 없이 위 괘선 */
+figure.diagram{margin:1.8rem 0 2rem;padding:1.3rem 0 .3rem;border-top:1px solid var(--rule);max-width:var(--wide-w)}
+figure.diagram pre{font-family:var(--mono);font-size:13.2px;line-height:1.55;color:var(--ink)}
+
+/* 계산·수식 — 코드 바탕 + 왼쪽 2px 남색 */
+.calc{margin:1rem 0 1.5rem;max-width:var(--wide-w);background:var(--paper-2);border-left:2px solid var(--navy);padding:.95rem 1.25rem}
+.calc pre{font-family:var(--mono);font-size:13.2px;line-height:1.7;color:var(--ink)}
+
+/* 코드 */
+.code{margin:1.3rem 0 1.6rem;max-width:var(--wide-w);background:var(--code-bg);border:1px solid var(--code-line);border-radius:3px;overflow:hidden}
+.code .bar{padding:.45rem 1.1rem;border-bottom:1px solid var(--code-line);font-family:var(--mono);font-size:11.5px;color:var(--code-dim);letter-spacing:.02em}
+.code pre{padding:1rem 1.2rem 1.1rem}
+.code code{background:none;padding:0;border-radius:0;color:var(--code-fg);font-family:var(--mono);font-size:13px;line-height:1.7;display:block;white-space:pre}
+.code .c{color:var(--code-dim)}
+.code .k{color:var(--code-kw)}
+.code .s{color:var(--code-str)}
+.code .n{color:var(--code-num)}
+.code .f{color:var(--code-fn)}
+
+/* ── Callout ──────────────────────────── */
+/* 핵심 정의 · 장 정리 : 남색 옅은 바탕 + 왼쪽 3px */
+.define{background:var(--navy-bg);border-left:3px solid var(--navy);padding:1.05rem 1.4rem;margin:1.6rem 0 1.8rem;max-width:var(--text-w)}
+.define > :last-child{margin-bottom:0}
+.define p{font-size:17px}
+.define .bt{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--navy);margin:0 0 .5rem;letter-spacing:.01em}
+.define ol{margin:0;padding-left:1.3rem;font-size:16px;line-height:1.8}
+.define ol li{margin:0 0 .25rem}
+.define ol li::marker{color:var(--navy);font-family:var(--sans);font-weight:600}
+.summary{margin-top:2.6rem}
+.closing{margin-top:4rem;max-width:var(--text-w)}
+.closing p{font-size:17.5px}
+
+/* 참고 · 주의 : 배경 없이 1px 괘선 */
+blockquote{margin:1.4rem 0 1.6rem;padding:.1rem 0 .1rem 1.2rem;border-left:1px solid var(--rule-3);max-width:var(--text-w);color:var(--ink-2);font-size:16px;line-height:1.85}
+blockquote p{margin:0 0 .5rem}
+blockquote > :last-child{margin-bottom:0}
+blockquote.warn{border-left-color:var(--warn)}
+
+/* FAQ */
+p.faq{margin-bottom:1.5rem}
+p.faq > strong:first-child + br{display:none}
+p.faq > strong:first-child{display:block;font-family:var(--sans);font-weight:600;font-size:15.5px;margin-bottom:.15rem}
+p.faq + .calc{margin-top:-.6rem}
+
+/* ── 표 : 학술서 스타일 ───────────────── */
+.tbl{max-width:var(--wide-w);margin:1.5rem 0 1.9rem;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:14px;line-height:1.65;border-top:1.5px solid var(--ink-2);border-bottom:1.5px solid var(--ink-2)}
+caption{caption-side:top;text-align:left;font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink);padding:0 0 .55rem}
+th,td{border:0;border-bottom:1px solid var(--rule-2);padding:.6rem .8rem;text-align:left;vertical-align:top}
+th:first-child,td:first-child{padding-left:.2rem}
+th{font-weight:600;font-size:13px;border-bottom:1px solid var(--rule-3)}
+tbody tr:last-child td{border-bottom:0}
+td strong{font-weight:600}
+td code{font-size:12.4px}
+.tnum{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+th.tnum{text-align:right}
+/* 한 장 요약 카드 */
+table.card td:first-child{width:5.5rem;font-weight:600;color:var(--navy);white-space:nowrap}
+table.card td:last-child{font-family:var(--mono);font-size:13px;white-space:pre-wrap}
+
+/* 정답 접기 */
+details{max-width:var(--text-w);margin:.4rem 0 1.8rem;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:.6rem 0}
+summary{cursor:pointer;font-family:var(--sans);font-size:14px;font-weight:600;color:var(--navy);list-style:none}
+summary::-webkit-details-marker{display:none}
+details[open] summary{margin-bottom:.8rem}
+details ol{margin-bottom:.4rem}
+
+@media (max-width:1100px){ main{padding:3rem 2.4rem 7rem} }
+@media (max-width:940px){
+  body{font-size:16.5px}
+  .wrap{grid-template-columns:1fr}
+  nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule);padding:1.1rem 1.1rem}
+  nav.toc .toc-head{margin:0;padding-left:0}
+  .toc-toggle{display:inline}
+  nav.toc > ol{margin-top:.8rem}
+  nav.toc.collapsed > ol{display:none}
+  nav.toc ol ol{display:none !important}
+  nav.toc a{padding-left:.5rem}
+  main{padding:2.2rem 1.1rem 5rem}
+  .cover h1{font-size:2rem}
+  .chead h2{font-size:1.72rem}
+  figure.diagram pre,.calc pre{font-size:12px}
+  .calc{padding:.8rem .9rem}
+}
+@media print{
+  nav.toc{display:none}
+  .wrap{grid-template-columns:1fr}
+  body{background:#fff}
+  figure,.calc,.code,table{page-break-inside:avoid}
+}
+
+
+/* ════════ 학습자료 스타일 보정 ════════ */
+/* 차가운 회색 지면 · 괘선 (따뜻한 베이지 제거) */
+:root{
+  --paper:#F5F6F4;
+  --paper-2:#E8EBE8;          /* 인라인 코드 · 수식 바탕 */
+  --ink-3:#6e7378;
+  --rule:#D8DBD5;
+  --rule-2:#E4E7E3;
+  --rule-3:#AEB4AF;
+  --navy-bg:#EAEEF3;
+  --warn:#9a4a32;
+  --plate:#FFFFFF;
+  --code-head:#22303e;
+  --code-accent:#5a84b3;
+  --serif:"Noto Serif KR","Noto Serif CJK KR","Source Han Serif K","Nanum Myeongjo",AppleMyungjo,Batang,"바탕",serif;
+}
+nav.toc{background:var(--paper)}
+nav.toc a:hover{color:var(--navy)}
+nav.toc .toc-head{padding-bottom:.9rem;border-bottom:1px solid var(--rule-2)}
+.cover{border-bottom-color:var(--rule)}
+code{color:#2b3440}
+/* 링크가 한글 문장 중간에서 글자 단위로 끊기지 않게 */
+a{word-break:normal;overflow-wrap:anywhere}
+
+/* 코드 : 각진 모서리, 헤더 바탕, 왼쪽 3px 강철 청색 */
+.code{border-radius:0;border-left:3px solid var(--code-accent)}
+.code .bar{background:var(--code-head);color:#a9b8c8}
+
+/* 도식 : 흰 판 + 1px 괘선 */
+figure.diagram{border:1px solid var(--rule);background:var(--plate);padding:1.3rem 1.5rem}
+
+/* 참고(기본) · 주의 · 핵심 */
+blockquote.warn{color:var(--ink);font-size:17px}
+blockquote.key{background:var(--navy-bg);border-left:3px solid var(--navy);padding:1.05rem 1.4rem;color:var(--ink);font-size:17px}
+blockquote.key strong{color:var(--navy)}
+
+@media (max-width:940px){
+  nav.toc .toc-head{padding-bottom:0;border-bottom:0}
+  figure.diagram{padding:.9rem}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="목차"><div class="toc-head">목차</div><ol><li><a href="#ch0"><span class="n">0장</span><span>10분 요약 — 전체를 한 장에</span></a><ol><li><a href="#s0-1"><span class="n">0.1</span><span>LLM은 딱 한 가지 일만 한다</span></a></li><li><a href="#s0-2"><span class="n">0.2</span><span>데이터가 지나가는 길</span></a></li><li><a href="#s0-3"><span class="n">0.3</span><span>이 책 전체를 두 문단으로</span></a></li><li><a href="#s0-4"><span class="n">0.4</span><span>용어 빠른 사전 — 막히면 여기로 돌아오세요</span></a></li><li><a href="#s0-5"><span class="n">0.5</span><span>텐서 모양(shape) — 끝까지 따라다니는 세 글자</span></a></li></ol></li><li><a href="#ch1"><span class="n">1장</span><span>텍스트를 숫자로 바꾸기</span></a><ol><li><a href="#s1-1"><span class="n">1.1</span><span>왜 숫자로 바꾸나</span></a></li><li><a href="#s1-2"><span class="n">1.2</span><span>단어 단위 토큰화의 한계</span></a></li><li><a href="#s1-3"><span class="n">1.3</span><span>BPE — 모르는 단어를 조각내기</span></a></li><li><a href="#s1-4"><span class="n">1.4</span><span>특수 토큰은 하나뿐</span></a></li><li><a href="#s1-5"><span class="n">1.5</span><span>훈련 데이터 — 정답은 &quot;한 칸 민 것&quot;</span></a></li><li><a href="#s1-6"><span class="n">1.6</span><span>임베딩 = 학습되는 룩업 테이블</span></a></li><li><a href="#s1-7"><span class="n">1.7</span><span>위치 임베딩 — 순서를 알려 주기</span></a></li></ol></li><li><a href="#ch2"><span class="n">2장</span><span>어텐션 — LLM의 심장</span></a><ol><li><a href="#s2-1"><span class="n">2.1</span><span>왜 필요한가 — bank 문제</span></a></li><li><a href="#s2-2"><span class="n">2.2</span><span>어텐션 3단계 — 손으로 직접 계산하기</span></a></li><li><a href="#s2-3"><span class="n">2.3</span><span>문제점: 배우는 게 없다</span></a></li><li><a href="#s2-4"><span class="n">2.4</span><span>Q · K · V — 도서관 비유</span></a></li><li><a href="#s2-5"><span class="n">2.5</span><span>코잘 마스크 — 미래를 가려라</span></a></li><li><a href="#s2-6"><span class="n">2.6</span><span>드롭아웃 — 한 곳에 의존하지 않기</span></a></li><li><a href="#s2-7"><span class="n">2.7</span><span>멀티헤드 — 여러 관점으로 동시에</span></a></li><li><a href="#s2-8"><span class="n">2.8</span><span>이 공식 하나는 외우세요</span></a></li></ol></li><li><a href="#ch3"><span class="n">3장</span><span>GPT 조립하기</span></a><ol><li><a href="#s3-1"><span class="n">3.1</span><span>전체 구조도</span></a></li><li><a href="#s3-2"><span class="n">3.2</span><span>부품 4개</span></a></li><li><a href="#s3-3"><span class="n">3.3</span><span>파라미터 1.24억 개는 어디에 있나</span></a></li><li><a href="#s3-4"><span class="n">3.4</span><span>텍스트 생성 — 한 토큰씩, 반복</span></a></li></ol></li><li><a href="#ch4"><span class="n">4장</span><span>사전 훈련</span></a><ol><li><a href="#s4-1"><span class="n">4.1</span><span>손실 = 정답 확률의 −log</span></a></li><li><a href="#s4-2"><span class="n">4.2</span><span>훈련 루프 — 네 줄이 전부</span></a></li><li><a href="#s4-3"><span class="n">4.3</span><span>과대적합 읽는 법</span></a></li><li><a href="#s4-4"><span class="n">4.4</span><span>디코딩 전략 — 어떤 토큰을 고를까</span></a></li><li><a href="#s4-5"><span class="n">4.5</span><span>진짜 GPT-2 가중치 넣기</span></a></li></ol></li><li><a href="#ch5"><span class="n">5장</span><span>분류 미세 튜닝 — 스팸 판별기</span></a><ol><li><a href="#s5-1"><span class="n">5.1</span><span>바꾸는 것은 딱 세 가지</span></a></li><li><a href="#s5-2"><span class="n">5.2</span><span>왜 마지막 토큰인가</span></a></li><li><a href="#s5-3"><span class="n">5.3</span><span>왜 대부분을 얼리나</span></a></li><li><a href="#s5-4"><span class="n">5.4</span><span>데이터 처리 포인트 3개</span></a></li></ol></li><li><a href="#ch6"><span class="n">6장</span><span>지시 미세 튜닝 — 질문에 답하는 모델</span></a><ol><li><a href="#s6-1"><span class="n">6.1</span><span>문제: 기초 모델은 &quot;이어 쓰기&quot;만 한다</span></a></li><li><a href="#s6-2"><span class="n">6.2</span><span>데이터 형식 (Alpaca 스타일)</span></a></li><li><a href="#s6-3"><span class="n">6.3</span><span>핵심: 훈련은 사전 훈련과 완전히 같다</span></a></li><li><a href="#s6-4"><span class="n">6.4</span><span>배치 만들기 — 패딩과 −100</span></a></li><li><a href="#s6-5"><span class="n">6.5</span><span>평가: 다른 LLM에게 채점시키기</span></a></li><li><a href="#s6-6"><span class="n">6.6</span><span>그 다음은? (책 범위 밖, 방향만)</span></a></li></ol></li><li><a href="#ch7"><span class="n">7장</span><span>이 지식이 최신 모델로 이어지는 길</span></a></li><li><a href="#ch8"><span class="n">8장</span><span>복습 도구</span></a><ol><li><a href="#s8-1"><span class="n">8.1</span><span>한 장 요약 카드 (인쇄해서 붙여 두세요)</span></a></li><li><a href="#s8-2"><span class="n">8.2</span><span>헷갈리는 것 FAQ</span></a></li><li><a href="#s8-3"><span class="n">8.3</span><span>자기 점검 10문제</span></a></li><li><a href="#s8-4"><span class="n">8.4</span><span>직접 망가뜨려 보기 (가장 효과 좋은 학습법)</span></a></li><li><a href="#s8-5"><span class="n">8.5</span><span>추천 학습 순서 (총 5~6일)</span></a></li><li><a href="#s8-6"><span class="n">8.6</span><span>이해를 넓혀 줄 자료</span></a></li></ol></li></ol></nav>
+<main><header class="cover"><h1>밑바닥부터 만드는 LLM — 초심자용 원리 가이드</h1><p><code>llm_from_scratch.py</code>와 짝을 이루는 문서입니다. <strong>이 문서의 장 번호 = 코드의 PART 번호 = 책의 장 번호</strong>로 맞춰 두었습니다.</p><div class="tbl"><table>
+<thead>
+<tr>
+<th>이 문서</th>
+<th>코드</th>
+<th>책</th>
+<th>주제</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0장</td>
+<td>—</td>
+<td>—</td>
+<td><strong>10분 요약</strong> ← 여기부터</td>
+</tr>
+<tr>
+<td>1장</td>
+<td>PART 1</td>
+<td>2장</td>
+<td>텍스트를 숫자로</td>
+</tr>
+<tr>
+<td>2장</td>
+<td>PART 2</td>
+<td>3장</td>
+<td><strong>어텐션</strong> (가장 중요)</td>
+</tr>
+<tr>
+<td>3장</td>
+<td>PART 3</td>
+<td>4장</td>
+<td>GPT 조립</td>
+</tr>
+<tr>
+<td>4장</td>
+<td>PART 4</td>
+<td>5장</td>
+<td>사전 훈련</td>
+</tr>
+<tr>
+<td>5장</td>
+<td>PART 5</td>
+<td>6장</td>
+<td>분류 미세 튜닝</td>
+</tr>
+<tr>
+<td>6장</td>
+<td>PART 6</td>
+<td>7장</td>
+<td>지시 미세 튜닝</td>
+</tr>
+<tr>
+<td>7~8장</td>
+<td>—</td>
+<td>—</td>
+<td>최신 모델 연결 + 복습 도구</td>
+</tr>
+</tbody>
+</table></div><p><strong>읽는 법</strong>: 0장으로 전체 그림을 잡고 → 각 장을 읽은 뒤 해당 PART를 실행 → <span class="mk">🔍</span> 표시된 손계산을 종이에 직접 해 보세요. <strong>손계산이 이 문서에서 가장 중요한 부분입니다.</strong></p></header><section class="ch" id="ch0"><div class="chead"><div class="cno"><span class="mk">⚡</span> 0장</div><h2>10분 요약 — 전체를 한 장에</h2></div><h3 id="s0-1"><span class="hn">0.1</span>LLM은 딱 한 가지 일만 한다</h3><div class="define">
+<p><strong>LLM = 지금까지 나온 토큰들을 보고, 다음 토큰이 무엇일지 확률로 맞히는 기계</strong></p>
+</div><p>ChatGPT가 긴 글을 쓰는 것도 이 일을 한 토큰씩 수천 번 반복한 결과일 뿐입니다.</p><figure class="diagram"><pre>   "Every effort moves"  <span class="a">─</span><span class="a">─</span><span class="a">▶</span>  [ LLM ]  <span class="a">─</span><span class="a">─</span><span class="a">▶</span>   you   61%   <span class="a">◀</span><span class="a">─</span><span class="a">─</span> <span class="w">이</span><span class="w">걸</span> <span class="w">고</span><span class="w">른</span><span class="w">다</span>
+                                              the   12%
+                                              us     8%
+                                              ...          (<span class="w">후</span><span class="w">보</span> 50,257<span class="w">개</span> <span class="w">전</span><span class="w">부</span>)
+
+   "Every effort moves you"  <span class="a">─</span><span class="a">─</span><span class="a">▶</span>  [ LLM ]  <span class="a">─</span><span class="a">─</span><span class="a">▶</span>  <span class="w">다</span><span class="w">시</span> <span class="w">반</span><span class="w">복</span> …</pre></figure><p><strong>이것 하나만 붙잡으면, 나머지는 전부 "어떻게 잘 맞히게 만드나"의 이야기입니다.</strong></p><h3 id="s0-2"><span class="hn">0.2</span>데이터가 지나가는 길</h3><figure class="diagram"><pre>  <span class="w">①</span> "Hi there"            <span class="w">텍</span><span class="w">스</span><span class="w">트</span>
+        ↓  <span class="w">토</span><span class="w">큰</span><span class="w">화</span> (BPE)
+  <span class="w">②</span> [17250, 612]          <span class="w">토</span><span class="w">큰</span> ID  <span class="a">─</span> <span class="w">숫</span><span class="w">자</span> <span class="w">번</span><span class="w">호</span><span class="w">표</span>
+        ↓  <span class="w">임</span><span class="w">베</span><span class="w">딩</span> + <span class="w">위</span><span class="w">치</span> <span class="w">정</span><span class="w">보</span>
+  <span class="w">③</span> [[0.1,-0.4,…],        <span class="w">벡</span><span class="w">터</span>  <span class="a">─</span> <span class="w">뜻</span><span class="w">을</span> <span class="w">담</span><span class="w">은</span> <span class="w">숫</span><span class="w">자</span> <span class="w">묶</span><span class="w">음</span>
+     [0.7, 0.2,…]]
+        ↓
+  <span class="a">┌</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┐</span>
+  <span class="a">│</span>  <span class="w">④</span> <span class="w">트</span><span class="w">랜</span><span class="w">스</span><span class="w">포</span><span class="w">머</span> <span class="w">블</span><span class="w">록</span> × 12<span class="w">번</span> <span class="w">반</span><span class="w">복</span>        <span class="a">│</span>
+  <span class="a">│</span>     <span class="a">├</span> <span class="w">어</span><span class="w">텐</span><span class="w">션</span> : <span class="w">토</span><span class="w">큰</span><span class="w">끼</span><span class="w">리</span> <span class="w">정</span><span class="w">보</span> <span class="w">교</span><span class="w">환</span>      <span class="a">│</span>  <span class="a">←</span> 2<span class="w">장</span>
+  <span class="a">│</span>     <span class="a">└</span> FFN    : <span class="w">토</span><span class="w">큰</span><span class="w">별</span> <span class="w">정</span><span class="w">보</span> <span class="w">가</span><span class="w">공</span>        <span class="a">│</span>  <span class="a">←</span> 3<span class="w">장</span>
+  <span class="a">└</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┘</span>
+        ↓
+  <span class="w">⑤</span> <span class="w">로</span><span class="w">짓</span> 50,257<span class="w">개</span>         "<span class="w">각</span> <span class="w">단</span><span class="w">어</span><span class="w">가</span> <span class="w">다</span><span class="w">음</span><span class="w">에</span> <span class="w">올</span> <span class="w">점</span><span class="w">수</span>"
+        ↓  softmax
+  <span class="w">⑥</span> <span class="w">확</span><span class="w">률</span> <span class="a">→</span> <span class="w">하</span><span class="w">나</span> <span class="w">고</span><span class="w">르</span><span class="w">기</span> <span class="a">→</span> <span class="w">뒤</span><span class="w">에</span> <span class="w">붙</span><span class="w">이</span><span class="w">고</span> <span class="w">①</span><span class="w">로</span> <span class="w">돌</span><span class="w">아</span><span class="w">감</span></pre></figure><h3 id="s0-3"><span class="hn">0.3</span>이 책 전체를 두 문단으로</h3><figure class="diagram"><pre> <span class="a">┌</span><span class="a">─</span><span class="a">─</span> 1<span class="w">단</span><span class="w">계</span>: <span class="w">부</span><span class="w">품</span> <span class="w">만</span><span class="w">들</span><span class="w">기</span> (2~4<span class="w">장</span>) <span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┐</span>
+ <span class="a">│</span>  <span class="w">글</span><span class="w">자</span><span class="w">를</span> <span class="w">벡</span><span class="w">터</span><span class="w">로</span> <span class="w">바</span><span class="w">꾸</span><span class="w">고</span>(2<span class="w">장</span>), <span class="w">어</span><span class="w">텐</span><span class="w">션</span><span class="w">으</span><span class="w">로</span> <span class="w">문</span><span class="w">맥</span><span class="w">을</span> <span class="w">섞</span><span class="w">고</span>(3<span class="w">장</span>),   <span class="a">│</span>
+ <span class="a">│</span>  <span class="w">이</span><span class="w">를</span> <span class="w">블</span><span class="w">록</span><span class="w">으</span><span class="w">로</span> <span class="w">쌓</span><span class="w">아</span> GPT<span class="w">를</span> <span class="w">조</span><span class="w">립</span><span class="w">한</span><span class="w">다</span>(4<span class="w">장</span>).                   <span class="a">│</span>
+ <span class="a">└</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┘</span>
+ <span class="a">┌</span><span class="a">─</span><span class="a">─</span> 2<span class="w">단</span><span class="w">계</span>: <span class="w">가</span><span class="w">르</span><span class="w">치</span><span class="w">기</span> (5~7<span class="w">장</span>) <span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┐</span>
+ <span class="a">│</span>  <span class="w">대</span><span class="w">량</span> <span class="w">텍</span><span class="w">스</span><span class="w">트</span><span class="w">로</span> "<span class="w">다</span><span class="w">음</span> <span class="w">토</span><span class="w">큰</span> <span class="w">맞</span><span class="w">히</span><span class="w">기</span>"<span class="w">를</span> <span class="w">시</span><span class="w">켜</span> <span class="w">언</span><span class="w">어</span><span class="w">를</span> <span class="w">배</span><span class="w">우</span><span class="w">게</span> <span class="w">하</span><span class="w">고</span><span class="a">│</span>
+ <span class="a">│</span>  (5<span class="w">장</span> = <span class="w">사</span><span class="w">전</span> <span class="w">훈</span><span class="w">련</span>), <span class="w">그</span> <span class="w">모</span><span class="w">델</span><span class="w">을</span> <span class="w">소</span><span class="w">량</span> <span class="w">데</span><span class="w">이</span><span class="w">터</span><span class="w">로</span> <span class="w">다</span><span class="w">듬</span><span class="w">어</span>         <span class="a">│</span>
+ <span class="a">│</span>  <span class="w">분</span><span class="w">류</span><span class="w">기</span>(6<span class="w">장</span>)<span class="w">나</span> <span class="w">대</span><span class="w">화</span> <span class="w">모</span><span class="w">델</span>(7<span class="w">장</span>)<span class="w">로</span> <span class="w">만</span><span class="w">든</span><span class="w">다</span>.                    <span class="a">│</span>
+ <span class="a">└</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┘</span></pre></figure><p>비유하면 <strong>사전 훈련 = 대학에서 폭넓게 공부</strong>(비용의 99%), <strong>미세 튜닝 = 입사 후 직무 교육</strong>(짧고 싸지만 실제 쓸모를 만듦).</p><h3 id="s0-4"><span class="hn">0.4</span>용어 빠른 사전 — 막히면 여기로 돌아오세요</h3><div class="tbl"><table>
+<thead>
+<tr>
+<th>용어</th>
+<th>한 줄 뜻</th>
+<th>비유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>토큰</strong></td>
+<td>텍스트를 자른 조각. 단어보다 작을 수 있음</td>
+<td>레고 블록 한 개</td>
+</tr>
+<tr>
+<td><strong>토큰 ID</strong></td>
+<td>토큰에 붙인 번호 (0~50256)</td>
+<td>사원 번호</td>
+</tr>
+<tr>
+<td><strong>어휘사전(vocab)</strong></td>
+<td>토큰 ↔ 번호 대응표. GPT-2는 50,257개</td>
+<td>사원 명부</td>
+</tr>
+<tr>
+<td><strong>임베딩</strong></td>
+<td>번호를 벡터로 바꾸는 표</td>
+<td>번호 → 인적사항 카드</td>
+</tr>
+<tr>
+<td><strong>벡터 / 차원</strong></td>
+<td>숫자 여러 개의 묶음. GPT-2는 768개</td>
+<td>768칸짜리 성적표</td>
+</tr>
+<tr>
+<td><strong>로짓(logit)</strong></td>
+<td>모델이 뱉는 날 점수. 음수도 됨</td>
+<td>채점 전 원점수</td>
+</tr>
+<tr>
+<td><strong>softmax</strong></td>
+<td>점수를 합이 1인 확률로 바꾸는 함수</td>
+<td>원점수 → 비율(%)</td>
+</tr>
+<tr>
+<td><strong>어텐션</strong></td>
+<td>토큰들이 서로를 참고해 정보를 섞는 장치</td>
+<td>회의</td>
+</tr>
+<tr>
+<td><strong>Q / K / V</strong></td>
+<td>질문 / 이름표 / 내용물</td>
+<td>검색어 / 책 라벨 / 책 내용</td>
+</tr>
+<tr>
+<td><strong>헤드(head)</strong></td>
+<td>어텐션 한 세트. 여러 개를 병렬로 씀</td>
+<td>관점 하나</td>
+</tr>
+<tr>
+<td><strong>마스크</strong></td>
+<td>미래 토큰을 못 보게 가리기</td>
+<td>시험 중 답안지 가리기</td>
+</tr>
+<tr>
+<td><strong>문맥 길이</strong></td>
+<td>한 번에 볼 수 있는 최대 토큰 수 (GPT-2는 1024)</td>
+<td>시야 범위</td>
+</tr>
+<tr>
+<td><strong>FFN</strong></td>
+<td>토큰 하나하나를 가공하는 층. 지식 저장소</td>
+<td>회의 후 개인 정리</td>
+</tr>
+<tr>
+<td><strong>LayerNorm</strong></td>
+<td>값의 크기를 평균 0·분산 1로 맞추기</td>
+<td>단위 통일</td>
+</tr>
+<tr>
+<td><strong>잔차(숏컷) 연결</strong></td>
+<td>출력에 입력을 그대로 더하기 <code>x + f(x)</code></td>
+<td>원본 보존 후 수정</td>
+</tr>
+<tr>
+<td><strong>파라미터</strong></td>
+<td>훈련으로 배우는 숫자. GPT-2는 1.24억 개</td>
+<td>뇌의 시냅스</td>
+</tr>
+<tr>
+<td><strong>손실(loss)</strong></td>
+<td>얼마나 틀렸나. 낮을수록 좋음</td>
+<td>오답 점수</td>
+</tr>
+<tr>
+<td><strong>역전파</strong></td>
+<td>각 파라미터가 손실에 준 영향 계산</td>
+<td>책임 소재 추적</td>
+</tr>
+<tr>
+<td><strong>에포크</strong></td>
+<td>훈련 데이터를 한 바퀴 도는 것</td>
+<td>문제집 1회독</td>
+</tr>
+<tr>
+<td><strong>사전 훈련</strong></td>
+<td>대량 텍스트로 언어 자체를 배우는 단계</td>
+<td>대학 교육</td>
+</tr>
+<tr>
+<td><strong>미세 튜닝</strong></td>
+<td>소량 데이터로 특정 일을 배우는 단계</td>
+<td>직무 교육</td>
+</tr>
+<tr>
+<td><strong>배치</strong></td>
+<td>한 번에 처리하는 샘플 묶음</td>
+<td>한 판에 굽는 쿠키 수</td>
+</tr>
+</tbody>
+</table></div><h3 id="s0-5"><span class="hn">0.5</span>텐서 모양(shape) — 끝까지 따라다니는 세 글자</h3><figure class="diagram"><pre>        (b,  T,  d)
+         <span class="a">│</span>   <span class="a">│</span>   <span class="a">│</span>
+         <span class="a">│</span>   <span class="a">│</span>   <span class="a">└</span><span class="a">─</span><span class="a">─</span> <span class="w">차</span><span class="w">원</span> (<span class="w">임</span><span class="w">베</span><span class="w">딩</span> <span class="w">크</span><span class="w">기</span>, <span class="w">예</span>: 768)
+         <span class="a">│</span>   <span class="a">└</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span> <span class="w">토</span><span class="w">큰</span> <span class="w">수</span> (<span class="w">예</span>: 4)
+         <span class="a">└</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span> <span class="w">배</span><span class="w">치</span> (<span class="w">한</span> <span class="w">번</span><span class="w">에</span> <span class="w">넣</span><span class="w">은</span> <span class="w">문</span><span class="w">장</span> <span class="w">수</span>, <span class="w">예</span>: 2)</pre></figure><div class="tbl"><table>
+<thead>
+<tr>
+<th>지점</th>
+<th>모양</th>
+<th class="tnum">예</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>토큰 ID</td>
+<td>(b, T)</td>
+<td class="tnum">(2, 4)</td>
+</tr>
+<tr>
+<td>임베딩 후 ~ 마지막 블록까지</td>
+<td><strong>(b, T, d)</strong></td>
+<td class="tnum">(2, 4, 768)</td>
+</tr>
+<tr>
+<td>출력층 통과 후(로짓)</td>
+<td>(b, T, V)</td>
+<td class="tnum">(2, 4, 50257)</td>
+</tr>
+</tbody>
+</table></div><p>중간 과정 내내 <strong>모양이 (b, T, d)로 유지된다</strong>는 것이 트랜스포머의 특징입니다. 헷갈릴 때마다 모양을 적어 보면 대부분 풀립니다.</p></section><section class="ch" id="ch1"><div class="chead"><div class="cno">1장</div><h2>텍스트를 숫자로 바꾸기</h2><p class="lede-label">이 장 한 문장</p><p class="lede">글자를 잘라(토큰화) 번호를 붙이고(ID), 그 번호를 뜻이 담긴 벡터로 바꾼다(임베딩). 순서 정보를 더하면 모델 입력 완성.</p><p class="meta"><span class="mk">⏱</span> 10분 · 코드 PART 1 · 책 2장</p></div><h3 id="s1-1"><span class="hn">1.1</span>왜 숫자로 바꾸나</h3><p>신경망은 덧셈과 곱셈만 합니다. "Hello"를 곱할 수는 없습니다. 그래서 3단계 변환이 필요합니다.</p><figure class="diagram"><pre> "Hello, world"
+   <span class="a">│</span> <span class="w">①</span> <span class="w">토</span><span class="w">큰</span><span class="w">화</span> <span class="a">─</span> <span class="w">자</span><span class="w">르</span><span class="w">기</span>
+   <span class="a">▼</span>
+ ["Hello", ",", " world"]
+   <span class="a">│</span> <span class="w">②</span> ID<span class="w">화</span> <span class="a">─</span> <span class="w">사</span><span class="w">전</span><span class="w">에</span><span class="w">서</span> <span class="w">번</span><span class="w">호</span> <span class="w">찾</span><span class="w">기</span>
+   <span class="a">▼</span>
+ [15496, 11, 995]
+   <span class="a">│</span> <span class="w">③</span> <span class="w">임</span><span class="w">베</span><span class="w">딩</span> <span class="a">─</span> <span class="w">번</span><span class="w">호</span><span class="w">로</span> <span class="w">표</span><span class="w">에</span><span class="w">서</span> <span class="w">벡</span><span class="w">터</span> <span class="w">꺼</span><span class="w">내</span><span class="w">기</span>
+   <span class="a">▼</span>
+ [[0.12, -0.53, 0.88, …],   <span class="a">←</span> "Hello"<span class="w">의</span> <span class="w">벡</span><span class="w">터</span> (<span class="w">숫</span><span class="w">자</span> 768<span class="w">개</span>)
+  [0.01,  0.44, -0.20, …],  <span class="a">←</span> ","
+  [0.77, -0.11, 0.35, …]]   <span class="a">←</span> " world"</pre></figure><h3 id="s1-2"><span class="hn">1.2</span>단어 단위 토큰화의 한계</h3><div class="calc"><pre> <span class="w">사</span><span class="w">전</span><span class="w">에</span> <span class="w">있</span><span class="w">는</span> <span class="w">단</span><span class="w">어</span>:  the, cat, house, …  (1,132<span class="w">개</span>)
+ <span class="w">입</span><span class="w">력</span>:   "Hello, do you like tea?"
+ <span class="w">결</span><span class="w">과</span>:   &lt;|unk|&gt;, do you like tea?      <span class="a">←</span> Hello<span class="w">를</span> <span class="w">통</span><span class="w">째</span><span class="w">로</span> <span class="w">못</span> <span class="w">알</span><span class="w">아</span><span class="w">봄</span></pre></div><p>훈련 때 못 본 단어는 전부 <code>&lt;|unk|&gt;</code>(모름)로 뭉개집니다. 사람 이름, 신조어, 오타, 외국어… 전부요.</p><h3 id="s1-3"><span class="hn">1.3</span>BPE — 모르는 단어를 조각내기</h3><p><strong>BPE(Byte Pair Encoding)</strong> 는 "단어를 더 작은 조각으로 쪼개기"로 해결합니다.</p><figure class="diagram"><pre> "someunknownPlace"  <span class="a">─</span><span class="a">─</span>BPE<span class="a">─</span><span class="a">─</span><span class="a">▶</span>  [" some", "unknown", "Place"]
+ "unfamiliarword"    <span class="a">─</span><span class="a">─</span>BPE<span class="a">─</span><span class="a">─</span><span class="a">▶</span>  ["unf", "amiliar", "word"]
+ "<span class="w">고</span><span class="w">양</span><span class="w">이</span>"            <span class="a">─</span><span class="a">─</span>BPE<span class="a">─</span><span class="a">─</span><span class="a">▶</span>  [<span class="w">바</span><span class="w">이</span><span class="w">트</span> <span class="w">조</span><span class="w">각</span><span class="w">들</span>]     <span class="a">←</span> <span class="w">최</span><span class="w">악</span><span class="w">의</span> <span class="w">경</span><span class="w">우</span><span class="w">에</span><span class="w">도</span> <span class="w">처</span><span class="w">리</span><span class="w">됨</span></pre></figure><p><strong>만드는 방법</strong> (3줄):</p><ol>
+<li>글자(정확히는 바이트) 단위로 시작 → 256개</li>
+<li>훈련 텍스트에서 <strong>가장 자주 붙어 나오는 쌍</strong>을 하나로 합침 (<code>t</code>+<code>h</code> → <code>th</code>)</li>
+<li>5만 번 반복 → 흔한 단어는 통째로, 드문 단어는 조각으로 남음</li>
+</ol><div class="calc"><pre> GPT-2 <span class="w">어</span><span class="w">휘</span><span class="w">사</span><span class="w">전</span> 50,257 = 256(<span class="w">바</span><span class="w">이</span><span class="w">트</span>) + 50,000(<span class="w">합</span><span class="w">친</span> <span class="w">조</span><span class="w">각</span>) + 1(&lt;|endoftext|&gt;)</pre></div><p>어떤 글자가 와도 바이트로는 쪼갤 수 있으므로 <strong><code>&lt;unk&gt;</code>가 아예 필요 없습니다.</strong></p><blockquote>
+<p><span class="mk">💡</span> 코드에서 조각을 하나씩 출력해 보면 <code>" do"</code>처럼 <strong>앞 공백이 토큰에 포함</strong>됩니다. GPT-2 BPE의 특징입니다.<br/>
+<span class="mk">🔗</span> 직접 실험: <a href="https://tiktokenizer.vercel.app">https://tiktokenizer.vercel.app</a> 에 아무 문장이나 넣어 보세요. 한글이 얼마나 비효율적으로 잘리는지도 보입니다.</p>
+</blockquote><h3 id="s1-4"><span class="hn">1.4</span>특수 토큰은 하나뿐</h3><p>GPT-2가 쓰는 특수 토큰은 <strong><code>&lt;|endoftext|&gt;</code> (ID 50256)</strong> 딱 하나입니다.</p><ul>
+<li>문서 경계 표시 — <code>문서1 &lt;|endoftext|&gt; 문서2</code></li>
+<li>배치 안 길이를 맞추는 <strong>패딩</strong> (5·6장에서 등장)</li>
+</ul><h3 id="s1-5"><span class="hn">1.5</span>훈련 데이터 — 정답은 "한 칸 민 것"</h3><p>LLM은 사람이 라벨을 달 필요가 없습니다. <strong>텍스트 자체가 문제이자 정답</strong>이기 때문입니다.</p><div class="calc"><pre> <span class="w">원</span><span class="w">본</span> <span class="w">토</span><span class="w">큰</span>:  [ I ]  [ HAD ]  [ always ]  [ thought ]  [ Jack ]
+
+ <span class="w">입</span><span class="w">력</span> x :    [  I  ,  HAD  ,  always  ,  thought  ]
+                  <span class="a">↘</span>      <span class="a">↘</span>        <span class="a">↘</span>          <span class="a">↘</span>        <span class="a">←</span> <span class="w">한</span> <span class="w">칸</span><span class="w">씩</span> <span class="w">밀</span><span class="w">림</span>
+ <span class="w">타</span><span class="w">깃</span> y :         [ HAD  , always ,  thought ,  Jack  ]</pre></div><p>여기서 중요한 사실. <strong>길이 4짜리 시퀀스 하나가 4개의 문제를 담고 있습니다.</strong></p><div class="tbl"><table>
+<thead>
+<tr>
+<th>본 것</th>
+<th>맞혀야 할 것</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>I</code></td>
+<td><code>HAD</code></td>
+</tr>
+<tr>
+<td><code>I HAD</code></td>
+<td><code>always</code></td>
+</tr>
+<tr>
+<td><code>I HAD always</code></td>
+<td><code>thought</code></td>
+</tr>
+<tr>
+<td><code>I HAD always thought</code></td>
+<td><code>Jack</code></td>
+</tr>
+</tbody>
+</table></div><p>2장의 코잘 마스크 덕분에 이 4문제를 <strong>한 번의 계산으로 전부</strong> 풉니다. 트랜스포머 훈련이 빠른 핵심 이유입니다.</p><blockquote>
+<p><code>stride</code>는 윈도를 몇 칸씩 밀지 정합니다. <code>stride = max_length</code>면 겹치지 않게 자릅니다(책의 훈련 설정).</p>
+</blockquote><h3 id="s1-6"><span class="hn">1.6</span>임베딩 = 학습되는 룩업 테이블</h3><p><code>nn.Embedding(50257, 768)</code>은 어렵게 생겼지만 <strong>그냥 50,257행 × 768열짜리 표</strong>입니다.</p><figure class="diagram"><pre>          <span class="a">┌</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span> <span class="w">숫</span><span class="w">자</span> 768<span class="w">개</span> <span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┐</span>
+  ID   0  <span class="a">│</span> 0.02  -0.11   0.40  …  <span class="a">│</span>
+  ID   1  <span class="a">│</span> 0.31   0.07  -0.22  …  <span class="a">│</span>
+   …      <span class="a">│</span>           …            <span class="a">│</span>
+  ID 995  <span class="a">│</span> 0.77  -0.11   0.35  …  <span class="a">│</span> <span class="a">◀</span><span class="a">─</span><span class="a">─</span> " world"<span class="w">를</span> <span class="w">넣</span><span class="w">으</span><span class="w">면</span> <span class="w">이</span> <span class="w">행</span><span class="w">이</span> <span class="w">나</span><span class="w">옴</span>
+   …      <span class="a">│</span>           …            <span class="a">│</span></pre></figure><ul>
+<li>처음엔 <strong>랜덤 숫자</strong>입니다.</li>
+<li>훈련하면서 <strong>비슷한 뜻의 단어가 비슷한 벡터가 되도록</strong> 스스로 배웁니다.</li>
+</ul><p class="calc-lead"><span class="mk">🔍</span> <strong>손으로 확인</strong> — 벡터가 "뜻"을 담는다는 게 무슨 말인가?</p><div class="calc"><pre> king = [ 0.9, 0.1]     queen = [ 0.8, 0.2]     banana = [-0.7, 0.6]
+
+ king · queen  = 0.9×0.8 + 0.1×0.2  =  0.74   <span class="a">←</span> <span class="w">크</span><span class="w">다</span> = <span class="w">비</span><span class="w">슷</span><span class="w">하</span><span class="w">다</span>
+ king · banana = 0.9×(-0.7) + 0.1×0.6 = -0.57  <span class="a">←</span> <span class="w">작</span><span class="w">다</span> = <span class="w">안</span> <span class="w">비</span><span class="w">슷</span><span class="w">하</span><span class="w">다</span></pre></div><p><strong>점곱(내적)이 클수록 비슷하다.</strong> 이 사실 하나가 2장 어텐션의 출발점입니다.</p><blockquote>
+<p><span class="mk">💡</span> 임베딩은 원-핫 벡터에 행렬을 곱한 것과 <strong>수학적으로 같습니다.</strong> 다만 "행 하나 꺼내기"가 훨씬 빠릅니다.</p>
+</blockquote><h3 id="s1-7"><span class="hn">1.7</span>위치 임베딩 — 순서를 알려 주기</h3><p>곧 배울 어텐션은 <strong>순서를 모릅니다.</strong> "개가 사람을 물었다"와 "사람이 개를 물었다"를 같은 단어 자루로 봅니다. 그래서 "너는 3번째야"라는 정보를 벡터로 <strong>더해</strong> 줍니다.</p><div class="calc"><pre>   <span class="w">입</span><span class="w">력</span> <span class="w">벡</span><span class="w">터</span>  =  <span class="w">토</span><span class="w">큰</span> <span class="w">임</span><span class="w">베</span><span class="w">딩</span>(<span class="w">무</span><span class="w">슨</span> <span class="w">단</span><span class="w">어</span>)  +  <span class="w">위</span><span class="w">치</span> <span class="w">임</span><span class="w">베</span><span class="w">딩</span>(<span class="w">몇</span> <span class="w">번</span><span class="w">째</span>)
+
+    " world"<span class="w">의</span> <span class="w">뜻</span>        3<span class="w">번</span><span class="w">째</span> <span class="w">자</span><span class="w">리</span>
+   [0.77, -0.11, …]  +  [0.05, 0.30, …]  =  [0.82, 0.19, …]</pre></div><p>GPT-2는 위치마다 벡터를 하나씩 학습합니다(<code>nn.Embedding(1024, 768)</code>). 그래서 문맥 길이가 1024로 고정됩니다. 최신 모델은 RoPE(회전 방식)를 쓰지만 <strong>"순서를 벡터에 새긴다"는 목적은 같습니다.</strong></p><div class="define summary"><p class="bt"><span class="mk">✅</span> 1장 정리 ─────────────────────────────────────────────────┐</p><ol><li>텍스트 → BPE 토큰 ID → 임베딩 벡터 + 위치 벡터 = 모델 입력</li><li>정답은 입력을 한 칸 민 것. 사람의 라벨링이 필요 없다.</li><li>임베딩은 훈련되는 룩업 표. 점곱이 크면 비슷한 뜻.</li></ol></div></section><section class="ch" id="ch2"><div class="chead"><div class="cno">2장</div><h2>어텐션 — LLM의 심장 <span class="mk">⭐</span></h2><p class="lede-label">이 장 한 문장</p><p class="lede">각 토큰이 다른 토큰들을 "얼마나 참고할지" 비율로 정하고, 그 비율대로 정보를 섞어 문맥이 반영된 새 벡터를 만든다.</p><p class="meta"><span class="mk">⏱</span> 25분 · 코드 PART 2 · 책 3장   ← 시간을 가장 많이 쓸 곳</p></div><h3 id="s2-1"><span class="hn">2.1</span>왜 필요한가 — bank 문제</h3><div class="calc"><pre>  "river bank"    <span class="a">→</span>  bank = <span class="w">강</span><span class="w">둑</span>
+  "bank account"  <span class="a">→</span>  bank = <span class="w">은</span><span class="w">행</span></pre></div><p>1장의 임베딩은 "bank"에 <strong>항상 같은 벡터</strong>를 줍니다. 뜻이 문맥에 따라 달라지는데도 말이죠. 그래서 <strong>주변을 보고 벡터를 고쳐 쓰는 장치</strong>가 필요합니다.</p><p><strong>회의 비유</strong>: 각자 자기 의견(임베딩 벡터)을 들고 회의실에 들어갑니다. 회의(어텐션)에서 남의 말을 듣되, 관련 있는 사람 말은 많이 듣고 관련 없는 사람 말은 흘립니다. 회의가 끝나면 각자의 의견이 업데이트됩니다(문맥 벡터).</p><h3 id="s2-2"><span class="hn">2.2</span>어텐션 3단계 — 손으로 직접 계산하기 <span class="mk">🔍</span></h3><p>토큰 3개, 각 벡터가 2차원인 아주 작은 예로 전 과정을 계산해 봅시다.</p><div class="calc"><pre>   A = [1, 0]      B = [0, 1]      C = [1, 1]</pre></div><p class="step"><strong>① 점수(score): 점곱으로 관련도 재기</strong></p><p>C가 다른 토큰들과 얼마나 관련 있나?</p><div class="calc"><pre>  C·A = 1×1 + 1×0 = 1
+  C·B = 1×0 + 1×1 = 1
+  C·C = 1×1 + 1×1 = 2      <span class="a">←</span> <span class="w">자</span><span class="w">기</span> <span class="w">자</span><span class="w">신</span><span class="w">과</span> <span class="w">가</span><span class="w">장</span> <span class="w">비</span><span class="w">슷</span> (<span class="w">당</span><span class="w">연</span>)
+
+  <span class="w">점</span><span class="w">수</span> = [1, 1, 2]</pre></div><p class="step"><strong>② 가중치(weight): softmax로 비율 만들기</strong></p><p>softmax는 "각 값에 e를 씌우고, 전체 합으로 나눈다"가 전부입니다.</p><div class="calc"><pre>  e¹ = 2.718    e¹ = 2.718    e² = 7.389        <span class="w">합</span> = 12.826
+
+  2.718 / 12.826 = 0.212
+  2.718 / 12.826 = 0.212
+  7.389 / 12.826 = 0.576                   <span class="w">합</span> = 1.000 <span class="a">✓</span>
+
+  <span class="w">가</span><span class="w">중</span><span class="w">치</span> = [0.212, 0.212, 0.576]</pre></div><p class="step"><strong>③ 문맥 벡터: 가중합</strong></p><div class="calc"><pre>  z(C) = 0.212×[1,0] + 0.212×[0,1] + 0.576×[1,1]
+       = [0.212, 0] + [0, 0.212] + [0.576, 0.576]
+       = [0.788, 0.788]</pre></div><p><strong>끝입니다.</strong> 어텐션은 이 3단계가 전부입니다. 차원이 768로 커지고 토큰이 1024개로 늘어날 뿐, 계산은 똑같습니다.</p><p><strong>왜 하필 softmax인가?</strong> 세 가지를 한 번에 해 주기 때문입니다.</p><ul>
+<li>음수를 없앤다 (e를 씌우면 전부 양수)</li>
+<li>합을 1로 만든다 → "비율"로 해석 가능</li>
+<li>큰 값은 더 키우고 작은 값은 더 줄인다 → <strong>중요한 것에 집중</strong></li>
+</ul><p>전체 문장에 대해 한꺼번에 하면 행렬 곱 두 번입니다.</p><div class="code"><div class="bar">python</div><pre><code>weights = <span class="f">softmax</span>(X @ X.T)   <span class="c"># (6,3)@(3,6) = (6,6)  모든 쌍의 관계</span>
+context = weights @ X        <span class="c"># (6,6)@(6,3) = (6,3)  모든 토큰의 새 벡터</span></code></pre></div><h3 id="s2-3"><span class="hn">2.3</span>문제점: 배우는 게 없다</h3><p>2.2의 어텐션에는 <strong>학습되는 파라미터가 하나도 없습니다.</strong> 입력끼리 점곱할 뿐이라, 모델이 "무엇에 주목할지"를 조정할 수 없습니다. 그래서 <strong>학습 가능한 행렬 3개</strong>를 끼워 넣습니다.</p><h3 id="s2-4"><span class="hn">2.4</span>Q · K · V — 도서관 비유</h3><figure class="diagram"><pre>              <span class="a">┌</span><span class="a">─</span><span class="a">─</span><span class="a">▶</span> × W_q <span class="a">─</span><span class="a">─</span><span class="a">▶</span>  Q (Query, <span class="w">질</span><span class="w">문</span>)    "<span class="w">나</span><span class="w">는</span> <span class="w">무</span><span class="w">엇</span><span class="w">을</span> <span class="w">찾</span><span class="w">나</span>?"
+   <span class="w">입</span><span class="w">력</span> x <span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┼</span><span class="a">─</span><span class="a">─</span><span class="a">▶</span> × W_k <span class="a">─</span><span class="a">─</span><span class="a">▶</span>  K (Key, <span class="w">이</span><span class="w">름</span><span class="w">표</span>)    "<span class="w">나</span><span class="w">는</span> <span class="w">이</span><span class="w">런</span> <span class="w">걸</span> <span class="w">갖</span><span class="w">고</span> <span class="w">있</span><span class="w">다</span>"
+              <span class="a">└</span><span class="a">─</span><span class="a">─</span><span class="a">▶</span> × W_v <span class="a">─</span><span class="a">─</span><span class="a">▶</span>  V (Value, <span class="w">내</span><span class="w">용</span><span class="w">물</span>)  "<span class="w">실</span><span class="w">제</span><span class="w">로</span> <span class="w">넘</span><span class="w">겨</span><span class="w">줄</span> <span class="w">정</span><span class="w">보</span>"
+                     ↑
+               <span class="w">이</span> 3<span class="w">개</span><span class="w">가</span> <span class="w">훈</span><span class="w">련</span><span class="w">으</span><span class="w">로</span> <span class="w">학</span><span class="w">습</span><span class="w">되</span><span class="w">는</span> <span class="w">행</span><span class="w">렬</span></pre></figure><div class="tbl"><table>
+<thead>
+<tr>
+<th>역할</th>
+<th>도서관 비유</th>
+<th>예</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Query</strong></td>
+<td>내가 검색창에 치는 말</td>
+<td>"고양이 키우기"</td>
+</tr>
+<tr>
+<td><strong>Key</strong></td>
+<td>책 등에 붙은 라벨</td>
+<td>"반려동물" / "요리" / "물리"</td>
+</tr>
+<tr>
+<td><strong>Value</strong></td>
+<td>책의 실제 내용</td>
+<td>본문</td>
+</tr>
+</tbody>
+</table></div><p>검색어(Q)와 라벨(K)을 비교해서, 관련도가 높은 책의 <strong>내용(V)</strong> 을 더 많이 가져옵니다.</p><div class="calc"><pre>  scores  = Q @ K<span class="a">ᵀ</span>                     <span class="a">←</span> <span class="w">질</span><span class="w">문</span> vs <span class="w">이</span><span class="w">름</span><span class="w">표</span>
+  weights = softmax(scores / <span class="a">√</span>d_k)     <span class="a">←</span> <span class="w">비</span><span class="w">율</span><span class="w">로</span>
+  context = weights @ V                <span class="a">←</span> <span class="w">내</span><span class="w">용</span><span class="w">물</span><span class="w">을</span> <span class="w">비</span><span class="w">율</span><span class="w">대</span><span class="w">로</span> <span class="w">섞</span><span class="w">기</span></pre></div><p><strong>왜 굳이 셋으로 나누나?</strong> "내가 남에게 던지는 질문"과 "내가 남에게 보여 주는 이름표"는 달라야 하기 때문입니다.</p><blockquote>
+<p>예: 대명사 "it"은 "앞에 나온 명사를 찾는다"고 <strong>묻지만</strong>(Q), 다른 단어들이 "it"을 찾아올 이유는 별로 없습니다(K). 벡터 하나로는 이 비대칭을 표현할 수 없습니다.</p>
+</blockquote><p><strong>왜 √d_k로 나누나?</strong></p><div class="calc"><pre>  <span class="w">차</span><span class="w">원</span> 768  <span class="a">→</span>  <span class="w">숫</span><span class="w">자</span> 768<span class="w">개</span><span class="w">를</span> <span class="w">곱</span><span class="w">해</span> <span class="w">더</span><span class="w">함</span>  <span class="a">→</span>  <span class="w">점</span><span class="w">수</span><span class="w">가</span> <span class="w">커</span><span class="w">짐</span>
+  <span class="w">점</span><span class="w">수</span><span class="w">가</span> <span class="w">크</span><span class="w">면</span> softmax<span class="w">가</span> <span class="w">한</span> <span class="w">곳</span><span class="w">에</span><span class="w">만</span> 1.0<span class="w">을</span> <span class="w">몰</span><span class="w">아</span><span class="w">줌</span> (<span class="w">뾰</span><span class="w">족</span>)
+  <span class="a">→</span> <span class="w">나</span><span class="w">머</span><span class="w">지</span><span class="w">가</span> <span class="w">전</span><span class="w">부</span> 0 <span class="a">→</span> <span class="w">학</span><span class="w">습</span> <span class="w">신</span><span class="w">호</span>(<span class="w">기</span><span class="w">울</span><span class="w">기</span>)<span class="w">가</span> <span class="w">사</span><span class="w">라</span><span class="w">짐</span>
+
+  <span class="a">√</span>d_k<span class="w">로</span> <span class="w">나</span><span class="w">누</span><span class="w">면</span> <span class="w">차</span><span class="w">원</span><span class="w">과</span> <span class="w">무</span><span class="w">관</span><span class="w">하</span><span class="w">게</span> <span class="w">점</span><span class="w">수</span> <span class="w">크</span><span class="w">기</span><span class="w">가</span> <span class="w">일</span><span class="w">정</span><span class="w">해</span><span class="w">짐</span> <span class="a">✓</span></pre></div><p>그래서 이 방식의 이름이 <strong>스케일드 점곱 어텐션(scaled dot-product attention)</strong> 입니다.</p><h3 id="s2-5"><span class="hn">2.5</span>코잘 마스크 — 미래를 가려라</h3><p>목표는 <strong>다음 토큰 예측</strong>입니다. 그런데 어텐션이 문장 전체를 보면, "journey" 다음을 맞힐 때 이미 "starts"를 훔쳐봅니다. <strong>시험 중 답안지를 보는 셈</strong>입니다.</p><p class="calc-lead"><span class="mk">🔍</span> <strong>손으로 확인</strong> (2.2의 A, B, C 예제 계속)</p><p>마스크 없는 점수 행렬:</p><div class="calc"><pre>         A   B   C
+    A [  1   0   1  ]
+    B [  0   1   1  ]
+    C [  1   1   2  ]</pre></div><p>미래 자리를 <strong>−∞</strong> 로 덮기 (대각선 위쪽):</p><div class="calc"><pre>         A     B     C
+    A [  1   -inf  -inf ]
+    B [  0     1   -inf ]
+    C [  1     1     2  ]</pre></div><p>softmax를 걸면 (e^−∞ = 0):</p><div class="calc"><pre>         A      B      C
+    A [ 1.000  0.000  0.000 ]   <span class="a">←</span> A<span class="w">는</span> <span class="w">자</span><span class="w">기</span><span class="w">만</span> <span class="w">봄</span>
+    B [ 0.269  0.731  0.000 ]   <span class="a">←</span> B<span class="w">는</span> A<span class="w">와</span> <span class="w">자</span><span class="w">기</span><span class="w">만</span> <span class="w">봄</span>
+    C [ 0.212  0.212  0.576 ]   <span class="a">←</span> C<span class="w">는</span> <span class="w">전</span><span class="w">부</span> <span class="w">봄</span>
+              <span class="w">각</span> <span class="w">행</span><span class="w">의</span> <span class="w">합</span><span class="w">은</span> <span class="w">여</span><span class="w">전</span><span class="w">히</span> 1 <span class="a">✓</span></pre></div><blockquote>
+<p>B행 계산: softmax([0, 1]) = [e⁰, e¹] / (e⁰+e¹) = [1, 2.718] / 3.718 = [0.269, 0.731]</p>
+</blockquote><p><strong>왜 0이 아니라 −∞?</strong></p><div class="tbl"><table>
+<thead>
+<tr>
+<th>방법</th>
+<th>결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>softmax <strong>후에</strong> 0을 곱함</td>
+<td>행의 합이 1이 아니게 됨 → 다시 정규화해야 함 (번거로움)</td>
+</tr>
+<tr>
+<td>softmax <strong>전에</strong> −∞</td>
+<td>e^−∞ = 0이라 자동 제외되고 나머지 합이 정확히 1 ✓</td>
+</tr>
+</tbody>
+</table></div><div class="code"><div class="bar">python</div><pre><code>mask = torch.<span class="f">triu</span>(torch.<span class="f">ones</span>(T, T), diagonal=<span class="n">1</span>)   <span class="c"># 대각선 위쪽만 1</span>
+scores.<span class="f">masked_fill_</span>(mask.<span class="f">bool</span>(), -torch.inf)</code></pre></div><blockquote>
+<p><span class="mk">💡</span> 이 마스크 덕분에 1.5의 "길이 T 시퀀스 = T개의 문제"가 성립합니다. 위치 3의 출력은 토큰 1~3만 본 결과이므로 "토큰 4 맞히기"의 답으로 쓸 수 있습니다.</p>
+</blockquote><h3 id="s2-6"><span class="hn">2.6</span>드롭아웃 — 한 곳에 의존하지 않기</h3><p>훈련 중에 어텐션 가중치의 일부(예: 10%)를 무작위로 0으로 만듭니다. 특정 연결에만 의존하지 못하게 해 <strong>과대적합을 막습니다.</strong> 살아남은 값은 1/(1−p)배로 키워 평균을 유지합니다. 추론 시(<code>model.eval()</code>)에는 꺼집니다.</p><h3 id="s2-7"><span class="hn">2.7</span>멀티헤드 — 여러 관점으로 동시에</h3><p>어텐션 하나는 한 종류의 관계만 잡습니다. 문장에는 여러 관계가 있습니다(주어-동사, 대명사-선행사, 형용사-명사…). 그래서 어텐션을 <strong>여러 개 병렬로</strong> 돌립니다. 각각이 <strong>헤드(head)</strong> 입니다.</p><figure class="diagram"><pre>                        <span class="a">┌</span><span class="a">─</span> <span class="w">헤</span><span class="w">드</span>1 (64<span class="w">차</span><span class="w">원</span>) <span class="a">─</span><span class="a">┐</span>
+   768<span class="w">차</span><span class="w">원</span>  <span class="a">─</span><span class="a">─</span><span class="w">쪼</span><span class="w">갬</span><span class="a">─</span><span class="a">─</span><span class="a">▶</span>   <span class="a">├</span><span class="a">─</span> <span class="w">헤</span><span class="w">드</span>2 (64<span class="w">차</span><span class="w">원</span>) <span class="a">─</span><span class="a">┤</span>  <span class="a">─</span><span class="a">─</span><span class="w">이</span><span class="w">어</span><span class="w">붙</span><span class="w">임</span><span class="a">─</span><span class="a">─</span><span class="a">▶</span>  768<span class="w">차</span><span class="w">원</span>
+                        <span class="a">│</span>       …          <span class="a">│</span>
+                        <span class="a">└</span><span class="a">─</span> <span class="w">헤</span><span class="w">드</span>12(64<span class="w">차</span><span class="w">원</span>) <span class="a">─</span><span class="a">┘</span></pre></figure><p>각 헤드가 <strong>자기만의 Q/K/V와 자기만의 T×T 가중치 표</strong>를 갖습니다.</p><p><strong>모양 추적표</strong> — 코드 <code>MultiHeadAttention.forward</code>와 한 줄씩 대응합니다.</p><div class="tbl"><table>
+<thead>
+<tr>
+<th>코드</th>
+<th>모양</th>
+<th>무슨 일</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>입력 <code>x</code></td>
+<td>(b, T, 768)</td>
+<td>시작</td>
+</tr>
+<tr>
+<td><code>W_q(x)</code></td>
+<td>(b, T, 768)</td>
+<td>Q 만들기</td>
+</tr>
+<tr>
+<td><code>.view(b,T,12,64)</code></td>
+<td>(b, T, 12, 64)</td>
+<td>768 = 12헤드 × 64로 쪼갬</td>
+</tr>
+<tr>
+<td><code>.transpose(1,2)</code></td>
+<td>(b, <strong>12</strong>, T, 64)</td>
+<td>헤드를 앞으로 (배치처럼 취급)</td>
+</tr>
+<tr>
+<td><code>q @ k.transpose(2,3)</code></td>
+<td>(b, 12, T, T)</td>
+<td>헤드마다 토큰×토큰 점수</td>
+</tr>
+<tr>
+<td>마스크 + softmax</td>
+<td>(b, 12, T, T)</td>
+<td>가중치</td>
+</tr>
+<tr>
+<td><code>@ v</code></td>
+<td>(b, 12, T, 64)</td>
+<td>헤드별 문맥 벡터</td>
+</tr>
+<tr>
+<td><code>.transpose(1,2).reshape</code></td>
+<td>(b, T, 768)</td>
+<td>헤드 이어 붙이기</td>
+</tr>
+<tr>
+<td><code>out_proj</code></td>
+<td>(b, T, 768)</td>
+<td>헤드들을 한 번 더 섞음</td>
+</tr>
+</tbody>
+</table></div><blockquote class="warn">
+<p><span class="mk">⚠️</span> <strong>자주 하는 오해</strong>: 헤드가 12개면 계산량도 12배? <strong>아닙니다.</strong> 768차원을 쪼개 쓰므로 총 계산량은 거의 같습니다. 공짜로 관점만 늘리는 셈입니다.</p>
+</blockquote><h3 id="s2-8"><span class="hn">2.8</span>이 공식 하나는 외우세요</h3><div class="calc"><pre>                          <span class="a">┌</span><span class="a">─</span> <span class="w">마</span><span class="w">스</span><span class="w">크</span>: <span class="w">미</span><span class="w">래</span><span class="w">는</span> −<span class="a">∞</span>
+                          <span class="a">│</span>
+   Attention(Q,K,V) = softmax( Q·K<span class="a">ᵀ</span> / <span class="a">√</span>d_k ) · V
+                                <span class="a">│</span>      <span class="a">│</span>        <span class="a">│</span>
+              <span class="w">누</span><span class="w">가</span> <span class="w">누</span><span class="w">구</span><span class="w">와</span> <span class="w">관</span><span class="w">련</span>? <span class="a">─</span><span class="a">┘</span>      <span class="a">│</span>        <span class="a">└</span><span class="a">─</span> <span class="w">비</span><span class="w">율</span><span class="w">대</span><span class="w">로</span> <span class="w">정</span><span class="w">보</span> <span class="w">섞</span><span class="w">기</span>
+                        <span class="w">크</span><span class="w">기</span> <span class="w">안</span><span class="w">정</span><span class="w">화</span> <span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┘</span></pre></div><div class="define summary"><p class="bt"><span class="mk">✅</span> 2장 정리 ─────────────────────────────────────────────────┐</p><ol><li>어텐션 = 점수(점곱) → 비율(softmax) → 가중합. 3단계 끝.</li><li>Q/K/V는 학습되는 행렬로 만든 질문·이름표·내용물.</li><li>코잘 마스크(−∞)로 미래를 가리고, 멀티헤드로 여러 관점.</li></ol></div></section><section class="ch" id="ch3"><div class="chead"><div class="cno">3장</div><h2>GPT 조립하기</h2><p class="lede-label">이 장 한 문장</p><p class="lede">[어텐션 + FFN] 한 세트를 블록으로 만들고, 잔차 연결과 LayerNorm을 붙여 12번 쌓으면 GPT가 된다.</p><p class="meta"><span class="mk">⏱</span> 15분 · 코드 PART 3 · 책 4장</p></div><h3 id="s3-1"><span class="hn">3.1</span>전체 구조도</h3><figure class="diagram"><pre>                    <span class="w">토</span><span class="w">큰</span> ID (b, T)
+                         <span class="a">│</span>
+          <span class="a">┌</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┴</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┐</span>
+     <span class="w">토</span><span class="w">큰</span> <span class="w">임</span><span class="w">베</span><span class="w">딩</span>                   <span class="w">위</span><span class="w">치</span> <span class="w">임</span><span class="w">베</span><span class="w">딩</span>
+     (50257 × 768)                 (1024 × 768)
+          <span class="a">└</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┬</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┘</span>
+                        (+)  <span class="a">→</span>  x : (b, T, 768)
+                         <span class="a">│</span>  Dropout
+                         <span class="a">▼</span>
+  <span class="a">╔</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span> TransformerBlock <span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">╗</span>
+  <span class="a">║</span>   <span class="a">┌</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┐</span>        <span class="a">║</span>
+  <span class="a">║</span>   <span class="a">│</span>                                  <span class="a">▼</span>        <span class="a">║</span>
+  <span class="a">║</span>   x <span class="a">─</span><span class="a">▶</span> LayerNorm <span class="a">─</span><span class="a">▶</span> <span class="w">멀</span><span class="w">티</span><span class="w">헤</span><span class="w">드</span> <span class="w">어</span><span class="w">텐</span><span class="w">션</span> <span class="a">─</span><span class="a">▶</span>(+)<span class="a">─</span><span class="a">▶</span> x <span class="a">║</span>  <span class="w">①</span> <span class="w">토</span><span class="w">큰</span><span class="w">끼</span><span class="w">리</span> <span class="w">대</span><span class="w">화</span>
+  <span class="a">║</span>   <span class="a">│</span>                                  <span class="a">▲</span>        <span class="a">║</span>
+  <span class="a">║</span>   <span class="a">└</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span> <span class="w">잔</span><span class="w">차</span> <span class="w">연</span><span class="w">결</span>(<span class="w">원</span><span class="w">본</span> <span class="w">그</span><span class="w">대</span><span class="w">로</span>) <span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┘</span>       <span class="a">║</span>
+  <span class="a">║</span>                                               <span class="a">║</span>
+  <span class="a">║</span>   <span class="a">┌</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┐</span>        <span class="a">║</span>
+  <span class="a">║</span>   <span class="a">│</span>                                  <span class="a">▼</span>        <span class="a">║</span>
+  <span class="a">║</span>   x <span class="a">─</span><span class="a">▶</span> LayerNorm <span class="a">─</span><span class="a">▶</span>  FeedForward  <span class="a">─</span><span class="a">─</span><span class="a">▶</span>(+)<span class="a">─</span><span class="a">▶</span> x  <span class="a">║</span>  <span class="w">②</span> <span class="w">토</span><span class="w">큰</span><span class="w">별</span><span class="w">로</span> <span class="w">생</span><span class="w">각</span>
+  <span class="a">║</span>   <span class="a">│</span>                                  <span class="a">▲</span>        <span class="a">║</span>
+  <span class="a">║</span>   <span class="a">└</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span> <span class="w">잔</span><span class="w">차</span> <span class="w">연</span><span class="w">결</span> <span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┘</span>       <span class="a">║</span>
+  <span class="a">╚</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">═</span><span class="a">╝</span>
+                         <span class="a">│</span>  × 12<span class="w">번</span> <span class="w">반</span><span class="w">복</span>
+                         <span class="a">▼</span>
+                    <span class="w">최</span><span class="w">종</span> LayerNorm
+                         <span class="a">│</span>
+                 <span class="w">출</span><span class="w">력</span><span class="w">층</span> (768 <span class="a">→</span> 50257)
+                         <span class="a">│</span>
+                 <span class="w">로</span><span class="w">짓</span> (b, T, 50257)</pre></figure><p><strong>핵심 리듬</strong>: 어텐션 = <strong>정보를 주고받기</strong>(communicate), FFN = <strong>받은 정보를 혼자 가공하기</strong>(compute). 이 둘을 12번 반복하면 얕은 문법에서 깊은 의미까지 층층이 쌓입니다.</p><h3 id="s3-2"><span class="hn">3.2</span>부품 4개</h3><h4>① LayerNorm — 값의 크기 맞추기</h4><p>깊은 신경망은 층을 지날수록 값이 폭주하거나 소멸합니다. LayerNorm은 <strong>각 토큰 벡터를 평균 0, 분산 1로</strong> 맞춥니다.</p><p class="calc-lead"><span class="mk">🔍</span> <strong>손으로 확인</strong></p><div class="calc"><pre>  <span class="w">벡</span><span class="w">터</span> [2, 4, 6]
+   <span class="w">평</span><span class="w">균</span> = 4,  <span class="w">분</span><span class="w">산</span> = ((2−4)² + (4−4)² + (6−4)²)/3 = 8/3 = 2.67,  <span class="w">표</span><span class="w">준</span><span class="w">편</span><span class="w">차</span> = 1.63
+
+  (2−4)/1.63 = −1.22
+  (4−4)/1.63 =  0.00      <span class="a">→</span>  [−1.22, 0, 1.22]   <span class="w">평</span><span class="w">균</span> 0, <span class="w">분</span><span class="w">산</span> 1 <span class="a">✓</span>
+  (6−4)/1.63 =  1.22
+
+  <span class="w">마</span><span class="w">지</span><span class="w">막</span><span class="w">에</span>:  scale × <span class="w">결</span><span class="w">과</span> + shift    <span class="a">←</span> <span class="w">학</span><span class="w">습</span> <span class="w">가</span><span class="w">능</span> (<span class="w">표</span><span class="w">현</span><span class="w">력</span> <span class="w">회</span><span class="w">복</span>)</pre></div><ul>
+<li><code>dim=-1</code>, 즉 <strong>특성 방향</strong>으로 계산합니다. 토큰마다, 샘플마다 독립적입니다.</li>
+<li><code>eps</code>(1e-5)는 분산이 0일 때 0으로 나누는 것을 막습니다.</li>
+<li>GPT-2는 <strong>Pre-LN</strong>(부품 <strong>앞</strong>에 정규화)입니다. 원조 트랜스포머(2017)의 Post-LN보다 훈련이 안정적이라 지금은 이게 표준입니다.</li>
+</ul><h4>② GELU — 부드러운 활성화 함수</h4><p>활성화 함수는 비선형성을 넣어 복잡한 함수를 배울 수 있게 합니다.</p><figure class="diagram"><pre>        ReLU                        GELU
+          <span class="a">│</span>  <span class="a">╱</span>                        <span class="a">│</span>   <span class="a">╱</span>
+          <span class="a">│</span> <span class="a">╱</span>                         <span class="a">│</span>  <span class="a">╱</span>
+      <span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┼</span><span class="a">─</span><span class="a">─</span><span class="a">─</span>                    <span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┼</span><span class="a">─</span><span class="a">╱</span><span class="a">─</span><span class="a">─</span>
+          <span class="a">│</span>                        <span class="a">╲</span>__<span class="a">│</span>
+   <span class="w">음</span><span class="w">수</span><span class="w">를</span> <span class="w">전</span><span class="w">부</span> 0<span class="w">으</span><span class="w">로</span> <span class="w">싹</span><span class="w">둑</span>         <span class="w">음</span><span class="w">수</span><span class="w">도</span> <span class="w">살</span><span class="w">짝</span> <span class="w">통</span><span class="w">과</span> (<span class="w">부</span><span class="w">드</span><span class="w">러</span><span class="w">움</span>)
+   <span class="a">→</span> <span class="w">일</span><span class="w">부</span> <span class="w">뉴</span><span class="w">런</span><span class="w">이</span> "<span class="w">죽</span><span class="w">음</span>"           <span class="a">→</span> <span class="w">학</span><span class="w">습</span><span class="w">이</span> <span class="w">더</span> <span class="w">잘</span> <span class="w">됨</span></pre></figure><p>식은 외울 필요 없습니다. <strong>"ReLU의 부드러운 버전"</strong> 이면 충분합니다.</p><h4>③ FeedForward — 넓혔다 좁히기</h4><figure class="diagram"><pre>   768 <span class="a">─</span><span class="a">─</span>Linear<span class="a">─</span><span class="a">─</span><span class="a">▶</span> 3072(4<span class="w">배</span>) <span class="a">─</span><span class="a">─</span>GELU<span class="a">─</span><span class="a">─</span><span class="a">▶</span> 3072 <span class="a">─</span><span class="a">─</span>Linear<span class="a">─</span><span class="a">─</span><span class="a">▶</span> 768</pre></figure><ul>
+<li><strong>토큰 하나씩 독립적으로</strong> 통과합니다. 토큰 간 교류는 없습니다(그건 어텐션 몫).</li>
+<li>넓혔다 좁히는 이유: 넓은 공간에서 풍부한 패턴을 찾은 뒤 압축.</li>
+<li>최근 연구는 FFN을 <strong>사실·지식이 저장되는 창고</strong>로 봅니다. <strong>블록 파라미터의 약 2/3가 여기 있습니다.</strong></li>
+</ul><h4>④ 잔차(숏컷) 연결 — 기울기 고속도로</h4><p><code>x = x + f(x)</code>. 부품의 출력에 <strong>입력을 그대로 더합니다.</strong></p><figure class="diagram"><pre>   [ <span class="w">없</span><span class="w">을</span> <span class="w">때</span> ]  <span class="w">입</span><span class="w">력</span> <span class="a">─</span><span class="a">▶</span> <span class="w">층</span>1 <span class="a">─</span><span class="a">▶</span> <span class="w">층</span>2 <span class="a">─</span><span class="a">▶</span> … <span class="a">─</span><span class="a">▶</span> <span class="w">층</span>12 <span class="a">─</span><span class="a">▶</span> <span class="w">출</span><span class="w">력</span>
+                  <span class="a">↖</span> <span class="w">역</span><span class="w">전</span><span class="w">파</span> <span class="w">신</span><span class="w">호</span><span class="w">가</span> <span class="w">층</span><span class="w">마</span><span class="w">다</span> <span class="w">약</span><span class="w">해</span><span class="w">짐</span> <span class="a">→</span> <span class="w">앞</span><span class="w">쪽</span> <span class="w">층</span><span class="w">은</span> <span class="w">거</span><span class="w">의</span> <span class="w">안</span> <span class="w">배</span><span class="w">움</span>
+
+   [ <span class="w">있</span><span class="w">을</span> <span class="w">때</span> ]  <span class="w">입</span><span class="w">력</span> <span class="a">─</span><span class="a">┬</span><span class="a">─</span><span class="a">▶</span> <span class="w">층</span>1 <span class="a">─</span><span class="a">┬</span><span class="a">─</span><span class="a">▶</span> <span class="w">층</span>2 <span class="a">─</span><span class="a">┬</span><span class="a">─</span><span class="a">▶</span> … <span class="a">─</span><span class="a">▶</span> <span class="w">출</span><span class="w">력</span>
+                      <span class="a">└</span><span class="a">─</span><span class="a">─</span><span class="a">─</span>(+)<span class="a">─</span><span class="a">─</span><span class="a">┘</span>   (+)   <span class="a">│</span>
+                  <span class="a">↖</span> <span class="w">신</span><span class="w">호</span><span class="w">가</span> (+)<span class="w">를</span> <span class="w">타</span><span class="w">고</span> <span class="w">그</span><span class="w">대</span><span class="w">로</span> <span class="w">뒤</span><span class="w">로</span> <span class="w">흐</span><span class="w">름</span> = <span class="w">고</span><span class="w">속</span><span class="w">도</span><span class="w">로</span> <span class="a">✓</span></pre></figure><p>책의 실험(<code>ExampleDeepNeuralNetwork</code>) 결과: 숏컷이 없으면 첫 층 기울기가 <strong>0.0002</strong>, 있으면 <strong>0.2</strong>. <strong>1000배 차이</strong>입니다.</p><p>효과가 둘입니다.</p><ul>
+<li>각 층은 "처음부터 만들기"가 아니라 <strong>"조금 고치기"</strong> 만 배우면 됩니다.</li>
+<li>역전파 신호가 소멸하지 않습니다.</li>
+</ul><p><strong>수백 층짜리 최신 모델이 훈련되는 건 전적으로 이 한 줄 덕분입니다.</strong></p><h3 id="s3-3"><span class="hn">3.3</span>파라미터 1.24억 개는 어디에 있나</h3><p>GPT-2 small 기준 (768차원, 12층, 12헤드):</p><div class="tbl"><table>
+<thead>
+<tr>
+<th>부품</th>
+<th>계산</th>
+<th>개수</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>토큰 임베딩</td>
+<td>50257 × 768</td>
+<td>38.6M</td>
+</tr>
+<tr>
+<td>위치 임베딩</td>
+<td>1024 × 768</td>
+<td>0.8M</td>
+</tr>
+<tr>
+<td>블록 1개 · 어텐션</td>
+<td>4 × 768² + 편향</td>
+<td>2.4M</td>
+</tr>
+<tr>
+<td>블록 1개 · FFN</td>
+<td>2 × 768×3072 + 편향</td>
+<td>4.7M</td>
+</tr>
+<tr>
+<td>블록 12개</td>
+<td>7.1M × 12</td>
+<td><strong>85.1M</strong></td>
+</tr>
+<tr>
+<td>출력층</td>
+<td>50257 × 768</td>
+<td>38.6M</td>
+</tr>
+<tr>
+<td><strong>합계</strong></td>
+<td></td>
+<td><strong>163.0M</strong></td>
+</tr>
+<tr>
+<td><strong>가중치 공유 적용</strong></td>
+<td>163.0M − 38.6M</td>
+<td><strong>124.4M</strong> ✓</td>
+</tr>
+</tbody>
+</table></div><blockquote>
+<p>GPT-2는 출력층 행렬을 <strong>토큰 임베딩과 같은 것으로 공유</strong>(weight tying)해서 124M입니다. 코드 <code>load_gpt2</code>의 <code>out_head.weight = wte</code> 부분이 그것입니다.</p>
+</blockquote><h3 id="s3-4"><span class="hn">3.4</span>텍스트 생성 — 한 토큰씩, 반복</h3><figure class="diagram"><pre>  "Hello, I am"
+      <span class="a">│</span> <span class="w">모</span><span class="w">델</span> <span class="w">통</span><span class="w">과</span> <span class="a">→</span> <span class="w">로</span><span class="w">짓</span> (1, 3, 50257)
+      <span class="a">│</span> <span class="w">마</span><span class="w">지</span><span class="w">막</span> <span class="w">위</span><span class="w">치</span><span class="w">만</span> <span class="w">뽑</span><span class="w">기</span> <span class="a">→</span> (1, 50257)   <span class="a">←</span> <span class="w">전</span><span class="w">체</span> <span class="w">문</span><span class="w">맥</span><span class="w">을</span> <span class="w">본</span> <span class="w">유</span><span class="w">일</span><span class="w">한</span> <span class="w">자</span><span class="w">리</span>
+      <span class="a">│</span> softmax <span class="a">→</span> <span class="w">가</span><span class="w">장</span> <span class="w">높</span><span class="w">은</span> <span class="w">것</span> <span class="w">고</span><span class="w">르</span><span class="w">기</span> <span class="a">→</span> " a"
+      <span class="a">▼</span>
+  "Hello, I am a"        <span class="a">←</span> <span class="w">뒤</span><span class="w">에</span> <span class="w">붙</span><span class="w">이</span><span class="w">고</span>
+      <span class="a">│</span> <span class="w">다</span><span class="w">시</span> <span class="w">모</span><span class="w">델</span> <span class="w">통</span><span class="w">과</span> …
+      <span class="a">▼</span>
+  "Hello, I am a student …"</pre></figure><ul>
+<li>매번 <strong>전체 시퀀스를 다시</strong> 넣습니다(단순 구현). 실제 서비스는 KV 캐시로 이전 계산을 재활용합니다.</li>
+<li>문맥 길이를 넘으면 앞을 잘라냅니다: <code>idx[:, -context_size:]</code></li>
+<li>훈련 전 모델은 가중치가 랜덤이라 완전한 헛소리를 뱉습니다. 이제 가르칠 차례입니다.</li>
+</ul><div class="define summary"><p class="bt"><span class="mk">✅</span> 3장 정리 ─────────────────────────────────────────────────┐</p><ol><li>GPT = 임베딩 → [LN→어텐션→+][LN→FFN→+] × N → LN → 출력층</li><li>어텐션은 토큰 간 소통, FFN은 토큰별 계산·지식 저장.</li><li>잔차 연결이 깊은 신경망 훈련을 가능하게 하는 핵심 트릭.</li></ol></div></section><section class="ch" id="ch4"><div class="chead"><div class="cno">4장</div><h2>사전 훈련</h2><p class="lede-label">이 장 한 문장</p><p class="lede">"정답 토큰에 얼마나 높은 확률을 줬나"를 손실로 삼아, 그 손실이 줄어드는 방향으로 파라미터를 조금씩 고친다.</p><p class="meta"><span class="mk">⏱</span> 15분 · 코드 PART 4 · 책 5장</p></div><h3 id="s4-1"><span class="hn">4.1</span>손실 = 정답 확률의 −log</h3><p>모델이 정답 토큰 <code>" you"</code>에 확률 0.61을 줬으면 잘한 것, 0.001을 줬으면 못한 것입니다. 이걸 숫자 하나로 만든 것이 <strong>크로스 엔트로피</strong>입니다.</p><div class="calc"><pre>   <span class="w">손</span><span class="w">실</span> = −log( <span class="w">정</span><span class="w">답</span> <span class="w">토</span><span class="w">큰</span><span class="w">에</span> <span class="w">준</span> <span class="w">확</span><span class="w">률</span> )  <span class="w">의</span> <span class="w">모</span><span class="w">든</span> <span class="w">위</span><span class="w">치</span> <span class="w">평</span><span class="w">균</span></pre></div><p class="calc-lead"><span class="mk">🔍</span> <strong>표로 감 잡기</strong></p><div class="tbl"><table>
+<thead>
+<tr>
+<th>정답에 준 확률</th>
+<th class="tnum">−log(확률) = 손실</th>
+<th>상태</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.00</td>
+<td class="tnum">0.00</td>
+<td>완벽</td>
+</tr>
+<tr>
+<td>0.90</td>
+<td class="tnum">0.11</td>
+<td>아주 좋음</td>
+</tr>
+<tr>
+<td>0.50</td>
+<td class="tnum">0.69</td>
+<td>반반</td>
+</tr>
+<tr>
+<td>0.10</td>
+<td class="tnum">2.30</td>
+<td>나쁨</td>
+</tr>
+<tr>
+<td>0.01</td>
+<td class="tnum">4.61</td>
+<td>엉망</td>
+</tr>
+<tr>
+<td>1/50257 (찍기)</td>
+<td class="tnum"><strong>10.82</strong></td>
+<td>훈련 전</td>
+</tr>
+</tbody>
+</table></div><p><strong>혼잡도(perplexity) = e^손실</strong> — "모델이 몇 개 후보 사이에서 헷갈리나"로 읽으면 됩니다.</p><div class="calc"><pre>   <span class="w">손</span><span class="w">실</span> 10.8  <span class="a">→</span>  ppl <span class="a">≈</span> 50,000     5<span class="w">만</span> <span class="w">개</span> <span class="w">중</span> <span class="w">아</span><span class="w">무</span><span class="w">거</span><span class="w">나</span> <span class="w">찍</span><span class="w">는</span> <span class="w">수</span><span class="w">준</span> (<span class="w">훈</span><span class="w">련</span> <span class="w">전</span>)
+   <span class="w">손</span><span class="w">실</span>  2.3  <span class="a">→</span>  ppl <span class="a">≈</span> 10         10<span class="w">개</span> <span class="w">중</span> <span class="w">헷</span><span class="w">갈</span><span class="w">림</span>
+   <span class="w">손</span><span class="w">실</span>  0.7  <span class="a">→</span>  ppl <span class="a">≈</span> 2          2<span class="w">개</span> <span class="w">중</span> <span class="w">헷</span><span class="w">갈</span><span class="w">림</span> (<span class="w">아</span><span class="w">주</span> <span class="w">좋</span><span class="w">음</span>)</pre></div><blockquote>
+<p><span class="mk">💡</span> 코드 PART 4(a)에서 정답 확률을 직접 뽑아 −log 평균을 낸 값과 <code>F.cross_entropy</code> 결과가 <strong>소수점까지 똑같이</strong> 나옵니다. 크로스 엔트로피는 마법이 아니라 그냥 이 계산입니다. 꼭 눈으로 확인하세요.</p>
+</blockquote><h3 id="s4-2"><span class="hn">4.2</span>훈련 루프 — 네 줄이 전부</h3><div class="code"><div class="bar">python</div><pre><code><span class="k">for</span> x, y <span class="k">in</span> train_loader:
+    optimizer.<span class="f">zero_grad</span>()        <span class="c"># ① 이전 기울기 지우기</span>
+    loss = <span class="f">loss_fn</span>(x, y, model)  <span class="c"># ② 정방향 계산 + 손실</span>
+    loss.<span class="f">backward</span>()              <span class="c"># ③ 역전파: 각 파라미터의 책임 계산</span>
+    optimizer.<span class="f">step</span>()             <span class="c"># ④ 기울기 반대 방향으로 조금 이동</span></code></pre></div><figure class="diagram"><pre>   <span class="w">손</span><span class="w">실</span>
+    <span class="a">│</span><span class="a">╲</span>
+    <span class="a">│</span> <span class="a">╲</span>       <span class="a">●</span> <span class="w">현</span><span class="w">재</span> <span class="w">위</span><span class="w">치</span>
+    <span class="a">│</span>  <span class="a">╲</span>     <span class="a">╱</span>
+    <span class="a">│</span>   <span class="a">╲</span>___<span class="a">╱</span>      <span class="a">←</span> <span class="w">기</span><span class="w">울</span><span class="w">기</span><span class="w">를</span> <span class="w">따</span><span class="w">라</span> <span class="w">내</span><span class="w">려</span><span class="w">간</span><span class="w">다</span> = <span class="w">경</span><span class="w">사</span> <span class="w">하</span><span class="w">강</span>
+    <span class="a">└</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span> <span class="w">파</span><span class="w">라</span><span class="w">미</span><span class="w">터</span></pre></figure><div class="tbl"><table>
+<thead>
+<tr>
+<th>설정</th>
+<th>값</th>
+<th>뜻</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AdamW</strong></td>
+<td>—</td>
+<td>가장 널리 쓰는 최적화기. 방향·보폭을 자동 조절</td>
+</tr>
+<tr>
+<td><strong>lr(학습률)</strong></td>
+<td>1e-3 (작은 모델)</td>
+<td>한 번에 얼마나 움직일지. 크면 발산, 작으면 느림</td>
+</tr>
+<tr>
+<td><strong>weight_decay</strong></td>
+<td>0.1</td>
+<td>파라미터가 너무 커지지 않게 잡아당김</td>
+</tr>
+<tr>
+<td><strong>epoch</strong></td>
+<td>10</td>
+<td>훈련 데이터를 몇 바퀴 도나</td>
+</tr>
+</tbody>
+</table></div><blockquote class="key">
+<p><span class="mk">⭐</span> <strong>가장 중요한 통찰</strong>: 코드의 <code>train()</code> 함수 <strong>하나를 PART 4, 5, 6이 전부 공유</strong>합니다. 바뀌는 건 <code>loss_fn</code> 하나뿐입니다. 사전 훈련이든 분류든 대화든, LLM 훈련은 전부 같은 루프입니다.</p>
+</blockquote><h3 id="s4-3"><span class="hn">4.3</span>과대적합 읽는 법</h3><figure class="diagram"><pre>   <span class="w">손</span><span class="w">실</span>
+    <span class="a">│</span><span class="a">╲</span>
+    <span class="a">│</span> <span class="a">╲</span><span class="a">╲</span>
+    <span class="a">│</span>  <span class="a">╲</span> <span class="a">╲</span>______  <span class="w">검</span><span class="w">증</span> <span class="w">손</span><span class="w">실</span> (<span class="w">멈</span><span class="w">춤</span>, <span class="w">살</span><span class="w">짝</span> <span class="w">상</span><span class="w">승</span>)   <span class="a">←</span> <span class="w">여</span><span class="w">기</span><span class="w">부</span><span class="w">터</span> "<span class="w">외</span><span class="w">우</span><span class="w">는</span> <span class="w">중</span>"
+    <span class="a">│</span>   <span class="a">╲</span>
+    <span class="a">│</span>    <span class="a">╲</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span>  <span class="w">훈</span><span class="w">련</span> <span class="w">손</span><span class="w">실</span> (<span class="w">계</span><span class="w">속</span> <span class="w">하</span><span class="w">락</span>)
+    <span class="a">└</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span> <span class="w">에</span><span class="w">포</span><span class="w">크</span></pre></figure><p>훈련 손실만 떨어지고 검증 손실이 멈추면 <strong>외우기 시작한 것</strong>(과대적합)입니다.</p><p>책의 데이터는 단편 소설 2만 글자로 너무 작아서 금방 이렇게 됩니다. 실제 GPT-2는 40GB, 최신 모델은 수십 TB를 씁니다. <strong>외울 수가 없으니 "일반화"를 배웁니다.</strong> 데이터 규모가 곧 성능인 이유입니다.</p><h3 id="s4-4"><span class="hn">4.4</span>디코딩 전략 — 어떤 토큰을 고를까</h3><p><strong>그리디</strong>(항상 최고 확률)는 안전하지만 같은 말을 반복합니다. 다양성을 넣는 도구 두 개.</p><h4>온도(temperature): 로짓을 T로 나눈 뒤 softmax</h4><p class="calc-lead"><span class="mk">🔍</span> <strong>실제 숫자로</strong> (책 5.3.1의 로짓, 상위 몇 개만 표시)</p><div class="tbl"><table>
+<thead>
+<tr>
+<th></th>
+<th class="tnum">forward</th>
+<th class="tnum">toward</th>
+<th class="tnum">closer</th>
+<th class="tnum">pizza</th>
+<th>느낌</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>T = 0.1</strong></td>
+<td class="tnum">99.1%</td>
+<td class="tnum">0.9%</td>
+<td class="tnum">0.0%</td>
+<td class="tnum">0.0%</td>
+<td>뾰족 — 확신, 반복적</td>
+</tr>
+<tr>
+<td><strong>T = 1.0</strong></td>
+<td class="tnum">57.2%</td>
+<td class="tnum">35.8%</td>
+<td class="tnum">6.1%</td>
+<td class="tnum">0.0%</td>
+<td>원본</td>
+</tr>
+<tr>
+<td><strong>T = 5.0</strong></td>
+<td class="tnum">24.2%</td>
+<td class="tnum">22.0%</td>
+<td class="tnum">15.5%</td>
+<td class="tnum">4.3%</td>
+<td>평평 — 창의적, 엉뚱</td>
+</tr>
+</tbody>
+</table></div><ul>
+<li><strong>T &lt; 1</strong> : 큰 값을 더 키움 → 보수적</li>
+<li><strong>T &gt; 1</strong> : 차이를 뭉갬 → 다양함 (<code>pizza</code>처럼 말도 안 되는 것까지 나옴)</li>
+</ul><p>그 다음 <code>torch.multinomial</code>로 <strong>확률대로 뽑기</strong>(샘플링)를 합니다.</p><h4>Top-k: 상위 k개만 남기고 나머지는 −∞</h4><p>온도를 올려도 완전히 엉뚱한 토큰이 뽑히는 걸 막습니다.</p><figure class="diagram"><pre>   <span class="w">로</span><span class="w">짓</span> [6.75, 6.28, 4.51, 1.79, …]  <span class="a">─</span><span class="a">─</span> top_k=3 <span class="a">─</span><span class="a">─</span><span class="a">▶</span>  [6.75, 6.28, 4.51, −inf, …]</pre></figure><p>(Top-p/nucleus 샘플링은 "누적 확률 p까지"로 자르는 변형입니다.)</p><blockquote>
+<p>코드 PART 4(d)에서 온도 0.5 / 1.0 / 1.5를 나란히 출력합니다. 문장이 어떻게 달라지는지 직접 보세요.</p>
+</blockquote><h3 id="s4-5"><span class="hn">4.5</span>진짜 GPT-2 가중치 넣기 <span class="mk">⭐</span></h3><p><code>model.state_dict()</code>는 "층 이름 → 가중치 텐서" 사전일 뿐입니다.</p><p><strong>여기서 놀라운 사실</strong>: 우리가 만든 <code>GPTModel</code>은 OpenAI GPT-2와 <strong>구조가 100% 같습니다.</strong> 그러니 OpenAI가 거대 데이터로 훈련한 가중치를 그대로 끼워 넣을 수 있습니다.</p><div class="calc"><pre>   OpenAI <span class="w">이</span><span class="w">름</span>               <span class="w">우</span><span class="w">리</span> <span class="w">이</span><span class="w">름</span>
+   <span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span>
+   wte.weight         <span class="a">→</span>      tok_emb.weight
+   wpe.weight         <span class="a">→</span>      pos_emb.weight
+   h.0.attn.c_attn    <span class="a">→</span>      trf_blocks[0].att.W_query/W_key/W_value  (<span class="w">하</span><span class="w">나</span><span class="w">를</span> <span class="w">셋</span><span class="w">으</span><span class="w">로</span>)
+   h.0.mlp.c_fc       <span class="a">→</span>      trf_blocks[0].ff.layers[0]
+   ln_f               <span class="a">→</span>      final_norm
+   wte.weight (<span class="w">재</span><span class="w">사</span><span class="w">용</span>) <span class="a">→</span>     out_head.weight     <span class="a">←</span> <span class="w">가</span><span class="w">중</span><span class="w">치</span> <span class="w">공</span><span class="w">유</span></pre></div><ul>
+<li>저장된 행렬이 <code>(입력, 출력)</code> 모양이라 <code>nn.Linear</code>의 <code>(출력, 입력)</code>에 맞춰 <strong><code>.T</code>(전치)</strong> 합니다.</li>
+<li>GPT-2는 Q/K/V에 편향을 쓰므로 <strong><code>qkv_bias=True</code></strong> 여야 모양이 맞습니다.</li>
+</ul><p><code>RUN["PART4_load_gpt2"] = True</code>로 켜 보세요. <strong>이 순간, 여러분이 짠 코드가 진짜 GPT-2가 됩니다.</strong></p><div class="define summary"><p class="bt"><span class="mk">✅</span> 4장 정리 ─────────────────────────────────────────────────┐</p><ol><li>손실 = −log(정답 확률)의 평균. 혼잡도 = e^손실.</li><li>훈련 = zero_grad → loss → backward → step 의 반복.</li><li>온도·top-k로 다양성 조절. 구조가 같으면 남의 가중치도 OK.</li></ol></div></section><section class="ch" id="ch5"><div class="chead"><div class="cno">5장</div><h2>분류 미세 튜닝 — 스팸 판별기</h2><p class="lede-label">이 장 한 문장</p><p class="lede">사전 훈련된 GPT-2의 언어 이해 능력을 재활용해, 출력층만 갈아 끼우고 마지막 토큰으로 스팸/정상을 판단한다.</p><p class="meta"><span class="mk">⏱</span> 8분 · 코드 PART 5 · 책 6장</p></div><h3 id="s5-1"><span class="hn">5.1</span>바꾸는 것은 딱 세 가지</h3><div class="tbl"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>바꾸는 것</th>
+<th>코드</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>①</td>
+<td>출력층을 <strong>768→50257</strong> 에서 <strong>768→2</strong> 로 교체</td>
+<td><code>model.out_head = nn.Linear(768, 2)</code></td>
+</tr>
+<tr>
+<td>②</td>
+<td>대부분의 층을 <strong>얼리고</strong> 마지막 블록만 훈련</td>
+<td><code>param.requires_grad = False</code></td>
+</tr>
+<tr>
+<td>③</td>
+<td><strong>마지막 토큰</strong>의 출력만 사용</td>
+<td><code>model(x)[:, -1, :]</code></td>
+</tr>
+</tbody>
+</table></div><figure class="diagram"><pre>   You   are    a   winner  ...  $1000  &lt;pad&gt;  &lt;pad&gt;
+    <span class="a">│</span>     <span class="a">│</span>     <span class="a">│</span>     <span class="a">│</span>            <span class="a">│</span>      <span class="a">│</span>      <span class="a">│</span>
+   <span class="a">┌</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span> <span class="w">얼</span><span class="w">린</span> GPT-2 <span class="w">블</span><span class="w">록</span> 1~11 (<span class="w">안</span> <span class="w">배</span><span class="w">움</span>) <span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┐</span>
+   <span class="a">└</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┘</span>
+   <span class="a">┌</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span> <span class="w">훈</span><span class="w">련</span><span class="w">하</span><span class="w">는</span> <span class="w">블</span><span class="w">록</span> 12 + <span class="w">최</span><span class="w">종</span> LN <span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┐</span>
+   <span class="a">└</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">─</span><span class="a">┘</span>
+    ·     ·     ·     ·            ·      ·      <span class="a">▼</span>
+                                          <span class="w">새</span> <span class="w">출</span><span class="w">력</span><span class="w">층</span> (768<span class="a">→</span>2)
+                                          [<span class="w">스</span><span class="w">팸</span> 3.1, <span class="w">정</span><span class="w">상</span> −2.0] <span class="a">→</span> <span class="w">스</span><span class="w">팸</span>!</pre></figure><h3 id="s5-2"><span class="hn">5.2</span>왜 마지막 토큰인가</h3><p><strong>코잘 마스크 때문입니다.</strong> 마지막 위치만이 <strong>앞의 모든 토큰을 본 유일한 자리</strong>입니다.</p><div class="calc"><pre>   <span class="w">위</span><span class="w">치</span> 1<span class="w">의</span> <span class="w">출</span><span class="w">력</span> : <span class="w">토</span><span class="w">큰</span> 1<span class="w">만</span> <span class="w">봄</span>        <span class="a">✗</span>
+   <span class="w">위</span><span class="w">치</span> 2<span class="w">의</span> <span class="w">출</span><span class="w">력</span> : <span class="w">토</span><span class="w">큰</span> 1~2<span class="w">를</span> <span class="w">봄</span>      <span class="a">✗</span>
+      …
+   <span class="w">마</span><span class="w">지</span><span class="w">막</span> <span class="w">출</span><span class="w">력</span>   : <span class="w">토</span><span class="w">큰</span> <span class="w">전</span><span class="w">부</span><span class="w">를</span> <span class="w">봄</span>      <span class="a">✓</span>  <span class="a">←</span> <span class="w">여</span><span class="w">기</span>!</pre></div><h3 id="s5-3"><span class="hn">5.3</span>왜 대부분을 얼리나</h3><p>1.24억 개 파라미터를 1,500개 샘플로 전부 훈련하면 금방 외워 버립니다(과대적합). 소수만 훈련하면 <strong>빠르고 안정적</strong>입니다. (책 부록에서 전체 훈련·LoRA 변형도 다룹니다.)</p><h3 id="s5-4"><span class="hn">5.4</span>데이터 처리 포인트 3개</h3><div class="tbl"><table>
+<thead>
+<tr>
+<th>항목</th>
+<th>왜</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>균형 맞추기</strong></td>
+<td>스팸 747 vs 정상 4,825 → 정상을 747개만 뽑아 50:50. 안 그러면 "전부 정상"으로 찍어도 87%가 나와 학습이 게을러짐</td>
+</tr>
+<tr>
+<td><strong>패딩</strong></td>
+<td>배치 안 문장 길이를 맞추려 <code>&lt;|endoftext|&gt;</code>(50256)를 뒤에 채움. 마지막이 패딩이어도 어텐션이 앞 내용을 다 담아 옴</td>
+</tr>
+<tr>
+<td><strong>정확도는 평가용</strong></td>
+<td>정확도는 미분이 안 되므로 훈련엔 못 쓰고 손실만 씀</td>
+</tr>
+</tbody>
+</table></div><div class="define summary"><p class="bt"><span class="mk">✅</span> 5장 정리 ─────────────────────────────────────────────────┐</p><ol><li>출력층을 클래스 수에 맞게 갈아 끼운다.</li><li>코잘 마스크 때문에 마지막 토큰의 출력으로 분류한다.</li><li>훈련 루프는 4장과 동일. 손실 함수만 바뀐다.</li></ol></div></section><section class="ch" id="ch6"><div class="chead"><div class="cno">6장</div><h2>지시 미세 튜닝 — 질문에 답하는 모델</h2><p class="lede-label">이 장 한 문장</p><p class="lede">(지시 → 답변) 형식의 텍스트로 "다음 토큰 맞히기"를 다시 시키면, 모델이 "지시가 오면 답을 한다"는 형식을 배운다.</p><p class="meta"><span class="mk">⏱</span> 10분 · 코드 PART 6 · 책 7장</p></div><h3 id="s6-1"><span class="hn">6.1</span>문제: 기초 모델은 "이어 쓰기"만 한다</h3><div class="calc"><pre>  <span class="w">입</span><span class="w">력</span>:  "<span class="w">이</span> <span class="w">문</span><span class="w">장</span><span class="w">을</span> <span class="w">수</span><span class="w">동</span><span class="w">태</span><span class="w">로</span> <span class="w">바</span><span class="w">꿔</span><span class="w">줘</span>: The chef cooks the meal."
+
+  GPT-2: "…<span class="w">그</span><span class="w">리</span><span class="w">고</span> <span class="w">다</span><span class="w">음</span> <span class="w">문</span><span class="w">장</span><span class="w">도</span> <span class="w">바</span><span class="w">꿔</span> <span class="w">보</span><span class="w">세</span><span class="w">요</span>. <span class="w">이</span> <span class="w">문</span><span class="w">장</span><span class="w">을</span> <span class="w">능</span><span class="w">동</span><span class="w">태</span><span class="w">로</span>…"
+          ↑ <span class="w">답</span><span class="w">을</span> <span class="w">하</span><span class="w">는</span> <span class="w">게</span> <span class="w">아</span><span class="w">니</span><span class="w">라</span> <span class="w">계</span><span class="w">속</span> <span class="w">이</span><span class="w">어</span> <span class="w">씀</span></pre></div><p>당연합니다. 훈련 데이터가 "인터넷 텍스트 이어 쓰기"였으니까요. <strong>"지시가 오면 답을 한다"는 형식</strong>을 따로 가르쳐야 합니다. 이것이 <strong>지시 미세 튜닝(SFT)</strong> 입니다.</p><h3 id="s6-2"><span class="hn">6.2</span>데이터 형식 (Alpaca 스타일)</h3><p>(지시, 입력, 답변) 1,100개를 아래 틀에 넣어 <strong>하나의 긴 텍스트</strong>로 만듭니다.</p><div class="calc"><pre>   Below is an instruction that describes a task. Write a response that
+   appropriately completes the request.
+
+   ### Instruction:
+   Rewrite the sentence using a simile.
+
+   ### Input:
+   The car is very fast.
+
+   ### Response:
+   The car is as fast as lightning.&lt;|endoftext|&gt;</pre></div><h3 id="s6-3"><span class="hn">6.3</span><span class="mk">⭐</span> 핵심: 훈련은 사전 훈련과 완전히 같다</h3><div class="calc"><pre>   <span class="w">사</span><span class="w">전</span> <span class="w">훈</span><span class="w">련</span> :  <span class="w">소</span><span class="w">설</span> <span class="w">텍</span><span class="w">스</span><span class="w">트</span>        <span class="a">→</span>  <span class="w">다</span><span class="w">음</span> <span class="w">토</span><span class="w">큰</span> <span class="w">맞</span><span class="w">히</span><span class="w">기</span>  (loss_next_token)
+   <span class="w">지</span><span class="w">시</span> <span class="w">튜</span><span class="w">닝</span> :  <span class="w">위</span> <span class="w">형</span><span class="w">식</span><span class="w">의</span> <span class="w">텍</span><span class="w">스</span><span class="w">트</span>   <span class="a">→</span>  <span class="w">다</span><span class="w">음</span> <span class="w">토</span><span class="w">큰</span> <span class="w">맞</span><span class="w">히</span><span class="w">기</span>  (loss_next_token)
+                      ↑                          ↑
+                  <span class="w">데</span><span class="w">이</span><span class="w">터</span><span class="w">만</span> <span class="w">다</span><span class="w">름</span>             <span class="w">함</span><span class="w">수</span><span class="w">는</span> <span class="w">똑</span><span class="w">같</span><span class="w">음</span>!</pre></div><p>모델은 <strong>"<code>### Response:</code> 뒤에는 답이 온다"</strong> 는 패턴을 다음 토큰 예측만으로 배웁니다. ChatGPT류도 원리는 같습니다(뒤에 선호도 학습이 더 붙을 뿐).</p><h3 id="s6-4"><span class="hn">6.4</span>배치 만들기 — 패딩과 −100</h3><p>문장 길이가 제각각이라 <code>collate</code> 함수가 필요합니다.</p><p class="calc-lead"><span class="mk">🔍</span> <strong>실제 출력으로 확인</strong></p><figure class="diagram"><pre>  <span class="w">원</span><span class="w">본</span>:   [0,1,2,3,4]       [5,6]                      [7,8,9]
+
+  <span class="w">입</span><span class="w">력</span> x: [0,1,2,3,4]       [5, 6, 50256,50256,50256]  [7,8,9, 50256,50256]
+  <span class="w">타</span><span class="w">깃</span> y: [1,2,3,4,50256]   [6, 50256, −100,−100,−100] [8,9,50256, −100,−100]
+                                   <span class="a">▲</span>        <span class="a">▲</span>
+                     <span class="w">첫</span> eos<span class="w">는</span> <span class="w">학</span><span class="w">습</span> <span class="a">─</span><span class="a">┘</span>        <span class="a">└</span><span class="a">─</span> <span class="w">그</span> <span class="w">뒤</span> <span class="w">패</span><span class="w">딩</span><span class="w">은</span> −100 = <span class="w">손</span><span class="w">실</span><span class="w">에</span><span class="w">서</span> <span class="w">제</span><span class="w">외</span></pre></figure><div class="tbl"><table>
+<thead>
+<tr>
+<th>항목</th>
+<th>이유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>첫 <code>&lt;|endoftext|&gt;</code>는 <strong>학습</strong></td>
+<td>"답이 끝나면 멈춰라"를 배워야 생성이 끝남</td>
+</tr>
+<tr>
+<td>나머지 패딩은 <strong>−100</strong></td>
+<td>PyTorch <code>cross_entropy</code>는 <code>ignore_index=-100</code> 자리를 무시. 안 그러면 "패딩 다음엔 패딩"이라는 쓸모없는 걸 배움</td>
+</tr>
+</tbody>
+</table></div><blockquote>
+<p>(책 연습문제) 지시 부분까지 −100으로 가리고 <strong>답변만</strong> 학습하는 변형도 흔히 씁니다.</p>
+</blockquote><h3 id="s6-5"><span class="hn">6.5</span>평가: 다른 LLM에게 채점시키기</h3><p>"답이 맞았나"는 분류처럼 정확도로 잴 수 없습니다(정답 문장이 여러 개니까). 책은 Ollama로 띄운 <strong>Llama 3에게 0~100점 채점</strong>을 맡깁니다. 이 방식(<strong>LLM-as-a-judge</strong>)이 요즘 표준입니다.</p><blockquote>
+<p>이 부분은 Ollama 설치가 필요해 코드 파일에서는 뺐습니다. 필요하면 책 7.8절을 따라 하세요.</p>
+</blockquote><h3 id="s6-6"><span class="hn">6.6</span>그 다음은? (책 범위 밖, 방향만)</h3><div class="tbl"><table>
+<thead>
+<tr>
+<th>기법</th>
+<th>한 줄</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RLHF / DPO</strong></td>
+<td>"답 A와 B 중 사람이 더 좋아한 쪽"으로 한 번 더 조정. ChatGPT의 친절함이 여기서 옴</td>
+</tr>
+<tr>
+<td><strong>LoRA</strong></td>
+<td>큰 행렬 대신 작은 보조 행렬만 훈련해 비용을 1/100로</td>
+</tr>
+<tr>
+<td><strong>추론 모델</strong></td>
+<td>답 전에 긴 생각을 쓰도록 강화학습</td>
+</tr>
+</tbody>
+</table></div><div class="define summary"><p class="bt"><span class="mk">✅</span> 6장 정리 ─────────────────────────────────────────────────┐</p><ol><li>지시 튜닝 = 형식이 다른 텍스트로 하는 똑같은 다음 토큰 예측. 손실 함수가 사전 훈련과 동일하다.</li><li>패딩은 −100으로 가리되, 첫 eos는 남겨 "멈춤"을 배운다.</li><li>평가는 다른 LLM에게 점수를 매기게 한다.</li></ol></div></section><section class="ch" id="ch7"><div class="chead"><div class="cno">7장</div><h2>이 지식이 최신 모델로 이어지는 길</h2></div><p>여러분이 만든 건 2019년 GPT-2지만, 2026년 모델도 뼈대는 같습니다.</p><div class="tbl"><table>
+<thead>
+<tr>
+<th>부품</th>
+<th>여러분의 GPT-2</th>
+<th>최신 모델</th>
+<th>바뀐 이유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>토크나이저</td>
+<td>BPE 50k</td>
+<td>BPE 100k~250k</td>
+<td>다국어·효율</td>
+</tr>
+<tr>
+<td>위치 정보</td>
+<td>학습된 절대 위치</td>
+<td><strong>RoPE</strong>(회전)</td>
+<td>긴 문맥 일반화</td>
+</tr>
+<tr>
+<td>정규화</td>
+<td>LayerNorm</td>
+<td><strong>RMSNorm</strong></td>
+<td>더 단순·빠름</td>
+</tr>
+<tr>
+<td>어텐션</td>
+<td>MHA</td>
+<td><strong>GQA/MQA + FlashAttention + KV캐시</strong></td>
+<td>메모리·속도</td>
+</tr>
+<tr>
+<td>활성화</td>
+<td>GELU</td>
+<td><strong>SwiGLU</strong></td>
+<td>성능</td>
+</tr>
+<tr>
+<td>FFN</td>
+<td>4배 확장</td>
+<td>SwiGLU FFN / <strong>MoE</strong>(전문가 혼합)</td>
+<td>파라미터 효율</td>
+</tr>
+<tr>
+<td>손실</td>
+<td>다음 토큰 예측</td>
+<td><strong>똑같음</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td>잔차 연결</td>
+<td>있음</td>
+<td><strong>똑같음</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td>Pre-LN 구조</td>
+<td>있음</td>
+<td><strong>똑같음</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td>학습 단계</td>
+<td>사전훈련 → SFT</td>
+<td>사전훈련 → SFT → <strong>RLHF/RL</strong></td>
+<td>정렬·추론</td>
+</tr>
+</tbody>
+</table></div><div class="define"><p class="bt">절대 안 변하는 4가지 ──────────────────────────┐</p><ol><li style="list-style:none;margin-left:-1.3rem"><span style="color:var(--navy);font-family:var(--sans);font-weight:600;margin-right:.5em">①</span>다음 토큰 예측이라는 목표</li><li style="list-style:none;margin-left:-1.3rem"><span style="color:var(--navy);font-family:var(--sans);font-weight:600;margin-right:.5em">②</span>코잘 셀프 어텐션</li><li style="list-style:none;margin-left:-1.3rem"><span style="color:var(--navy);font-family:var(--sans);font-weight:600;margin-right:.5em">③</span>[어텐션 + FFN] 블록의 반복 + 잔차 연결</li><li style="list-style:none;margin-left:-1.3rem"><span style="color:var(--navy);font-family:var(--sans);font-weight:600;margin-right:.5em">④</span>사전 훈련 → 미세 튜닝 2단계 구조</li></ol></div><p>이 넷을 체득했다면 <strong>어떤 새 모델 논문을 봐도 "아, 어느 부품을 바꿨구나"로 읽힙니다.</strong></p></section><section class="ch" id="ch8"><div class="chead"><div class="cno">8장</div><h2>복습 도구</h2></div><h3 id="s8-1"><span class="hn">8.1</span>한 장 요약 카드 (인쇄해서 붙여 두세요)</h3><div class="tbl"><table class="card"><caption>LLM 한 장 요약</caption><tbody><tr><td>목표</td><td>다음 토큰의 확률 분포를 맞힌다</td></tr><tr><td>입력</td><td>BPE 토큰 ID → 토큰 임베딩 + 위치 임베딩      (b, T, d)</td></tr><tr><td>블록</td><td>x = x + Attn(LN(x));   x = x + FFN(LN(x))     × N층</td></tr><tr><td>어텐션</td><td>softmax(Q·Kᵀ/√d + 마스크)·V   — 과거만, 헤드 여러 개</td></tr><tr><td>FFN</td><td>d → 4d → GELU → d    (토큰별 독립, 파라미터의 2/3)</td></tr><tr><td>출력</td><td>LN → Linear(d→V) → 로짓 → softmax → 확률</td></tr><tr><td>손실</td><td>−log p(정답 토큰)의 평균,   혼잡도 = e^손실</td></tr><tr><td>훈련</td><td>zero_grad → loss → backward → step   (AdamW)</td></tr><tr><td>생성</td><td>마지막 위치 로짓 → top-k → 온도 → 샘플 → 붙이기 → 반복</td></tr><tr><td>분류</td><td>출력층 교체 + 마지막 토큰 + 일부 층만 훈련</td></tr><tr><td>지시</td><td>(지시→답변) 텍스트로 같은 손실, 패딩은 −100</td></tr></tbody></table></div><h3 id="s8-2"><span class="hn">8.2</span>헷갈리는 것 FAQ</h3><p class="faq"><strong>Q. 어텐션 "점수"와 "가중치"의 차이는?</strong><br/>
+점수(score)는 softmax <strong>전</strong>의 날것(점곱 값, 범위 제한 없음). 가중치(weight)는 softmax <strong>후</strong>(0~1, 행의 합 1). 마스크는 점수에, 드롭아웃은 가중치에 겁니다.</p><p class="faq"><strong>Q. 로짓과 확률의 차이는?</strong><br/>
+로짓은 출력층이 뱉는 날 점수(음수 가능). softmax를 거쳐야 확률(합 1)이 됩니다. <code>argmax</code>는 둘 중 어디에 해도 결과가 같습니다. 단, <code>cross_entropy</code>는 내부에서 softmax를 하므로 <strong>반드시 로짓을 넣어야</strong> 합니다.</p><p class="faq"><strong>Q. 마스크에 0이 아니라 −∞를 쓰는 이유는?</strong><br/>
+0을 넣으면 e⁰ = 1이라 "약간 참고"하는 셈이 됩니다. −∞여야 e^−∞ = 0으로 완전히 제외되고 나머지 합이 정확히 1이 됩니다.</p><p class="faq"><strong>Q. 왜 √d_k로 나누나?</strong><br/>
+차원이 클수록 점곱이 커져 softmax가 한 곳에 몰리고 기울기가 죽습니다. 크기를 차원과 무관하게 맞추는 것입니다.</p><p class="faq"><strong>Q. 타깃을 왜 한 칸 미나?</strong><br/>
+위치 i의 출력은 "토큰 i+1이 무엇인가"의 예측이기 때문입니다. 코잘 마스크로 위치 i가 i+1을 못 보게 했으니 정답으로 쓸 수 있습니다.</p><p class="faq"><strong>Q. 임베딩은 원-핫과 뭐가 다른가?</strong><br/>
+같습니다. 원-핫 × 행렬 = 행렬의 한 행. 임베딩 층은 그 행을 바로 꺼내는 빠른 구현일 뿐입니다.</p><p class="faq"><strong>Q. <code>model.train()</code>과 <code>model.eval()</code>은?</strong><br/>
+드롭아웃을 켜고(train) 끄는(eval) 스위치입니다. 평가·생성 때 eval을 안 하면 결과가 매번 달라집니다. <code>torch.no_grad()</code>는 별개로, 기울기 계산을 꺼서 메모리·속도를 아끼는 것입니다.</p><p class="faq"><strong>Q. 파라미터 vs 하이퍼파라미터?</strong><br/>
+파라미터는 훈련으로 배우는 숫자(1.24억 개). 하이퍼파라미터는 사람이 정하는 설정(층 수, 차원, 학습률, 배치 크기…).</p><p class="faq"><strong>Q. 문맥 길이를 늘리면 왜 그렇게 비싼가?</strong><br/>
+어텐션 점수 표가 T×T이기 때문입니다. 토큰 수의 <strong>제곱</strong>으로 늘어납니다.</p><div class="calc"><pre>   T =   128  <span class="a">→</span>       16,384<span class="w">칸</span>
+   T = 1,024  <span class="a">→</span>    1,048,576<span class="w">칸</span>      (64<span class="w">배</span>)
+   T = 8,192  <span class="a">→</span>   67,108,864<span class="w">칸</span>      (4,096<span class="w">배</span>)</pre></div><p class="faq"><strong>Q. 분류에서 왜 마지막 토큰만?</strong><br/>
+코잘 어텐션에서 마지막 토큰만이 문장 전체를 본 유일한 자리이기 때문입니다.</p><p class="faq"><strong>Q. 지시 튜닝인데 왜 손실 함수가 사전 훈련과 같나?</strong><br/>
+"답변 형식의 텍스트를 이어 쓰기"도 결국 다음 토큰 예측이기 때문입니다. LLM에게 가르치는 모든 것은 결국 "이 문맥 다음엔 이 토큰"입니다.</p><h3 id="s8-3"><span class="hn">8.3</span>자기 점검 10문제</h3><ol>
+<li>문맥 길이 8짜리 모델에 길이 8 시퀀스 하나를 넣으면 훈련 문제가 몇 개 생기나?</li>
+<li><code>(2, 10, 768)</code> 입력이 12헤드 어텐션에 들어가면 <code>Q @ Kᵀ</code>의 모양은?</li>
+<li>손실이 2.3이면 혼잡도는? 모델이 몇 개 후보에서 헷갈리는 셈인가?</li>
+<li>온도를 0.1로 낮추면? 5.0으로 올리면?</li>
+<li>잔차 연결을 없애면 무슨 일이 생기나?</li>
+<li>스팸 분류에서 첫 번째 토큰의 출력을 쓰면 왜 안 되나?</li>
+<li>지시 튜닝 타깃에서 첫 <code>&lt;|endoftext|&gt;</code>까지 −100으로 바꾸면?</li>
+<li>GPT-2 가중치 로드 시 <code>qkv_bias=True</code>가 필요한 이유는?</li>
+<li><code>nn.Embedding(50257, 768)</code>의 파라미터 수는?</li>
+<li>어텐션과 FFN 중 토큰 간 정보 교환을 하는 것은?</li>
+</ol><details>
+<summary>▶ 정답 보기</summary>
+<ol>
+<li><strong>8개.</strong> 위치 1~8 각각이 "다음 토큰" 문제 하나씩. 코잘 마스크 덕분에 한 번의 forward로 전부 계산됨.</li>
+<li><strong>(2, 12, 10, 10)</strong> — (배치, 헤드, 토큰, 토큰).</li>
+<li>e^2.3 ≈ <strong>10</strong>. 후보 10개 사이에서 헷갈리는 정도.</li>
+<li>0.1 → 거의 항상 최고 확률 토큰만 나와 그리디처럼 반복적·보수적. 5.0 → 분포가 평평해져 엉뚱한 토큰이 자주 나옴.</li>
+<li>층이 깊어질수록 기울기가 소멸해 앞쪽 층이 거의 학습되지 않음. 12층 GPT도 훈련이 안 됨.</li>
+<li>코잘 마스크 때문에 첫 토큰 출력은 첫 토큰만 본 결과라 문장 전체 정보가 없음.</li>
+<li>모델이 "답을 끝내는 법"을 못 배워 계속 이어 씀. 생성이 멈추지 않음.</li>
+<li>OpenAI GPT-2는 Q/K/V 선형층에 편향을 썼기 때문. <code>False</code>면 편향을 넣을 자리가 없어 오류.</li>
+<li>50257 × 768 = <strong>38,597,376개</strong>.</li>
+<li><strong>어텐션.</strong> FFN은 토큰 하나씩 독립적으로 처리.</li>
+</ol>
+</details><h3 id="s8-4"><span class="hn">8.4</span>직접 망가뜨려 보기 (가장 효과 좋은 학습법)</h3><p>코드를 한 줄씩 고쳐 보고 무슨 일이 생기는지 관찰하세요. <strong>망가지는 걸 봐야 왜 필요한지 알게 됩니다.</strong></p><div class="tbl"><table>
+<thead>
+<tr>
+<th>실험</th>
+<th>고칠 곳</th>
+<th>예상 결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>위치 임베딩 제거</td>
+<td><code>GPTModel.forward</code>의 <code>+ self.pos_emb(...)</code> 삭제</td>
+<td>어순을 못 배워 손실이 덜 떨어짐</td>
+</tr>
+<tr>
+<td><strong>코잘 마스크 제거</strong></td>
+<td><code>masked_fill_</code> 줄 주석 처리</td>
+<td>훈련 손실이 비정상적으로 빨리 0 근처로(답 훔쳐봄). 생성은 엉망</td>
+</tr>
+<tr>
+<td><strong>잔차 연결 제거</strong></td>
+<td><code>TransformerBlock</code>의 <code>x +</code> 삭제</td>
+<td>손실이 거의 안 줄어듦</td>
+</tr>
+<tr>
+<td>헤드 수 바꾸기</td>
+<td><code>n_heads</code>: 6 → 1</td>
+<td>표현력 저하</td>
+</tr>
+<tr>
+<td>온도 극단값</td>
+<td><code>temperature=0.1</code> vs <code>2.0</code></td>
+<td>반복 vs 횡설수설</td>
+</tr>
+<tr>
+<td>학습률 10배</td>
+<td><code>lr=1e-2</code></td>
+<td>손실 발산(NaN) 가능</td>
+</tr>
+<tr>
+<td>어텐션 가중치 들여다보기</td>
+<td><code>weights</code>를 print</td>
+<td>어떤 단어가 어떤 단어를 보는지</td>
+</tr>
+</tbody>
+</table></div><h3 id="s8-5"><span class="hn">8.5</span>추천 학습 순서 (총 5~6일)</h3><div class="tbl"><table>
+<thead>
+<tr>
+<th>일차</th>
+<th>할 일</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1일</td>
+<td>0장 읽기 → 1~2장 읽기 → PART 1~2 실행</td>
+</tr>
+<tr>
+<td>2일</td>
+<td><strong>2장 손계산을 종이에 직접</strong> (A·B·C 예제 + 마스크). 가장 중요</td>
+</tr>
+<tr>
+<td>3일</td>
+<td>3장 + PART 3. 파라미터 개수 직접 세어 보기</td>
+</tr>
+<tr>
+<td>4일</td>
+<td>4장 + PART 4. 손실 곡선·온도 실험. <code>PART4_load_gpt2</code> 켜 보기</td>
+</tr>
+<tr>
+<td>5일</td>
+<td>5~6장 + PART 5, 6</td>
+</tr>
+<tr>
+<td>6일</td>
+<td>8.4 실험 3개 이상</td>
+</tr>
+<tr>
+<td>+1주</td>
+<td>8.3 문제 다시 풀기 → 틀린 것만 해당 장 재독</td>
+</tr>
+</tbody>
+</table></div><h3 id="s8-6"><span class="hn">8.6</span>이해를 넓혀 줄 자료</h3><p><strong><span class="mk">⭐</span> 최우선 추천 3개</strong></p><div class="tbl"><table>
+<thead>
+<tr>
+<th>자료</th>
+<th>왜 좋은가</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>LLM Visualization</strong> — <a href="https://bbycroft.net/llm">https://bbycroft.net/llm</a></td>
+<td>GPT 내부를 3D로 돌려 보며 토큰 하나가 각 층을 지나는 계산을 눈으로 따라갑니다. 이 문서 3.1의 구조도를 입체로 본다고 생각하세요</td>
+</tr>
+<tr>
+<td><strong>3Blue1Brown</strong> — "But what is a GPT?" / "Attention in transformers, visually explained" (YouTube)</td>
+<td>임베딩과 어텐션을 애니메이션으로. 2장을 읽은 뒤 보면 확 잡힙니다</td>
+</tr>
+<tr>
+<td><strong>Andrej Karpathy</strong> — "Let's build GPT: from scratch" / "Let's build the GPT Tokenizer" (YouTube)</td>
+<td>이 책과 거의 같은 코드를 라이브로 짜며 설명. 토크나이저 영상은 BPE를 직접 구현합니다</td>
+</tr>
+</tbody>
+</table></div><p><strong>그 외</strong></p><ul>
+<li>원서 저장소 — <a href="https://github.com/rasbt/LLMs-from-scratch">https://github.com/rasbt/LLMs-from-scratch</a> (보너스: KV 캐시, LoRA 등)</li>
+<li>번역서 저장소 — <a href="https://github.com/rickiepark/llm-from-scratch">https://github.com/rickiepark/llm-from-scratch</a></li>
+<li>Jay Alammar, "The Illustrated Transformer" — <a href="https://jalammar.github.io/illustrated-transformer/">https://jalammar.github.io/illustrated-transformer/</a></li>
+<li>Sebastian Raschka, "Understanding and Coding Self-Attention…" — <a href="https://magazine.sebastianraschka.com/p/understanding-and-coding-self-attention">https://magazine.sebastianraschka.com/p/understanding-and-coding-self-attention</a> (책 3장 확장판)</li>
+<li>토크나이저 놀이터 — <a href="https://tiktokenizer.vercel.app">https://tiktokenizer.vercel.app</a></li>
+<li>nanoGPT — <a href="https://github.com/karpathy/nanoGPT">https://github.com/karpathy/nanoGPT</a></li>
+<li>원조 논문 "Attention Is All You Need" (arXiv:1706.03762) — <strong>이 문서를 다 읽은 뒤에</strong> 보면 3.1 구조도가 그대로 보입니다</li>
+</ul><blockquote>
+<p>링크는 2026-09 기준입니다. 안 되면 제목으로 검색하세요.</p>
+</blockquote><div class="define closing"><p class="bt">마지막 한 문장</p><p>LLM은 "다음 토큰 맞히기"라는 단순한 목표를, 어텐션(정보 교환)과 잔차 연결(깊이 확보)이라는 두 장치로 대규모 데이터에 적용한 것이다.</p><p>이 문장을 자기 말로 다시 설명할 수 있다면, 핵심은 당신 것입니다.</p></div></section></main>
+</div>
+<script>
+(function(){
+  var nav=document.querySelector('nav.toc'); if(!nav) return;
+  var head=nav.querySelector('.toc-head');
+  var btn=document.createElement('button');
+  btn.type='button'; btn.className='toc-toggle'; head.appendChild(btn);
+  var mq=window.matchMedia('(max-width:940px)');
+  function setState(c){ nav.classList.toggle('collapsed',c); btn.textContent=c?'펼치기':'접기'; btn.setAttribute('aria-expanded',String(!c)); }
+  btn.addEventListener('click',function(){ setState(!nav.classList.contains('collapsed')); });
+  setState(mq.matches);
+  if(mq.addEventListener) mq.addEventListener('change',function(e){ setState(e.matches); });
+  nav.addEventListener('click',function(e){ if(e.target.closest('a') && mq.matches) setState(true); });
+
+  var chLinks=[].slice.call(nav.querySelectorAll(':scope > ol > li > a'));
+  var secLinks=[].slice.call(nav.querySelectorAll('ol ol a'));
+  function tgt(a){ return document.getElementById(a.getAttribute('href').slice(1)); }
+  var chT=chLinks.map(tgt), secT=secLinks.map(tgt);
+  function cur(ts){ var y=window.innerHeight*0.25, c=-1; ts.forEach(function(t,i){ if(t && t.getBoundingClientRect().top<=y) c=i; }); return c; }
+  function spy(){
+    var c=cur(chT), s=cur(secT);
+    chLinks.forEach(function(a,i){ a.classList.toggle('active',i===c); a.parentNode.classList.toggle('open',i===c); });
+    secLinks.forEach(function(a,i){ a.classList.toggle('active',i===s && a.closest('li.open')!==null); });
+    if(!mq.matches){
+      var act=nav.querySelector('ol ol a.active')||nav.querySelector('a.active');
+      if(act){ var r=act.getBoundingClientRect(), nr=nav.getBoundingClientRect();
+        if(r.top<nr.top+40||r.bottom>nr.bottom-40) nav.scrollTop+=r.top-nr.top-nr.height/2; }
+    }
+  }
+  var tk=false;
+  window.addEventListener('scroll',function(){ if(!tk){ tk=true; requestAnimationFrame(function(){ spy(); tk=false; }); } },{passive:true});
+  spy();
+})();
+
+</script>
+</body>
+</html>

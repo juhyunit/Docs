@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHAP · LIME 학습 노트 — 랜덤포레스트와 XGBoost로 배우는 모델 해석</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F6F4;
+    --ink:#26292d;
+    --ink-2:#4b4f55;
+    --ink-3:#6e7378;
+    --rule:#D8DBD5;
+    --rule-2:#E4E7E3;
+    --rule-3:#AEB4AF;
+    --navy:#1f3a5f;
+    --navy-bg:#EAEEF3;
+    --code-inline:#E8EBE8;
+    --plate:#FFFFFF;
+    --caution:#9a4a32;
+    /* SHAP 계열색 — 그래프의 데이터 구분용으로만 */
+    --push:#b8435e;   /* 빨강 : 예측을 위로 미는 힘 */
+    --pull:#2f6ea6;   /* 파랑 : 예측을 아래로 내리는 힘 */
+    --code-bg:#1b2733;
+    --code-head:#22303e;
+    --code-line:#2e3d4c;
+    --code-fg:#dce4ec;
+    --code-dim:#7f94a8;
+    --code-accent:#5a84b3;
+    --serif:"Noto Serif KR","Noto Serif CJK KR","Source Han Serif K","Nanum Myeongjo",AppleMyungjo,Batang,"바탕",serif;
+    --sans:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --text-w:42rem;
+    --wide-w:58rem;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:24px;-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--serif);font-size:17px;line-height:1.9;
+    word-break:keep-all;overflow-wrap:break-word;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  }
+
+  /* ---------- 레이아웃 ---------- */
+  .shell{display:grid;grid-template-columns:248px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  .rail{
+    position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;
+    padding:3rem 1.2rem 3rem 1.6rem;border-right:1px solid var(--rule);
+    font-family:var(--sans);background:var(--paper);
+  }
+  .rail-title{
+    font-size:11.5px;font-weight:600;color:var(--ink-3);margin:0 0 1.1rem;padding:0 0 .9rem .75rem;
+    letter-spacing:.12em;display:flex;justify-content:space-between;align-items:center;max-width:none;
+    border-bottom:1px solid var(--rule-2);
+  }
+  .rail a{
+    display:block;padding:.32rem .5rem .32rem .75rem;border-left:2px solid transparent;
+    color:var(--ink-2);text-decoration:none;font-size:13.5px;line-height:1.5;
+    transition:color .15s,border-color .15s;
+  }
+  .rail a:hover{color:var(--navy)}
+  .rail a.on{color:var(--navy);border-left-color:var(--navy);font-weight:600}
+  .rail a.sub{padding-left:1.8rem;font-size:12.6px;color:var(--ink-3)}
+  .rail a.sub:hover,.rail a.sub.on{color:var(--navy)}
+  .toc-toggle{
+    display:none;background:none;border:0;padding:0;cursor:pointer;
+    font-family:var(--sans);font-size:12.5px;letter-spacing:0;color:var(--navy);
+    text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule-3);
+  }
+  main{padding:0 3.6rem 9rem;min-width:0}
+  main > *{max-width:var(--wide-w)}
+
+  /* ---------- 표지 ---------- */
+  .hero{padding:4rem 0 3rem;border-bottom:1px solid var(--rule);margin-bottom:1rem}
+  .hero h1{
+    font-family:var(--serif);font-size:2.6rem;line-height:1.3;margin:0 0 1.1rem;
+    letter-spacing:-.02em;font-weight:700;
+  }
+  .hero > p:first-of-type{margin:0;color:var(--ink-2);max-width:var(--text-w);font-size:17.5px;line-height:1.85}
+  /* 수식: 코드 바탕 + 왼쪽 2px 남색 */
+  .identity{
+    margin:2.4rem 0 0;padding:1.25rem 1.4rem;max-width:var(--wide-w);
+    background:var(--code-inline);border-left:2px solid var(--navy);
+    font-family:var(--mono);font-size:17px;text-align:center;overflow-x:auto;white-space:nowrap;color:var(--ink);
+  }
+  .identity .b{color:var(--ink-2)}
+  .identity .p{color:var(--push);font-weight:500}
+  .identity .f{color:var(--ink);font-weight:500;border-bottom:2px solid var(--navy);padding-bottom:1px}
+  .identity-cap{margin:.9rem 0 0;font-family:var(--sans);font-size:13.5px;line-height:1.75;color:var(--ink-3);max-width:var(--wide-w)}
+
+  /* ---------- 장 ---------- */
+  section{padding:4.5rem 0 1rem}
+  .chead{border-bottom:1px solid var(--rule);padding-bottom:1.5rem;margin-bottom:2.2rem;max-width:var(--wide-w)}
+  h2{
+    font-family:var(--serif);font-size:2.2rem;margin:0;letter-spacing:-.015em;font-weight:700;line-height:1.35;
+  }
+  h2 .num{
+    display:block;color:var(--ink-3);font-family:var(--sans);font-size:12.5px;font-weight:500;
+    letter-spacing:.06em;margin-bottom:.6rem;line-height:1.4;
+  }
+  h2 .num::before{content:"제 "}
+  h2 .num::after{content:" 장"}
+  .chead > p{margin:1rem 0 0;color:var(--ink-2);font-size:17.5px;line-height:1.85;max-width:var(--text-w)}
+  h3{
+    font-family:var(--sans);font-size:1.28rem;margin:3.2rem 0 1rem;font-weight:600;
+    letter-spacing:-.01em;line-height:1.5;max-width:var(--text-w);
+  }
+  .chead + h3{margin-top:0}
+  h3 .hn{color:var(--navy);font-variant-numeric:tabular-nums}
+  h3 .sep{color:var(--rule-3)}
+  h4{font-family:var(--sans);font-size:1.05rem;margin:2.2rem 0 .6rem;font-weight:600;color:var(--ink);max-width:var(--text-w)}
+  p{margin:0 0 1.15rem;max-width:var(--text-w)}
+  ul,ol{max-width:var(--text-w);padding-left:1.4rem;margin:0 0 1.3rem}
+  li{margin-bottom:.45rem}
+  li::marker{color:var(--ink-3)}
+  strong{font-weight:700;color:var(--ink)}
+  em{font-style:normal;color:var(--navy)}
+  code{
+    font-family:var(--mono);font-size:.84em;background:var(--code-inline);color:#2b3440;
+    padding:.08em .34em;border-radius:2px;word-break:break-all;
+  }
+  a{color:var(--navy);text-decoration-color:var(--rule-3);text-underline-offset:3px}
+
+  /* ---------- 코드 블록 ---------- */
+  .codewrap{
+    position:relative;margin:1.5rem 0 1.8rem;max-width:var(--wide-w);
+    background:var(--code-bg);border:1px solid var(--code-line);border-left:3px solid var(--code-accent);
+    border-radius:0;overflow:hidden;
+  }
+  .codewrap .bar{
+    display:flex;justify-content:space-between;align-items:center;min-height:2.1rem;
+    padding:.35rem 4.6rem .35rem 1.1rem;border-bottom:1px solid var(--code-line);background:var(--code-head);
+    font-family:var(--mono);font-size:11.5px;color:#a9b8c8;letter-spacing:.03em;line-height:1.4;
+  }
+  .codewrap pre{margin:0;padding:1.1rem 1.3rem 1.2rem;overflow-x:auto;background:none;border:0;tab-size:4}
+  .codewrap pre code,.codewrap pre code.hljs{
+    display:block;background:none;padding:0;border-radius:0;color:var(--code-fg);
+    font-family:var(--mono);font-size:13px;line-height:1.75;word-break:normal;white-space:pre;overflow:visible;
+  }
+  /* 출력(text) 블록 — 밝은 바탕으로 코드와 구분 */
+  .codewrap.out{background:#ECEEEB;border-color:var(--rule);border-left:2px solid var(--rule-3)}
+  .codewrap.out .bar{background:transparent;border-bottom-color:var(--rule);color:var(--ink-3)}
+  .codewrap.out pre code{color:var(--ink-2);font-size:12.8px}
+
+  /* 구문 강조 (highlight.js 토큰) */
+  .hljs-comment,.hljs-quote{color:var(--code-dim)}
+  .hljs-keyword,.hljs-selector-tag,.hljs-literal,.hljs-meta .hljs-keyword{color:#93bbe6}
+  .hljs-string,.hljs-regexp,.hljs-addition{color:#a9d0a5}
+  .hljs-number,.hljs-symbol,.hljs-bullet{color:#e0bf8c}
+  .hljs-built_in,.hljs-type{color:#c7b3e0}
+  .hljs-title,.hljs-title.function_,.hljs-section{color:#e3c9a8}
+  .hljs-attr,.hljs-variable,.hljs-params,.hljs-property{color:var(--code-fg)}
+  .hljs-meta{color:#9fb0c2}
+  .codewrap.out [class^="hljs-"]{color:inherit}
+
+  .copy{
+    position:absolute;top:.38rem;right:.6rem;border:1px solid var(--code-line);background:transparent;
+    color:#a9b8c8;font-family:var(--sans);font-size:11.5px;padding:.15rem .6rem;line-height:1.5;
+    border-radius:0;cursor:pointer;opacity:.75;transition:opacity .15s,color .15s;
+  }
+  .codewrap:hover .copy,.copy:focus{opacity:1}
+  .copy:hover{color:var(--code-fg);border-color:var(--code-dim)}
+  .codewrap.out .copy{border-color:var(--rule);color:var(--ink-3)}
+
+  /* ---------- 콜아웃 ---------- */
+  /* 참고 : 배경 없이 왼쪽 1px 괘선, 본문보다 한 단계 낮게 */
+  .note{
+    margin:1.8rem 0;padding:.15rem 0 .15rem 1.25rem;max-width:var(--text-w);
+    background:none;border:0;border-left:1px solid var(--rule-3);border-radius:0;
+    font-size:16px;line-height:1.85;color:var(--ink-2);
+  }
+  /* 머리글이 문장형 소제목이므로 고딕 600 16px */
+  .note .lab{
+    display:flex;align-items:center;gap:.5em;font-family:var(--sans);font-size:16px;font-weight:600;
+    line-height:1.5;color:var(--ink);margin-bottom:.4rem;
+  }
+  /* 주의 : 배경 없이 왼쪽 1px 적갈색 선 + 적갈색 머리글(작은 사각점), 본문색 유지 */
+  .note.warn{border-left-color:var(--caution);font-size:17px;color:var(--ink)}
+  .note.warn .lab{color:var(--caution)}
+  .note.warn .lab::before{content:"";flex:none;width:6px;height:6px;background:var(--caution)}
+  /* 핵심 : 남색 옅은 바탕 + 왼쪽 3px 남색 선 */
+  .note.key{background:var(--navy-bg);border-left:3px solid var(--navy);padding:1.1rem 1.4rem 1.15rem;font-size:17px;color:var(--ink)}
+  .note.key .lab{color:var(--navy)}
+  .note p:last-child,.note ul:last-child,.note ol:last-child{margin-bottom:0}
+  .note strong{color:var(--ink)}
+
+  /* ---------- 표 ---------- */
+  .tablewrap{overflow-x:auto;margin:1.7rem 0 2rem;max-width:var(--wide-w)}
+  table{
+    border-collapse:collapse;width:100%;min-width:520px;background:none;
+    font-family:var(--sans);font-size:14px;line-height:1.65;color:var(--ink);
+    border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);
+  }
+  th,td{border:0;border-bottom:1px solid var(--rule-2);padding:.62rem .8rem;text-align:left;vertical-align:top}
+  th:first-child,td:first-child{padding-left:.2rem}
+  th{background:none;font-weight:600;font-size:13px;color:var(--ink)}
+  tr:first-child th{border-bottom:1px solid var(--rule-3)}
+  tr:last-child td,tr:last-child th{border-bottom:0}
+  td strong{font-weight:600}
+  td code{font-size:12.4px}
+
+  /* ---------- 그림 : 흰 판 + 1px 괘선, 캡션은 판 밖 아래 ---------- */
+  main{counter-reset:fig}
+  figure{
+    margin:2.2rem 0 2.6rem;padding:0;max-width:var(--wide-w);
+    background:none;border:0;border-radius:0;counter-increment:fig;
+  }
+  .plate{background:var(--plate);border:1px solid var(--rule);padding:1.5rem 1.6rem}
+  figure svg{display:block;width:100%;height:auto;max-width:760px;margin:0 auto}
+  figcaption{
+    margin:.75rem 0 0;max-width:var(--text-w);font-family:var(--sans);font-size:13.5px;color:var(--ink-3);
+    text-align:left;line-height:1.7;
+  }
+  figcaption::before{content:"그림 " counter(fig) ".";font-weight:600;color:var(--ink);margin-right:.5em}
+  figcaption code{font-size:12px}
+  figcaption strong{color:var(--ink-2);font-weight:600}
+  .svg-l{font-family:"IBM Plex Sans KR",var(--sans);font-size:12px;fill:var(--ink)}
+  .svg-s{font-family:"IBM Plex Sans KR",var(--sans);font-size:10.5px;fill:var(--ink-3)}
+  .svg-m{font-family:var(--mono);font-size:11px;fill:var(--ink)}
+  .svg-b{font-family:"IBM Plex Sans KR",var(--sans);font-size:12.5px;font-weight:600;fill:var(--ink)}
+
+  /* ---------- 접기 ---------- */
+  details{
+    max-width:var(--text-w);background:none;border:0;border-top:1px solid var(--rule);border-radius:0;margin:0;padding:0;
+  }
+  details:last-of-type{border-bottom:1px solid var(--rule)}
+  details summary{
+    cursor:pointer;padding:.85rem 0 .85rem 1.6rem;position:relative;
+    font-family:var(--sans);font-weight:600;font-size:15px;line-height:1.6;list-style:none;color:var(--ink);
+  }
+  details summary:hover{color:var(--navy)}
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"+";position:absolute;left:.15rem;color:var(--navy);font-family:var(--mono);font-weight:400}
+  details[open] summary::before{content:"−"}
+  .dbody{padding:0 0 1.1rem 1.6rem;font-size:16px;color:var(--ink-2)}
+  .dbody strong{color:var(--ink)}
+  .dbody p:last-child{margin-bottom:0}
+  .dbody .codewrap{margin:.9rem 0 .4rem}
+
+  .foot{padding:3rem 0 0;color:var(--ink-2);font-size:15.5px}
+  .foot p{max-width:var(--text-w)}
+
+  @media (max-width:1100px){ main{padding:0 2.4rem 7rem} }
+  @media (max-width:900px){
+    body{font-size:16.5px}
+    .shell{grid-template-columns:1fr}
+    .rail{position:static;height:auto;border-right:0;border-bottom:1px solid var(--rule);padding:1.1rem 1.1rem}
+    .rail-title{margin:0;padding:0;border-bottom:0}
+    .toc-toggle{display:inline}
+    .rail nav{display:block;columns:2;column-gap:.8rem;margin-top:.8rem;padding-top:.6rem;border-top:1px solid var(--rule-2)}
+    .rail.collapsed nav{display:none}
+    .rail a{padding:.3rem .5rem;font-size:13px;break-inside:avoid}
+    .rail a.sub{display:none}
+    main{padding:0 1.1rem 5rem}
+    .hero{padding:2.6rem 0 2.2rem}
+    .hero h1{font-size:2rem}
+    .identity{font-size:14px;padding:1rem}
+    h2{font-size:1.75rem}
+    .plate{padding:.9rem}
+    .copy{opacity:1}
+  }
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+  :focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+  @media print{
+    .rail{display:none}
+    .shell{grid-template-columns:1fr}
+    body{background:#fff}
+    .copy{display:none}
+    figure,.codewrap,table{page-break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside class="rail">
+  <p class="rail-title">목차</p>
+  <nav id="toc">
+    <a href="#s0">준비물</a>
+    <a href="#s1">1 · 전체 프로세스</a>
+    <a href="#s2">2 · 데이터 로드</a>
+    <a href="#s3">3 · 전처리</a>
+    <a href="#s4">4 · 학습</a>
+    <a href="#s5">5 · 예측</a>
+    <a href="#s6">6 · 평가</a>
+    <a href="#s7">7 · 내장 특성 중요도</a>
+    <a href="#s8">8 · SHAP</a>
+    <a href="#s8-1" class="sub">아이디어</a>
+    <a href="#s8-2" class="sub">E[f(x)]의 정체</a>
+    <a href="#s8-3" class="sub">코드</a>
+    <a href="#s8-4" class="sub">그래프 3종</a>
+    <a href="#s8-5" class="sub">반환 형태 문제</a>
+    <a href="#s9">9 · LIME</a>
+    <a href="#s10">10 · 전역 vs 지역</a>
+    <a href="#s11">11 · SHAP vs LIME</a>
+    <a href="#s12">12 · 전체 코드</a>
+    <a href="#s13">13 · 자주 막히는 곳</a>
+  </nav>
+</aside>
+
+<main>
+
+<header class="hero">
+  <h1>SHAP · LIME 학습 노트</h1>
+  <p>유방암 데이터셋과 랜덤포레스트 · XGBoost로 배우는 모델 해석. 데이터 로드부터 특성 설명까지 전 과정을 코드와 원리로 정리했습니다.</p>
+
+  <div class="identity">
+    <span class="b">E[f(x)]</span> &nbsp;+&nbsp; <span class="p">φ₁ + φ₂ + ⋯ + φ₃₀</span> &nbsp;=&nbsp; <span class="f">f(x)</span>
+  </div>
+  <p class="identity-cap">SHAP의 전부는 이 한 줄입니다. 평균 예측값에서 출발해, 각 특성이 밀어낸 몫(φ)을 전부 더하면<br>정확히 이 샘플의 예측값이 됩니다. 이 문서는 이 등식을 이해하고 코드로 확인하는 과정입니다.</p>
+</header>
+
+<!-- ══════════════════ 0 ══════════════════ -->
+<section id="s0">
+  <div class="chead"><h2>준비물</h2></div>
+  <div class="codewrap">
+<div class="bar"><span>bash</span></div>
+<pre><code class="language-bash">pip install scikit-learn xgboost shap lime pandas matplotlib</code></pre>
+  </div>
+  <p>주피터 노트북에서 실행하는 것을 권합니다. SHAP과 LIME은 그래프를 그려야 이해가 되는 도구라서, 셀 단위로 하나씩 그려보면서 진행하는 편이 훨씬 빠릅니다.</p>
+  <div class="note">
+    <span class="lab">데이터셋에 대해</span>
+    <p>사이킷런에 내장된 <strong>위스콘신 유방암 데이터</strong>를 씁니다. 환자 569명, 세포핵을 측정한 특성 30개(반지름·둘레·오목한 정도 등의 평균·표준오차·최악값)로 구성됩니다. 결측치가 없고 크기가 작아서 해석 기법을 연습하기에 좋습니다.</p>
+    <p><strong>타깃이 헷갈리기 쉽습니다.</strong> <code>0 = malignant(악성)</code>, <code>1 = benign(양성)</code>입니다. 즉 <strong>1이 "좋은 쪽"</strong>입니다. 모든 확률값과 SHAP 그래프는 이 <code>1</code>을 기준으로 읽게 되므로 먼저 못 박고 시작합시다.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 1 ══════════════════ -->
+<section id="s1">
+  <div class="chead"><h2><span class="num">1</span>전체 프로세스</h2>
+  <p>앞의 여섯 단계는 일반적인 머신러닝 파이프라인이고, 마지막 두 단계가 이 문서의 주제입니다. 모델을 만드는 것과 <em>모델을 설명하는 것</em>은 별개의 작업이라는 점을 먼저 잡아두면 좋습니다.</p></div>
+
+  <figure>
+    <div class="plate"><svg viewBox="0 0 760 260" role="img" aria-label="머신러닝 파이프라인 흐름도">
+      <defs>
+        <marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 z" fill="#4b4f55"/>
+        </marker>
+      </defs>
+
+      <text x="20" y="26" class="svg-s">모델을 만드는 과정</text>
+      <rect x="14" y="34" width="732" height="72" rx="3" fill="#EEF0ED" stroke="#D8DBD5"/>
+
+      <g>
+        <rect x="30" y="52" width="102" height="38" rx="3" fill="#fff" stroke="#D8DBD5"/>
+        <text x="81" y="68" class="svg-b" text-anchor="middle">1 로드</text>
+        <text x="81" y="82" class="svg-s" text-anchor="middle">load_breast_cancer</text>
+
+        <line x1="136" y1="71" x2="156" y2="71" stroke="#4b4f55" marker-end="url(#ah)"/>
+        <rect x="160" y="52" width="102" height="38" rx="3" fill="#fff" stroke="#D8DBD5"/>
+        <text x="211" y="68" class="svg-b" text-anchor="middle">2 전처리</text>
+        <text x="211" y="82" class="svg-s" text-anchor="middle">train_test_split</text>
+
+        <line x1="266" y1="71" x2="286" y2="71" stroke="#4b4f55" marker-end="url(#ah)"/>
+        <rect x="290" y="52" width="102" height="38" rx="3" fill="#fff" stroke="#D8DBD5"/>
+        <text x="341" y="68" class="svg-b" text-anchor="middle">3 학습</text>
+        <text x="341" y="82" class="svg-s" text-anchor="middle">fit()</text>
+
+        <line x1="396" y1="71" x2="416" y2="71" stroke="#4b4f55" marker-end="url(#ah)"/>
+        <rect x="420" y="52" width="102" height="38" rx="3" fill="#fff" stroke="#D8DBD5"/>
+        <text x="471" y="68" class="svg-b" text-anchor="middle">4 예측</text>
+        <text x="471" y="82" class="svg-s" text-anchor="middle">predict_proba()</text>
+
+        <line x1="526" y1="71" x2="546" y2="71" stroke="#4b4f55" marker-end="url(#ah)"/>
+        <rect x="550" y="52" width="102" height="38" rx="3" fill="#fff" stroke="#D8DBD5"/>
+        <text x="601" y="68" class="svg-b" text-anchor="middle">5 평가</text>
+        <text x="601" y="82" class="svg-s" text-anchor="middle">accuracy / AUC</text>
+
+        <line x1="656" y1="71" x2="676" y2="71" stroke="#4b4f55" marker-end="url(#ah)"/>
+        <rect x="680" y="52" width="52" height="38" rx="3" fill="#fff" stroke="#D8DBD5"/>
+        <text x="706" y="75" class="svg-b" text-anchor="middle">쓸만함?</text>
+      </g>
+
+      <line x1="380" y1="110" x2="380" y2="140" stroke="#4b4f55" marker-end="url(#ah)"/>
+      <text x="392" y="130" class="svg-s">성능이 확보된 뒤에야 해석이 의미가 있습니다</text>
+
+      <text x="20" y="164" class="svg-s">모델을 설명하는 과정 — 이 문서의 주제</text>
+      <rect x="14" y="172" width="732" height="72" rx="3" fill="#EAEEF3" stroke="#C5D0DE"/>
+
+      <g>
+        <rect x="30" y="190" width="150" height="38" rx="3" fill="#fff" stroke="#C5D0DE"/>
+        <text x="105" y="206" class="svg-b" text-anchor="middle">6 내장 중요도</text>
+        <text x="105" y="220" class="svg-s" text-anchor="middle">feature_importances_</text>
+
+        <line x1="184" y1="209" x2="204" y2="209" stroke="#4b4f55" marker-end="url(#ah)"/>
+        <rect x="208" y="190" width="230" height="38" rx="3" fill="#fff" stroke="#C5D0DE"/>
+        <text x="323" y="206" class="svg-b" text-anchor="middle">7 SHAP · 전역 + 지역</text>
+        <text x="323" y="220" class="svg-s" text-anchor="middle">bar · beeswarm · waterfall</text>
+
+        <line x1="442" y1="209" x2="462" y2="209" stroke="#4b4f55" marker-end="url(#ah)"/>
+        <rect x="466" y="190" width="180" height="38" rx="3" fill="#fff" stroke="#C5D0DE"/>
+        <text x="556" y="206" class="svg-b" text-anchor="middle">8 LIME · 지역</text>
+        <text x="556" y="220" class="svg-s" text-anchor="middle">explain_instance</text>
+
+        <line x1="650" y1="209" x2="670" y2="209" stroke="#4b4f55" marker-end="url(#ah)"/>
+        <rect x="674" y="190" width="58" height="38" rx="3" fill="#fff" stroke="#C5D0DE"/>
+        <text x="703" y="213" class="svg-b" text-anchor="middle">교차검증</text>
+      </g>
+    </svg></div>
+    <figcaption>성능이 나쁜 모델을 해석하는 건 의미가 없습니다. 항상 평가를 먼저 통과시킨 뒤 해석으로 넘어갑니다.</figcaption>
+  </figure>
+</section>
+
+<!-- ══════════════════ 2 ══════════════════ -->
+<section id="s2">
+  <div class="chead"><h2><span class="num">2</span>데이터 로드</h2></div>
+  <div class="codewrap">
+<div class="bar"><span>python</span></div>
+<pre><code class="language-python">from sklearn.datasets import load_breast_cancer
+
+data = load_breast_cancer(as_frame=True)
+df = data.frame                      # 특성 30개 + target 1개가 합쳐진 DataFrame
+
+print("데이터 크기:", df.shape)                    # (569, 31)
+print("클래스 이름:", list(data.target_names))     # ['malignant', 'benign']
+print(df.head())</code></pre>
+  </div>
+  <p><code>as_frame=True</code>를 꼭 넣으세요. 이걸 빼면 넘파이 배열로 나와서 열 이름이 사라집니다. SHAP과 LIME 그래프는 열 이름이 있어야 <code>worst radius</code> 같은 이름이 찍히고, 없으면 <code>Feature 20</code>처럼 나와서 해석이 불가능해집니다.</p>
+  <div class="note">
+    <span class="lab">객체 구조</span>
+    <ul>
+      <li><code>data.frame</code> — 특성 + 타깃이 합쳐진 DataFrame</li>
+      <li><code>data.data</code> — 특성만 (569×30)</li>
+      <li><code>data.target</code> — 정답 라벨만 (0/1)</li>
+      <li><code>data.target_names</code> — <code>['malignant','benign']</code>, 인덱스가 곧 라벨 숫자</li>
+      <li><code>data.feature_names</code> — 특성 30개의 이름</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════════ 3 ══════════════════ -->
+<section id="s3">
+  <div class="chead"><h2><span class="num">3</span>전처리</h2></div>
+  <div class="codewrap">
+<div class="bar"><span>python</span></div>
+<pre><code class="language-python">from sklearn.model_selection import train_test_split
+
+print("결측치 개수:", df.isnull().sum().sum())   # 이 데이터는 0
+
+X = df.drop(columns="target")
+y = df["target"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)</code></pre>
+  </div>
+
+  <h3>세 개의 인자만 이해하면 됩니다</h3>
+  <ul>
+    <li><code>test_size=0.2</code> — 20%를 시험지로 떼어둡니다. 모델은 이 데이터를 학습 중에 절대 보지 않습니다.</li>
+    <li><code>random_state=42</code> — 나누는 방식을 고정합니다. 이걸 안 넣으면 실행할 때마다 결과가 달라져서 비교가 불가능합니다. 42는 관행일 뿐 아무 숫자나 됩니다.</li>
+    <li><code>stratify=y</code> — 원본의 클래스 비율(악성 37% / 양성 63%)을 훈련셋과 테스트셋 모두에 그대로 유지합니다. 불균형 데이터에서는 필수입니다.</li>
+  </ul>
+
+  <div class="note key">
+    <span class="lab">스케일링은 왜 안 하나</span>
+    <p>트리 계열 모델은 <strong>"이 특성이 기준값보다 큰가, 작은가"</strong>로만 분기합니다. <code>radius &gt; 15.0</code>이라는 조건은 단위를 밀리미터로 바꾸든 표준화하든 나누는 샘플의 집합이 똑같습니다. 그래서 <code>StandardScaler</code>가 결과를 바꾸지 못합니다.</p>
+    <p>반면 <strong>선형모델과 신경망은 반드시 필요합니다.</strong> 이들은 값의 크기를 그대로 곱해서 쓰기 때문에, <code>area</code>(수백~수천)와 <code>smoothness</code>(0.1 근처)를 그냥 넣으면 큰 값을 가진 특성이 학습을 지배합니다. 이럴 땐 <code>make_pipeline(StandardScaler(), LogisticRegression())</code>으로 묶어두면, 모델이 원본 X를 그대로 입력받는 형태가 유지돼서 뒤의 SHAP·LIME 코드를 고치지 않아도 됩니다.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 4 ══════════════════ -->
+<section id="s4">
+  <div class="chead"><h2><span class="num">4</span>학습</h2></div>
+  <div class="codewrap">
+<div class="bar"><span>python</span></div>
+<pre><code class="language-python">from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+
+models = {
+    "RandomForest": RandomForestClassifier(n_estimators=100, random_state=42),
+    "XGBoost":      XGBClassifier(n_estimators=100, random_state=42),
+}
+
+for model in models.values():
+    model.fit(X_train, y_train)</code></pre>
+  </div>
+  <p>딕셔너리에 담아두면 이후의 평가·중요도·SHAP·LIME을 전부 같은 루프로 처리할 수 있습니다. 나중에 모델을 하나 더 추가하고 싶으면 딕셔너리에 한 줄만 넣으면 나머지가 따라옵니다.</p>
+
+  <h3>두 모델은 어떻게 다른가</h3>
+  <div class="tablewrap">
+  <table>
+    <tr><th style="width:14%"></th><th>랜덤포레스트</th><th>XGBoost</th></tr>
+    <tr><th>방식</th><td>배깅 — 서로 다른 데이터·특성으로 트리 100개를 <strong>독립적으로</strong> 만들고 투표</td><td>부스팅 — 앞 트리의 <strong>틀린 부분을 다음 트리가 보정</strong>하며 순차적으로 쌓음</td></tr>
+    <tr><th>성격</th><td>분산을 줄임. 기본값으로도 잘 돌아가고 과적합에 둔감</td><td>편향을 줄임. 성능 상한이 높지만 튜닝에 민감</td></tr>
+    <tr><th>실무</th><td>일단 기준선을 잡을 때</td><td>정형 데이터에서 성능을 끝까지 밀어붙일 때</td></tr>
+  </table>
+  </div>
+  <p>이 구조 차이가 뒤에서 <strong>SHAP 반환 형태가 서로 달라지는 원인</strong>이 됩니다. 8-5에서 다시 다룹니다.</p>
+</section>
+
+<!-- ══════════════════ 5 ══════════════════ -->
+<section id="s5">
+  <div class="chead"><h2><span class="num">5</span>예측</h2></div>
+  <div class="codewrap">
+<div class="bar"><span>python</span></div>
+<pre><code class="language-python">pred = model.predict(X_test)                # 0 또는 1 (라벨)
+prob = model.predict_proba(X_test)[:, 1]    # 0.0 ~ 1.0 (양성일 확률)</code></pre>
+  </div>
+  <p><code>predict_proba</code>는 <code>(샘플수, 2)</code> 형태로 <code>[악성확률, 양성확률]</code>을 돌려줍니다. 그래서 <code>[:, 1]</code>로 두 번째 열, 즉 <strong>양성일 확률</strong>만 뽑습니다.</p>
+  <div class="note warn">
+    <span class="lab">여기가 초보자 실수 지점</span>
+    <p>정확도·혼동행렬은 <strong>라벨</strong>(<code>pred</code>)로 계산하고, ROC-AUC는 <strong>확률</strong>(<code>prob</code>)로 계산합니다. 바꿔 넣으면 에러 없이 잘못된 숫자가 나오기 때문에 알아채기 어렵습니다.</p>
+    <p>그리고 <strong>LIME은 <code>model</code>이 아니라 <code>model.predict_proba</code> 함수 자체를 넘겨야 합니다.</strong> 괄호 없이 함수 이름만 넘긴다는 점에 주의하세요.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 6 ══════════════════ -->
+<section id="s6">
+  <div class="chead"><h2><span class="num">6</span>평가</h2></div>
+  <div class="codewrap">
+<div class="bar"><span>python</span></div>
+<pre><code class="language-python">from sklearn.metrics import (accuracy_score, roc_auc_score,
+                             classification_report, confusion_matrix)
+
+for name, model in models.items():
+    pred = model.predict(X_test)
+    prob = model.predict_proba(X_test)[:, 1]
+
+    print(f"\n===== {name} =====")
+    print("정확도 :", round(accuracy_score(y_test, pred), 4))
+    print("ROC-AUC:", round(roc_auc_score(y_test, prob), 4))
+    print(confusion_matrix(y_test, pred))
+    print(classification_report(y_test, pred, target_names=data.target_names))</code></pre>
+  </div>
+
+  <h3>혼동행렬 읽는 법</h3>
+  <figure>
+    <div class="plate"><svg viewBox="0 0 620 230" role="img" aria-label="혼동행렬 구조">
+      <text x="250" y="20" class="svg-b" text-anchor="middle">예측 (열)</text>
+      <text x="60" y="26" class="svg-s">행 = 실제</text>
+      <text x="180" y="44" class="svg-l" text-anchor="middle">악성 (0)</text>
+      <text x="320" y="44" class="svg-l" text-anchor="middle">양성 (1)</text>
+
+      <text x="100" y="86" class="svg-l" text-anchor="end">악성 (0)</text>
+      <rect x="115" y="56" width="130" height="60" fill="#edf2f7" stroke="#D8DBD5"/>
+      <text x="180" y="82" class="svg-b" text-anchor="middle">TN · 40</text>
+      <text x="180" y="99" class="svg-s" text-anchor="middle">악성을 악성으로 ✓</text>
+
+      <rect x="255" y="56" width="130" height="60" fill="#f8eef0" stroke="#ead0d6"/>
+      <text x="320" y="82" class="svg-b" text-anchor="middle">FP · 2</text>
+      <text x="320" y="99" class="svg-s" text-anchor="middle">악성인데 양성이라 함</text>
+
+      <text x="100" y="156" class="svg-l" text-anchor="end">양성 (1)</text>
+      <rect x="115" y="126" width="130" height="60" fill="#f8eef0" stroke="#ead0d6"/>
+      <text x="180" y="152" class="svg-b" text-anchor="middle">FN · 1</text>
+      <text x="180" y="169" class="svg-s" text-anchor="middle">양성인데 악성이라 함</text>
+
+      <rect x="255" y="126" width="130" height="60" fill="#edf2f7" stroke="#D8DBD5"/>
+      <text x="320" y="152" class="svg-b" text-anchor="middle">TP · 71</text>
+      <text x="320" y="169" class="svg-s" text-anchor="middle">양성을 양성으로 ✓</text>
+
+      <line x1="400" y1="86" x2="420" y2="86" stroke="#b8435e" stroke-width="1.5"/>
+      <text x="428" y="82" class="svg-l" style="fill:#b8435e;font-weight:700">가장 위험한 칸</text>
+      <text x="428" y="99" class="svg-s">암 진단에서는 FP(악성을 놓침)가</text>
+      <text x="428" y="113" class="svg-s">치명적입니다. 여기 주의.</text>
+
+      <text x="115" y="212" class="svg-s">대각선(TN·TP)이 정답. 정확도 = 대각선 합 ÷ 전체. 숫자는 예시입니다.</text>
+    </svg></div>
+    <figcaption>사이킷런은 <code>[[TN, FP], [FN, TP]]</code> 순서로 출력합니다. 행이 실제, 열이 예측입니다.</figcaption>
+  </figure>
+
+  <h3>세 지표의 역할</h3>
+  <ul>
+    <li><strong>정확도</strong> — 전체 중 맞힌 비율. 직관적이지만, 한쪽 클래스가 95%인 데이터에서는 전부 다수 클래스로 찍어도 95%가 나오므로 혼자서는 못 믿습니다.</li>
+    <li><strong>ROC-AUC</strong> — 임계값(보통 0.5)을 어디에 두든 상관없이 "양성 샘플을 악성 샘플보다 높은 확률로 평가할 확률". 0.5는 찍기, 1.0은 완벽. 클래스 불균형에 강해서 모델 비교의 기본 지표로 씁니다.</li>
+    <li><strong>classification_report</strong> — precision(양성이라 한 것 중 진짜 비율)과 recall(진짜 양성 중 찾아낸 비율)을 클래스별로 보여줍니다. 의료처럼 놓치면 안 되는 문제에서는 recall이 중요합니다.</li>
+  </ul>
+</section>
+
+<!-- ══════════════════ 7 ══════════════════ -->
+<section id="s7">
+  <div class="chead"><h2><span class="num">7</span>모델 내장 특성 중요도</h2></div>
+  <div class="codewrap">
+<div class="bar"><span>python</span></div>
+<pre><code class="language-python">import pandas as pd
+import matplotlib.pyplot as plt
+
+for name, model in models.items():
+    imp = pd.Series(model.feature_importances_, index=X.columns)
+    top10 = imp.sort_values(ascending=False).head(10)
+
+    print(f"\n--- {name} 특성 중요도 Top 10 ---")
+    print(top10.round(4))
+
+    top10[::-1].plot(kind="barh", title=f"{name} - feature importance")
+    plt.tight_layout(); plt.show()</code></pre>
+  </div>
+  <p><code>feature_importances_</code>는 <strong>그 특성으로 분할했을 때 줄어든 불순도의 총합</strong>입니다. 전부 0 이상이고 다 더하면 1이 되므로 "상대적 기여 비율"로 읽습니다.</p>
+
+  <div class="note warn">
+    <span class="lab">세 가지 한계 — SHAP이 필요한 이유</span>
+    <ul>
+      <li><strong>방향을 모릅니다.</strong> <code>worst radius</code>가 중요하다는 건 알아도, 그게 크면 악성 쪽인지 양성 쪽인지는 알려주지 않습니다.</li>
+      <li><strong>개별 샘플을 설명 못 합니다.</strong> 모델 전체의 평균 경향일 뿐이라, "이 환자를 왜 악성으로 봤나"에 답할 수 없습니다.</li>
+      <li><strong>상관 특성에 취약합니다.</strong> 이 데이터는 <code>radius</code>·<code>perimeter</code>·<code>area</code>가 사실상 같은 정보인데, 트리가 셋 중 아무거나 골라 쓰면서 중요도가 셋으로 쪼개져 각각 과소평가됩니다.</li>
+    </ul>
+  </div>
+  <p>순위를 빠르게 훑는 용도로는 충분하지만, 이 세 가지 때문에 실무에서는 SHAP을 함께 봅니다.</p>
+</section>
+
+<!-- ══════════════════ 8 ══════════════════ -->
+<section id="s8">
+  <div class="chead"><h2><span class="num">8</span>SHAP</h2></div>
+
+  <h3 id="s8-1"><span class="hn">8-1</span><span class="sep"> · </span>아이디어 — 성과급을 어떻게 나눌 것인가</h3>
+  <p>SHAP은 게임이론의 <strong>섀플리 값(Shapley value)</strong>에서 나왔습니다. 원래 질문은 이렇습니다.</p>
+  <div class="note">
+    <p>세 명이 협력해서 프로젝트를 끝내고 300만 원을 벌었다. 각자에게 얼마씩 나눠줘야 공정한가?</p>
+  </div>
+  <p>섀플리의 답은 <strong>"그 사람이 팀에 합류했을 때 성과가 얼마나 늘었는지를, 가능한 모든 합류 순서에 대해 평균낸 값"</strong>입니다. 순서를 다 따지는 이유는 "A 다음에 B가 들어왔을 때"와 "B가 먼저 들어왔을 때"의 기여도가 다를 수 있기 때문입니다.</p>
+  <p>이걸 머신러닝에 그대로 옮기면:</p>
+  <ul>
+    <li>플레이어 = <strong>특성 30개</strong></li>
+    <li>성과 = <strong>모델의 예측값</strong></li>
+    <li>각자의 몫 φᵢ = <strong>그 특성이 예측을 얼마나 밀었는지</strong></li>
+  </ul>
+  <p>이 방식은 "기여도의 합이 전체 성과와 정확히 일치한다"는 성질을 수학적으로 보장합니다. 그래서 히어로에 적은 등식이 <em>근사</em>가 아니라 <em>항등식</em>으로 성립합니다. 이게 SHAP이 다른 해석 기법보다 신뢰받는 이유입니다.</p>
+
+  <h3 id="s8-2"><span class="hn">8-2</span><span class="sep"> · </span>E[f(x)]의 정체</h3>
+  <p>가장 많이 오해하는 지점입니다. <strong>E[f(x)]는 상수항이나 절편이 아닙니다.</strong> 배경 데이터 전체를 모델에 넣어 나온 <strong>예측값들의 평균</strong>입니다.</p>
+  <div class="codewrap">
+<div class="bar"><span>python</span></div>
+<pre><code class="language-python">explainer = shap.TreeExplainer(model)
+explainer.expected_value      # 이것이 E[f(x)]
+
+# 개념적으로 이것과 같습니다
+model.predict_proba(배경데이터)[:, 1].mean()</code></pre>
+  </div>
+  <p>유방암 데이터로 말하면 <strong>"이 환자에 대해 아무것도 모른 채로 추측한다면 양성일 확률을 얼마로 보겠는가"</strong>입니다. 전체에서 양성이 63%쯤이니 <code>E[f(x)]</code>도 그 근처가 나옵니다.</p>
+  <div class="note key">
+    <span class="lab">"변수 없이 상수만으로 예측한 값"과는 다른가</span>
+    <p>직관은 비슷하지만 계산은 다릅니다. 트리 모델은 반드시 특성으로 분기해야 하므로 <strong>"특성을 아예 안 쓴 예측"이라는 게 정의되지 않습니다.</strong> 그래서 SHAP은 그 대신 "정보가 없다면 그동안 본 샘플들의 평균적 결과를 예상하는 게 최선"이라는 방식으로 기준선을 잡습니다. 즉 모델 내부의 파라미터가 아니라, <strong>실제 데이터를 넣어 나온 출력들을 평균낸 값</strong>입니다.</p>
+  </div>
+  <p><code>BACKGROUND</code>(배경 데이터)와 설명 대상 데이터를 헷갈리지 마세요. 배경 데이터는 <strong>기준선을 정의</strong>하는 용도라 보통 훈련셋에서 뽑고, 설명 대상은 <strong>궁금한 샘플</strong>이라 보통 테스트셋에서 뽑습니다.</p>
+
+  <h4>왜 테스트셋으로 SHAP을 계산하나</h4>
+  <ul>
+    <li>보고 싶은 건 "훈련 데이터를 얼마나 잘 외웠나"가 아니라 <strong>"새 환자를 어떻게 판단하나"</strong>입니다. 훈련셋으로 계산하면 과적합해서 외워버린 패턴까지 중요한 특성으로 잡힙니다.</li>
+    <li>다만 절대 규칙은 아닙니다. <strong>모델의 일반화 방식</strong>이 궁금하면 테스트셋, <strong>모델 내부 로직 자체</strong>가 궁금하면 훈련셋을 써도 됩니다. 관행적으로 테스트셋(또는 별도 검증셋)을 씁니다.</li>
+  </ul>
+
+  <h3 id="s8-3"><span class="hn">8-3</span><span class="sep"> · </span>코드 — 사실상 네 줄</h3>
+  <div class="codewrap">
+<div class="bar"><span>python</span></div>
+<pre><code class="language-python">import shap
+
+sv = shap.TreeExplainer(model)(X_test)   # ① SHAP 값 계산
+
+shap.plots.bar(sv)                       # ② 전역: 중요도 순위
+shap.plots.beeswarm(sv)                  # ③ 전역: 순위 + 방향
+shap.plots.waterfall(sv[0])              # ④ 지역: 0번 샘플 하나</code></pre>
+  </div>
+  <p>세 그래프가 모두 같은 <code>sv</code> 객체를 받기 때문에, 함수 이름만 바꿔 끼우면 됩니다. 여기서 외울 건 이게 전부입니다.</p>
+
+  <div class="note">
+    <span class="lab">Explainer 종류 고르기</span>
+    <ul>
+      <li><code>shap.TreeExplainer</code> — 트리 계열(결정트리·RF·XGBoost·LightGBM). <strong>정확하고 매우 빠릅니다.</strong> 트리 구조를 직접 뜯어서 계산하기 때문입니다.</li>
+      <li><code>shap.KernelExplainer</code> — 모델을 가리지 않지만 <strong>느립니다.</strong> 선형모델·신경망 등에 씁니다. <code>shap.kmeans(X_train, 25)</code>로 배경을 요약하고 설명 샘플 수를 줄여서 쓰세요.</li>
+      <li><code>shap.Explainer(model, X)</code> — 모델을 보고 알아서 골라줍니다. 편하지만 뭘 골랐는지 모르니 학습 단계에서는 명시적으로 쓰는 편이 낫습니다.</li>
+    </ul>
+  </div>
+
+  <h3 id="s8-4"><span class="hn">8-4</span><span class="sep"> · </span>그래프 3종 읽는 법</h3>
+
+  <h4>bar — 누가 중요한가</h4>
+  <p>각 특성의 <code>|SHAP 값|</code> 평균을 막대로 그립니다. <code>feature_importances_</code>와 비슷한 순위표지만, 계산 근거가 "예측을 실제로 얼마나 움직였는가"라서 더 믿을 만합니다. 여전히 방향은 없습니다.</p>
+
+  <h4>beeswarm — 크면 어느 쪽으로 미는가</h4>
+  <figure>
+    <div class="plate"><svg viewBox="0 0 790 210" role="img" aria-label="beeswarm 그래프 읽는 법">
+<text x="240" y="54" class="svg-l" text-anchor="end">worst concave points</text>
+<text x="240" y="94" class="svg-l" text-anchor="end">worst perimeter</text>
+<text x="240" y="134" class="svg-l" text-anchor="end">mean texture</text>
+<g transform="translate(90,0)">
+      <line x1="250" y1="30" x2="250" y2="160" stroke="#D8DBD5" stroke-dasharray="3 3"/>
+      <text x="250" y="24" class="svg-s" text-anchor="middle">0</text>
+
+      
+      
+      
+
+      <g opacity="0.85">
+        <circle cx="170" cy="50" r="4" fill="#b8435e"/><circle cx="186" cy="54" r="4" fill="#b8435e"/>
+        <circle cx="200" cy="49" r="4" fill="#b8435e"/><circle cx="214" cy="53" r="4" fill="#cf7a90"/>
+        <circle cx="232" cy="50" r="4" fill="#A3A9A5"/><circle cx="248" cy="54" r="4" fill="#93b4d3"/>
+        <circle cx="266" cy="49" r="4" fill="#5a8dbd"/><circle cx="286" cy="53" r="4" fill="#2f6ea6"/>
+        <circle cx="306" cy="50" r="4" fill="#2f6ea6"/><circle cx="330" cy="54" r="4" fill="#2f6ea6"/>
+        <circle cx="356" cy="50" r="4" fill="#2f6ea6"/>
+
+        <circle cx="196" cy="90" r="4" fill="#b8435e"/><circle cx="214" cy="94" r="4" fill="#b8435e"/>
+        <circle cx="228" cy="89" r="4" fill="#cf7a90"/><circle cx="242" cy="93" r="4" fill="#A3A9A5"/>
+        <circle cx="258" cy="90" r="4" fill="#93b4d3"/><circle cx="276" cy="94" r="4" fill="#5a8dbd"/>
+        <circle cx="296" cy="89" r="4" fill="#2f6ea6"/><circle cx="318" cy="93" r="4" fill="#2f6ea6"/>
+
+        <circle cx="228" cy="130" r="4" fill="#b8435e"/><circle cx="240" cy="134" r="4" fill="#cf7a90"/>
+        <circle cx="250" cy="129" r="4" fill="#A3A9A5"/><circle cx="260" cy="133" r="4" fill="#93b4d3"/>
+        <circle cx="272" cy="130" r="4" fill="#2f6ea6"/>
+      </g>
+
+      <text x="380" y="52" class="svg-s">점 하나 = 샘플 한 명</text>
+      <text x="380" y="92" class="svg-s">오른쪽일수록 양성 쪽으로 밈</text>
+      <text x="380" y="132" class="svg-s">왼쪽일수록 악성 쪽으로 밈</text>
+
+      <rect x="250" y="176" width="120" height="10" fill="url(#g1)"/>
+      <defs><linearGradient id="g1"><stop offset="0" stop-color="#2f6ea6"/><stop offset="1" stop-color="#b8435e"/></linearGradient></defs>
+      <text x="246" y="185" class="svg-s" text-anchor="end">특성값 작음</text>
+      <text x="376" y="185" class="svg-s">특성값 큼</text>
+    </g></svg></div>
+    <figcaption>위 예시는 "<code>worst concave points</code>가 <strong>크면(빨강) 왼쪽=악성 쪽</strong>으로 강하게 민다"고 읽습니다. 색과 위치를 같이 봐야 방향이 나옵니다.</figcaption>
+  </figure>
+
+  <h4>waterfall — 이 환자 한 명을 왜 그렇게 판단했나</h4>
+  <p>가장 중요한 그래프입니다. <strong>평균 예측값에서 출발해 특성 하나씩의 영향을 더해가며 최종 예측값에 도달하는 과정</strong>을 보여줍니다.</p>
+  <figure>
+    <div class="plate"><svg viewBox="0 0 840 300" role="img" aria-label="waterfall 그래프 구조">
+<text x="232" y="284" class="svg-l" text-anchor="end">E[f(x)]</text>
+<text x="232" y="94" class="svg-l" text-anchor="end">worst concave points = 0.265</text>
+<text x="232" y="124" class="svg-l" text-anchor="end">worst perimeter = 184.6</text>
+<text x="232" y="154" class="svg-l" text-anchor="end">worst radius = 25.4</text>
+<text x="232" y="184" class="svg-l" text-anchor="end">mean concave points = 0.147</text>
+<text x="232" y="214" class="svg-l" text-anchor="end">mean texture = 17.3</text>
+<text x="232" y="244" class="svg-l" text-anchor="end">나머지 25개 특성</text>
+<text x="232" y="54" class="svg-b" text-anchor="end">f(x)</text>
+<g transform="translate(140,0)">
+      <line x1="240" y1="34" x2="240" y2="266" stroke="#D8DBD5"/>
+
+      <!-- base -->
+      
+      <rect x="240" y="272" width="230" height="16" fill="#E4E7E3" stroke="#AEB4AF"/>
+      <text x="480" y="285" class="svg-m">0.628 &nbsp;← 아무 정보 없을 때의 기준값</text>
+
+      <!-- bars -->
+      
+      <rect x="160" y="82" width="80" height="16" fill="#2f6ea6"/>
+      <text x="152" y="95" class="svg-m" text-anchor="end" style="fill:#2f6ea6">−0.21</text>
+
+      
+      <rect x="172" y="112" width="68" height="16" fill="#2f6ea6"/>
+      <text x="164" y="125" class="svg-m" text-anchor="end" style="fill:#2f6ea6">−0.18</text>
+
+      
+      <rect x="194" y="142" width="46" height="16" fill="#2f6ea6"/>
+      <text x="186" y="155" class="svg-m" text-anchor="end" style="fill:#2f6ea6">−0.12</text>
+
+      
+      <rect x="217" y="172" width="23" height="16" fill="#2f6ea6"/>
+      <text x="209" y="185" class="svg-m" text-anchor="end" style="fill:#2f6ea6">−0.06</text>
+
+      
+      <rect x="240" y="202" width="12" height="16" fill="#b8435e"/>
+      <text x="260" y="215" class="svg-m" style="fill:#b8435e">+0.03</text>
+
+      
+      <rect x="228" y="232" width="12" height="16" fill="#2f6ea6"/>
+      <text x="220" y="245" class="svg-m" text-anchor="end" style="fill:#2f6ea6">−0.06</text>
+
+      <!-- final -->
+      
+      <rect x="240" y="42" width="14" height="16" fill="#26292d"/>
+      <text x="264" y="55" class="svg-m" style="font-weight:700">0.028 &nbsp;← 이 환자의 최종 예측 (악성)</text>
+
+      <text x="500" y="120" class="svg-s" style="fill:#2f6ea6">파랑 = 양성 확률을</text>
+      <text x="500" y="136" class="svg-s" style="fill:#2f6ea6">끌어내린 특성</text>
+      <text x="500" y="212" class="svg-s" style="fill:#b8435e">빨강 = 끌어올린 특성</text>
+    </g></svg></div>
+    <figcaption>0.628 − 0.21 − 0.18 − 0.12 − 0.06 + 0.03 − 0.06 = <strong>0.028</strong>. 막대 길이의 합이 기준값과 최종값의 차이와 정확히 일치합니다. 단순 시각화가 아니라 회계장부처럼 딱 떨어지는 분해입니다.</figcaption>
+  </figure>
+  <p>읽는 순서는 <strong>아래에서 위로</strong>입니다. 맨 아래 <code>E[f(x)]</code>에서 시작해 특성 정보를 하나씩 알아갈 때마다 예측이 갱신되고, 맨 위 <code>f(x)</code>가 모든 정보를 반영한 최종 답입니다. 위 예시는 "종양 크기와 오목한 정도가 워낙 커서, 평균 63%였던 양성 확률이 2.8%까지 떨어졌다"는 이야기입니다.</p>
+
+  <h3 id="s8-5"><span class="hn">8-5</span><span class="sep"> · </span>RF와 XGBoost의 반환 형태가 다른 이유</h3>
+  <p>SHAP을 쓰다 가장 많이 막히는 지점입니다. <strong>같은 이진분류인데 두 모델의 출력 차원이 다릅니다.</strong></p>
+  <figure>
+    <div class="plate"><svg viewBox="0 0 700 250" role="img" aria-label="랜덤포레스트와 XGBoost의 SHAP 반환 형태 비교">
+      <!-- RF -->
+      <text x="20" y="26" class="svg-b">RandomForest</text>
+      <text x="20" y="44" class="svg-s">내부적으로 클래스마다 확률을 따로 계산 → 출력이 2개</text>
+
+      <g>
+        <rect x="34" y="66" width="150" height="52" rx="2" fill="#edf2f7" stroke="#c7d7e6"/>
+        <text x="109" y="88" class="svg-l" text-anchor="middle">class 0 (악성)</text>
+        <text x="109" y="105" class="svg-m" text-anchor="middle">(114, 30)</text>
+
+        <rect x="46" y="78" width="150" height="52" rx="2" fill="#f8eef0" stroke="#ead0d6"/>
+        <text x="121" y="100" class="svg-l" text-anchor="middle">class 1 (양성)</text>
+        <text x="121" y="117" class="svg-m" text-anchor="middle">(114, 30)</text>
+      </g>
+      <text x="215" y="98" class="svg-m">sv.shape → (114, 30, 2)</text>
+      <text x="215" y="116" class="svg-s">샘플 · 특성 · <tspan style="fill:#b8435e;font-weight:700">클래스</tspan> — 축이 3개</text>
+
+      <rect x="215" y="130" width="300" height="26" rx="2" fill="#eef1f6" stroke="#AEB4AF"/>
+      <text x="228" y="147" class="svg-m">sv = sv[:, :, 1]  ← 양성 클래스만 선택 필요</text>
+
+      <line x1="14" y1="176" x2="686" y2="176" stroke="#D8DBD5"/>
+
+      <!-- XGB -->
+      <text x="20" y="200" class="svg-b">XGBoost</text>
+      <text x="20" y="218" class="svg-s">양성일 로그오즈 하나만 예측 → 출력이 1개</text>
+
+      <rect x="380" y="188" width="150" height="40" rx="2" fill="#f8eef0" stroke="#ead0d6"/>
+      <text x="455" y="204" class="svg-l" text-anchor="middle">단일 출력</text>
+      <text x="455" y="220" class="svg-m" text-anchor="middle">(114, 30)</text>
+
+      <text x="546" y="205" class="svg-m">sv.shape → (114, 30)</text>
+      <text x="546" y="222" class="svg-s">그대로 사용 가능</text>
+    </svg></div>
+    <figcaption>모델이 <strong>내부적으로 몇 개의 값을 출력하도록 설계됐는지</strong>가 그대로 SHAP 결과의 차원이 됩니다.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>RandomForestClassifier</strong>는 이진분류여도 <code>predict_proba</code>가 <code>[악성확률, 양성확률]</code> 두 값을 클래스별로 따로 계산하는 구조입니다. 그래서 SHAP도 클래스마다 나와 3차원이 됩니다.</li>
+    <li><strong>XGBoost</strong>는 <code>binary:logistic</code>으로 학습해서 <strong>"양성일 로그오즈" 하나만</strong> 예측합니다. 출력이 하나뿐이니 SHAP도 2차원 하나입니다.</li>
+  </ul>
+  <div class="codewrap">
+<div class="bar"><span>python</span></div>
+<pre><code class="language-python">sv = shap.TreeExplainer(model)(X_test)
+
+if sv.values.ndim == 3:      # RandomForest처럼 클래스 축이 있으면
+    sv = sv[:, :, 1]         # 양성(1) 클래스만 선택
+
+shap.plots.bar(sv)           # 이제 두 모델 모두 같은 코드로 처리됨</code></pre>
+  </div>
+  <div class="note warn">
+    <span class="lab">이걸 안 하면</span>
+    <p><code>shap.plots.bar(sv)</code>에서 차원 관련 에러가 납니다. SHAP을 처음 쓸 때 겪는 에러의 대부분이 이겁니다. 습관적으로 <code>print(sv.shape)</code>를 먼저 찍어보세요.</p>
+    <p>shap 라이브러리 버전에 따라 옛 API(<code>explainer.shap_values(X)</code>)는 3차원 배열 대신 <strong>배열 2개짜리 리스트</strong> <code>[class0, class1]</code>로 돌려주기도 합니다. 이 경우엔 <code>sv[1]</code>로 고릅니다.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 9 ══════════════════ -->
+<section id="s9">
+  <div class="chead"><h2><span class="num">9</span>LIME</h2></div>
+
+  <h3>아이디어 — 복잡한 곡선도 한 점 근처에서는 직선이다</h3>
+  <p>LIME(Local Interpretable Model-agnostic Explanations)의 발상은 단순합니다. 랜덤포레스트의 결정 경계는 전체적으로 보면 매우 복잡하지만, <strong>특정 샘플 한 점 주변만 확대해서 보면 거의 직선</strong>입니다. 그렇다면 그 좁은 영역에서만 통하는 간단한 선형모델을 대신 학습시켜서 설명하면 됩니다.</p>
+
+  <figure>
+    <div class="plate"><svg viewBox="0 0 700 240" role="img" aria-label="LIME의 국소 선형 근사 개념">
+      <text x="24" y="24" class="svg-b">복잡한 모델의 결정 경계</text>
+      <rect x="24" y="36" width="270" height="180" fill="#fff" stroke="#D8DBD5"/>
+      <path d="M24,120 C70,60 100,190 150,140 S220,60 294,110" fill="none" stroke="#26292d" stroke-width="2"/>
+      <path d="M24,120 C70,60 100,190 150,140 S220,60 294,110 L294,216 L24,216 Z" fill="#edf2f7" opacity="0.6"/>
+      <circle cx="150" cy="140" r="6" fill="#b8435e" stroke="#fff" stroke-width="2"/>
+      <circle cx="150" cy="140" r="34" fill="none" stroke="#b8435e" stroke-dasharray="4 3"/>
+      <text x="150" y="196" class="svg-s" text-anchor="middle">설명하려는 샘플</text>
+
+      <line x1="308" y1="126" x2="352" y2="126" stroke="#4b4f55" marker-end="url(#ah2)"/>
+      <defs><marker id="ah2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#4b4f55"/></marker></defs>
+      <text x="330" y="116" class="svg-s" text-anchor="middle">확대</text>
+
+      <text x="366" y="24" class="svg-b">그 주변만 확대하면</text>
+      <rect x="366" y="36" width="240" height="180" fill="#fff" stroke="#D8DBD5"/>
+      <path d="M366,180 C420,150 480,110 606,74" fill="none" stroke="#26292d" stroke-width="2" opacity="0.35"/>
+      <line x1="366" y1="176" x2="606" y2="80" stroke="#b8435e" stroke-width="2.5"/>
+      <circle cx="486" cy="128" r="6" fill="#b8435e" stroke="#fff" stroke-width="2"/>
+
+      <g fill="#2f6ea6" opacity="0.7">
+        <circle cx="430" cy="150" r="3"/><circle cx="452" cy="166" r="3"/><circle cx="466" cy="104" r="3"/>
+        <circle cx="510" cy="150" r="3"/><circle cx="524" cy="106" r="3"/><circle cx="500" cy="96" r="3"/>
+        <circle cx="452" cy="120" r="3"/><circle cx="540" cy="140" r="3"/>
+      </g>
+      <text x="486" y="200" class="svg-s" text-anchor="middle">주변에 데이터를 흔들어 만들고</text>
+      <text x="486" y="214" class="svg-s" text-anchor="middle">그 위에 직선(선형모델)을 맞춤</text>
+
+      <text x="618" y="82" class="svg-s" style="fill:#b8435e">이 직선의</text>
+      <text x="618" y="96" class="svg-s" style="fill:#b8435e">기울기가 설명</text>
+    </svg></div>
+    <figcaption>LIME은 원래 모델을 건드리지 않습니다. 샘플 주변에 가짜 데이터를 만들어 원래 모델에게 물어보고, 그 답들로 간단한 선형모델을 학습시켜 대리 설명합니다.</figcaption>
+  </figure>
+
+  <h3>코드</h3>
+  <div class="codewrap">
+<div class="bar"><span>python</span></div>
+<pre><code class="language-python">from lime.lime_tabular import LimeTabularExplainer
+
+explainer = LimeTabularExplainer(
+    X_train.values,                      # 값의 분포를 알아야 흔들 수 있으므로 훈련 데이터 필요
+    feature_names=X.columns.tolist(),
+    class_names=["malignant", "benign"],
+    mode="classification",
+)
+
+i = 0
+exp = explainer.explain_instance(
+    X_test.values[i],       # 설명할 샘플 1개
+    model.predict_proba,    # 모델이 아니라 '확률 예측 함수'를 넘김 (괄호 없음)
+    num_features=10,
+)
+
+for rule, weight in exp.as_list():
+    print(f"{rule:35s} {weight:+.4f}")   # + : 양성 근거 / - : 악성 근거
+
+exp.as_pyplot_figure(); plt.show()
+# 주피터라면 exp.show_in_notebook(show_table=True) 가 더 보기 좋습니다</code></pre>
+  </div>
+
+  <h3>출력 읽는 법</h3>
+  <div class="codewrap out">
+<div class="bar"><span>text</span></div>
+<pre><code class="language-text">worst concave points > 0.16       -0.2104   ← 악성 근거
+worst perimeter > 125.40          -0.1832   ← 악성 근거
+worst radius > 18.79              -0.1240   ← 악성 근거
+mean texture <= 16.17             +0.0311   ← 양성 근거</code></pre>
+  </div>
+  <p>SHAP과 달리 <strong>조건문 형태</strong>로 나옵니다. <code>discretize_continuous=True</code>(기본값)가 연속값을 구간으로 잘라주기 때문인데, "worst radius가 18.79보다 크다"처럼 사람이 바로 이해할 수 있는 문장이 되는 게 LIME의 장점입니다. 의료진이나 비전문가에게 설명할 때 유리합니다.</p>
+
+  <div class="note warn">
+    <span class="lab">LIME의 한계 두 가지</span>
+    <ul>
+      <li><strong>실행할 때마다 결과가 조금씩 달라집니다.</strong> 주변 데이터를 무작위로 흔들어 만들기 때문입니다. <code>random_state</code>를 고정하거나 여러 번 돌려 안정적인 특성만 신뢰하세요.</li>
+      <li><strong>전역 설명이 없습니다.</strong> 구조상 샘플 하나씩만 설명합니다. 모델 전체의 경향을 보려면 SHAP이나 permutation importance가 필요합니다.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════════ 10 ══════════════════ -->
+<section id="s10">
+  <div class="chead"><h2><span class="num">10</span>전역 설명과 지역 설명</h2></div>
+  <figure>
+    <div class="plate"><svg viewBox="0 0 700 190" role="img" aria-label="전역 설명과 지역 설명의 차이">
+      <rect x="20" y="30" width="310" height="140" rx="3" fill="#fff" stroke="#D8DBD5"/>
+      <text x="38" y="56" class="svg-b">전역 설명 (Global)</text>
+      <text x="38" y="76" class="svg-s">"이 모델은 전체적으로 무엇을 보는가"</text>
+      <g fill="#A3A9A5">
+        <circle cx="60" cy="108" r="5"/><circle cx="84" cy="120" r="5"/><circle cx="108" cy="102" r="5"/>
+        <circle cx="132" cy="126" r="5"/><circle cx="156" cy="110" r="5"/><circle cx="180" cy="122" r="5"/>
+        <circle cx="204" cy="104" r="5"/><circle cx="228" cy="118" r="5"/><circle cx="252" cy="108" r="5"/>
+        <circle cx="276" cy="124" r="5"/><circle cx="300" cy="110" r="5"/>
+      </g>
+      <text x="38" y="156" class="svg-s">샘플 전체를 평균 · <tspan class="svg-m">bar, beeswarm</tspan></text>
+
+      <rect x="370" y="30" width="310" height="140" rx="3" fill="#fff" stroke="#D8DBD5"/>
+      <text x="388" y="56" class="svg-b">지역 설명 (Local)</text>
+      <text x="388" y="76" class="svg-s">"이 환자 한 명을 왜 그렇게 판단했나"</text>
+      <g fill="#E4E7E3">
+        <circle cx="410" cy="108" r="5"/><circle cx="434" cy="120" r="5"/><circle cx="458" cy="102" r="5"/>
+        <circle cx="506" cy="110" r="5"/><circle cx="530" cy="122" r="5"/>
+        <circle cx="554" cy="104" r="5"/><circle cx="578" cy="118" r="5"/><circle cx="602" cy="108" r="5"/>
+        <circle cx="626" cy="124" r="5"/><circle cx="650" cy="110" r="5"/>
+      </g>
+      <circle cx="482" cy="126" r="7" fill="#b8435e"/>
+      <circle cx="482" cy="126" r="15" fill="none" stroke="#b8435e" stroke-dasharray="3 3"/>
+      <text x="388" y="156" class="svg-s">샘플 하나에 집중 · <tspan class="svg-m">waterfall, LIME</tspan></text>
+    </svg></div>
+    <figcaption>같은 SHAP 값에서 나오지만 보는 범위가 다릅니다. <code>beeswarm</code>은 개별 점을 다 보여주면서 전체 경향도 읽히는 중간 지점에 있습니다.</figcaption>
+  </figure>
+
+  <div class="tablewrap">
+  <table>
+    <tr><th style="width:16%"></th><th>전역 (Global)</th><th>지역 (Local)</th></tr>
+    <tr><th>질문</th><td>모델이 전체적으로 어떤 특성을 중요하게 보나</td><td>이 샘플 하나를 왜 이렇게 예측했나</td></tr>
+    <tr><th>대상</th><td>여러 샘플 전체의 평균</td><td>샘플 1개</td></tr>
+    <tr><th>도구</th><td><code>feature_importances_</code>, permutation, <code>shap.plots.bar</code>, <code>beeswarm</code></td><td><code>shap.plots.waterfall</code>, <code>force</code>, LIME</td></tr>
+    <tr><th>쓰는 곳</th><td>변수 선택, 모델 검증, 도메인 지식과 대조</td><td>개별 판정 근거 제시, 이상한 예측의 원인 추적, 고객 설명</td></tr>
+  </table>
+  </div>
+</section>
+
+<!-- ══════════════════ 11 ══════════════════ -->
+<section id="s11">
+  <div class="chead"><h2><span class="num">11</span>SHAP vs LIME, 그리고 다른 방법들</h2></div>
+  <div class="tablewrap">
+  <table>
+    <tr>
+      <th>방법</th><th>적용 범위</th><th>설명 수준</th><th>방향</th><th>속도</th><th>약점</th>
+    </tr>
+    <tr>
+      <td><strong>회귀계수</strong></td><td>선형모델만</td><td>전역</td><td>있음</td><td>즉시</td><td>표준화 필요, 비선형 표현 불가</td>
+    </tr>
+    <tr>
+      <td><code>feature_importances_</code></td><td>트리 계열만</td><td>전역</td><td>없음</td><td>즉시</td><td>상관 특성에 취약, 훈련셋 기준</td>
+    </tr>
+    <tr>
+      <td><strong>Permutation</strong></td><td>모든 모델</td><td>전역</td><td>없음</td><td>보통</td><td>상관 특성에 취약</td>
+    </tr>
+    <tr>
+      <td><strong>SHAP</strong></td><td>모든 모델</td><td>전역 + 지역</td><td>있음</td><td>트리는 빠름<br>그 외 느림</td><td>KernelExplainer가 매우 느림</td>
+    </tr>
+    <tr>
+      <td><strong>LIME</strong></td><td>모든 모델</td><td>지역만</td><td>있음</td><td>빠름</td><td>결과가 흔들림, 국소 근사</td>
+    </tr>
+  </table>
+  </div>
+
+  <h3>둘 중 뭘 써야 하나</h3>
+  <ul>
+    <li><strong>기본은 SHAP.</strong> 전역과 지역을 다 커버하고, 합이 예측값과 일치한다는 이론적 보장이 있습니다. 트리 모델이라면 속도 문제도 없습니다.</li>
+    <li><strong>LIME은 보조.</strong> 조건문 형태라 비전문가에게 설명하기 좋고, 신경망처럼 SHAP이 느린 모델에서 빠르게 확인할 때 유용합니다.</li>
+    <li><strong>가장 좋은 건 둘 다 보는 것.</strong> 같은 샘플에 대해 SHAP과 LIME이 비슷한 특성을 지목하면 그 설명은 훨씬 믿을 만합니다. 서로 다르게 나온다면 모델이 불안정하거나 그 샘플이 결정 경계에 걸쳐 있다는 신호입니다.</li>
+  </ul>
+
+  <div class="note key">
+    <span class="lab">실무 순서</span>
+    <ol style="margin-bottom:0">
+      <li>성능 확인 — 쓸만한 모델인지 먼저 검증</li>
+      <li>전역 설명 — <code>beeswarm</code>으로 "이 모델이 뭘 보고 있나" 파악. 도메인 상식과 어긋나면 데이터 누수를 의심</li>
+      <li>지역 설명 — <code>waterfall</code> + LIME으로 개별 케이스 근거 확인, 특히 틀린 예측을 골라서 봄</li>
+      <li>교차 검증 — 여러 모델·여러 기법의 설명이 일치하는지 확인</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ══════════════════ 12 ══════════════════ -->
+<section id="s12">
+  <div class="chead"><h2><span class="num">12</span>전체 코드</h2>
+  <p>여기까지 내용을 하나로 합친 실행 가능한 코드입니다. 그대로 복사해서 돌려보세요.</p></div>
+  <div class="codewrap">
+<div class="bar"><span>python</span></div>
+<pre><code class="language-python"># pip install scikit-learn xgboost shap lime pandas matplotlib
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import shap
+from lime.lime_tabular import LimeTabularExplainer
+
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import (accuracy_score, roc_auc_score,
+                             classification_report, confusion_matrix)
+from xgboost import XGBClassifier
+
+
+# ---------- 1. 데이터 로드 ----------
+data = load_breast_cancer(as_frame=True)
+df = data.frame
+print("데이터 크기:", df.shape)
+print("클래스:", list(data.target_names), "→ 0=악성, 1=양성")
+
+
+# ---------- 2. 전처리 ----------
+print("결측치 개수:", df.isnull().sum().sum())
+
+X = df.drop(columns="target")
+y = df["target"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+# 트리 계열은 스케일링 불필요
+
+
+# ---------- 3. 학습 ----------
+models = {
+    "RandomForest": RandomForestClassifier(n_estimators=100, random_state=42),
+    "XGBoost":      XGBClassifier(n_estimators=100, random_state=42),
+}
+for model in models.values():
+    model.fit(X_train, y_train)
+
+
+# ---------- 4~5. 예측 & 평가 ----------
+for name, model in models.items():
+    pred = model.predict(X_test)
+    prob = model.predict_proba(X_test)[:, 1]
+
+    print(f"\n{'='*20} {name} {'='*20}")
+    print("정확도 :", round(accuracy_score(y_test, pred), 4))
+    print("ROC-AUC:", round(roc_auc_score(y_test, prob), 4))
+    print("\n혼동행렬 (행=실제, 열=예측)")
+    print(confusion_matrix(y_test, pred))
+    print("\n" + classification_report(y_test, pred, target_names=data.target_names))
+
+
+# ---------- 6. 내장 특성 중요도 ----------
+for name, model in models.items():
+    imp = pd.Series(model.feature_importances_, index=X.columns)
+    top10 = imp.sort_values(ascending=False).head(10)
+
+    print(f"\n--- {name} 특성 중요도 Top 10 ---")
+    print(top10.round(4))
+
+    top10[::-1].plot(kind="barh", title=f"{name} - feature importance")
+    plt.tight_layout(); plt.show()
+
+
+# ---------- 7. SHAP ----------
+for name, model in models.items():
+    sv = shap.TreeExplainer(model)(X_test)
+
+    print(f"\n--- {name} SHAP --- 형태:", sv.shape)
+    if sv.values.ndim == 3:      # RandomForest는 (샘플, 특성, 클래스)
+        sv = sv[:, :, 1]         # 양성 클래스만 선택
+
+    shap.plots.bar(sv)           # 전역: 중요도 순위
+    shap.plots.beeswarm(sv)      # 전역: 순위 + 방향
+    shap.plots.waterfall(sv[0])  # 지역: 0번 샘플
+
+
+# ---------- 8. LIME ----------
+explainer = LimeTabularExplainer(
+    X_train.values,
+    feature_names=X.columns.tolist(),
+    class_names=["malignant", "benign"],
+    mode="classification",
+)
+
+i = 0
+print(f"\n{i}번 환자의 실제 정답:", data.target_names[y_test.iloc[i]])
+
+for name, model in models.items():
+    exp = explainer.explain_instance(X_test.values[i], model.predict_proba, num_features=10)
+
+    print(f"\n--- {name} LIME ---")
+    for rule, weight in exp.as_list():
+        print(f"{rule:35s} {weight:+.4f}")
+
+    exp.as_pyplot_figure()
+    plt.title(f"{name} - LIME")
+    plt.tight_layout(); plt.show()</code></pre>
+  </div>
+</section>
+
+<!-- ══════════════════ 13 ══════════════════ -->
+<section id="s13">
+  <div class="chead"><h2><span class="num">13</span>자주 막히는 곳</h2></div>
+
+  <details>
+    <summary>SHAP 그래프에서 차원 관련 에러가 납니다</summary>
+    <div class="dbody">
+      <p>거의 100% RandomForest의 클래스 축 문제입니다. <code>print(sv.shape)</code>를 먼저 찍어보고, 3차원이면 <code>sv = sv[:, :, 1]</code>로 양성 클래스만 고르세요. 옛 API를 쓰고 있어 리스트가 반환됐다면 <code>sv[1]</code>입니다.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>특성 이름이 Feature 0, Feature 1로 나옵니다</summary>
+    <div class="dbody">
+      <p><code>load_breast_cancer(as_frame=True)</code>를 안 썼거나, <code>X.values</code>처럼 넘파이 배열을 넘긴 경우입니다. SHAP에는 DataFrame을 그대로 넘기세요. LIME은 반대로 넘파이 배열을 요구하므로 <code>X_test.values[i]</code>를 넘기고, 이름은 <code>feature_names=</code> 인자로 따로 알려줘야 합니다.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>LIME이 에러 없이 이상한 결과만 냅니다</summary>
+    <div class="dbody">
+      <p><code>model</code>을 넘겼는지 확인하세요. <strong><code>model.predict_proba</code>를 넘겨야 합니다</strong>(괄호 없이). 그리고 <code>explain_instance</code>는 샘플 <strong>하나</strong>를 1차원 배열로 받습니다. <code>X_test.values[i]</code>지 <code>X_test.values[i:i+1]</code>이 아닙니다.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>SHAP 계산이 너무 오래 걸립니다</summary>
+    <div class="dbody">
+      <p><code>KernelExplainer</code>를 쓰고 있을 가능성이 큽니다. 트리 모델이라면 <code>TreeExplainer</code>를 명시적으로 지정하세요. 선형모델·신경망이라 어쩔 수 없다면 배경 데이터를 <code>shap.kmeans(X_train, 25)</code>로 요약하고, 설명 샘플을 <code>X_test.iloc[:20]</code>처럼 줄이세요.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>matplotlib 그래프에서 한글이 네모(□)로 나옵니다</summary>
+    <div class="dbody">
+      <p>한글 폰트가 설정되지 않아서입니다. 그래프 라벨을 영어로 쓰는 게 가장 간단한 해결책이고, 굳이 한글을 쓰려면 아래를 실행하세요.</p>
+      <div class="codewrap">
+<div class="bar"><span>python</span></div>
+<pre><code class="language-python">plt.rcParams["font.family"] = "Malgun Gothic"   # 윈도우
+# plt.rcParams["font.family"] = "AppleGothic"   # 맥
+plt.rcParams["axes.unicode_minus"] = False       # 마이너스 기호 깨짐 방지</code></pre>
+      </div>
+    </div>
+  </details>
+
+  <details>
+    <summary>SHAP 중요도와 feature_importances_ 순위가 다릅니다</summary>
+    <div class="dbody">
+      <p>정상입니다. 계산 기준이 다릅니다. <code>feature_importances_</code>는 <strong>훈련 데이터에서 불순도를 얼마나 줄였나</strong>, SHAP은 <strong>주어진 데이터에서 예측을 실제로 얼마나 움직였나</strong>입니다. 특히 상관이 높은 특성이 많은 이 데이터에서는 차이가 크게 납니다. 일반적으로 SHAP 쪽을 더 신뢰합니다.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>SHAP 값의 단위가 헷갈립니다</summary>
+    <div class="dbody">
+      <p>모델에 따라 다릅니다. <strong>RandomForest는 확률 단위</strong>(0~1)로 나오지만, <strong>XGBoost는 기본적으로 로그오즈(log-odds) 단위</strong>로 나옵니다. 그래서 같은 샘플이라도 두 모델의 SHAP 값 크기를 직접 비교하면 안 됩니다. 순위와 방향만 비교하세요. XGBoost도 확률 단위로 보고 싶다면 <code>shap.TreeExplainer(model, X_train, model_output="probability")</code>로 지정할 수 있습니다.</p>
+    </div>
+  </details>
+
+  <div class="foot">
+    <p>다음 단계로는 <code>shap.plots.scatter</code>(특정 특성값과 SHAP 값의 관계를 산점도로), <code>shap.plots.heatmap</code>(샘플별 패턴 군집), permutation importance(모델 무관 전역 중요도)를 보시면 좋습니다.</p>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+  // 코드 하이라이팅
+  if (window.hljs) hljs.highlightAll();
+
+  // 코드 복사 버튼
+  document.querySelectorAll('.codewrap').forEach(function (w) {
+    var b = document.createElement('button');
+    b.className = 'copy';
+    b.textContent = '복사';
+    b.addEventListener('click', function () {
+      navigator.clipboard.writeText(w.querySelector('code').innerText).then(function () {
+        b.textContent = '복사됨';
+        setTimeout(function () { b.textContent = '복사'; }, 1400);
+      });
+    });
+    w.appendChild(b);
+  });
+
+  // 목차 현재 위치 표시
+  var links = Array.prototype.slice.call(document.querySelectorAll('#toc a'));
+  var targets = links.map(function (a) { return document.querySelector(a.getAttribute('href')); });
+  var obs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      var idx = targets.indexOf(e.target);
+      if (idx < 0) return;
+      links.forEach(function (a) { a.classList.remove('on'); });
+      links[idx].classList.add('on');
+    });
+  }, { rootMargin: '-10% 0px -80% 0px' });
+  targets.forEach(function (t) { if (t) obs.observe(t); });
+
+  // 모바일 목차 펼치기/접기
+  (function () {
+    var rail = document.querySelector('.rail'); if (!rail) return;
+    var t = rail.querySelector('.rail-title');
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'toc-toggle'; t.appendChild(b);
+    var mq = window.matchMedia('(max-width:900px)');
+    function set(c) { rail.classList.toggle('collapsed', c); b.textContent = c ? '펼치기' : '접기'; b.setAttribute('aria-expanded', String(!c)); }
+    b.addEventListener('click', function () { set(!rail.classList.contains('collapsed')); });
+    rail.addEventListener('click', function (e) { if (e.target.closest('nav a') && mq.matches) set(true); });
+    set(mq.matches);
+    if (mq.addEventListener) mq.addEventListener('change', function (e) { set(e.matches); });
+  })();
+</script>
+</body>
+</html>

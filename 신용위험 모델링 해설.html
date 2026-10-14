@@ -1,0 +1,3553 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="신용위험 모델링 노트북 완전 해설 — 코드·실행 결과·실무 해설">
+<title>신용위험 모델링 완전 해설</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;600;700&display=swap">
+<style>
+/* ============================================================
+   신용위험 해설서 — 학습자료(교재) 스타일
+   차가운 회백 지면 · 짙은 회색 본문 · 남색 포인트 하나.
+   상태색(양호·주의·문제)은 작은 사각점 + 글자로만 쓴다.
+   ============================================================ */
+:root{
+  --navy:#1f3a5f;   --navy-soft:#EAEEF3;
+  --red:#9a4a32;    --red-soft:#F4EAE6;     /* 문제 · 주의 */
+  --amber:#9a7428;  --amber-soft:#F5F0E3;   /* 주의 */
+  --blue:#1f3a5f;   --blue-soft:#EAEEF3;    /* 양호 */
+
+  --paper:#F5F6F4;
+  --card:#FFFFFF;
+  --ink:#26292d;
+  --ink-2:#4b4f55;
+  --ink-3:#6e7378;
+  --line:#D8DBD5;
+  --line-2:#E4E7E3;
+  --line-strong:#AEB4AF;
+  --inline-bg:#E8EBE8;  --inline-ink:#2b3440;
+  --out-bg:#ECEEEB;
+  --code-bg:#1b2733; --code-line:#2e3d4c; --code-ink:#dce4ec; --code-accent:#5a84b3;
+
+  --serif:"Noto Serif KR","Noto Serif CJK KR","Source Han Serif K","Nanum Myeongjo",AppleMyungjo,Batang,"바탕",serif;
+  --sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕","Noto Sans KR",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --text-w:42rem; --wide-w:58rem;
+
+  --rail:272px;
+  --pad:20px;
+  --fs:17px;
+  --topbar:52px;
+}
+html[data-theme="dark"]{
+  --navy:#9dbbe0;   --navy-soft:#1e2938;
+  --red:#e3967d;    --red-soft:#3a2520;
+  --amber:#e0b36a;  --amber-soft:#33291a;
+  --blue:#9dbbe0;   --blue-soft:#1e2938;
+  --paper:#15191d;  --card:#1b2026;
+  --ink:#e3e7ea;    --ink-2:#b6bec5;  --ink-3:#8f989f;
+  --line:#2d343a;   --line-2:#252b31; --line-strong:#4b545c;
+  --inline-bg:#262d34; --inline-ink:#dbe2e8;
+  --out-bg:#1d2329;
+  --code-bg:#0f161d; --code-line:#26323e;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:calc(var(--topbar) + 18px)}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *{animation-duration:.001ms !important;transition-duration:.001ms !important}
+}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--serif);font-size:var(--fs);line-height:1.9;
+  word-break:keep-all;overflow-wrap:break-word;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+code,kbd,pre,.mono{font-family:var(--mono);font-variant-ligatures:none}
+table,.num,.metric-v{font-variant-numeric:tabular-nums}
+
+/* ---------------- 상단 바 : 장식 없이 가는 괘선 ---------------- */
+.topbar{
+  position:fixed;inset:0 0 auto 0;height:var(--topbar);z-index:60;
+  display:flex;align-items:center;gap:6px;
+  padding:0 12px 0 16px;
+  padding-left:max(16px,env(safe-area-inset-left));
+  padding-right:max(12px,env(safe-area-inset-right));
+  background:var(--paper);border-bottom:1px solid var(--line);
+  font-family:var(--sans);
+}
+.progress{position:absolute;left:0;bottom:-1px;height:2px;width:0%;background:var(--navy);transition:width .12s linear}
+.tb-now{flex:1;min-width:0;font-size:13px;font-weight:500;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-now b{color:var(--navy);font-family:var(--sans);font-size:12.5px;font-weight:600;margin-right:8px;font-variant-numeric:tabular-nums}
+.tb-btn{
+  flex:none;width:34px;height:34px;border-radius:2px;
+  border:1px solid var(--line);background:transparent;color:var(--ink-2);
+  display:grid;place-items:center;cursor:pointer;font-family:var(--sans);font-size:14px;
+  transition:color .15s,border-color .15s;
+}
+.tb-btn:hover{color:var(--navy);border-color:var(--line-strong);background:transparent}
+.tb-btn:focus-visible,a:focus-visible,button:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+.tb-btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round}
+
+/* ---------------- 목차 ---------------- */
+.scrim{position:fixed;inset:0;z-index:70;background:rgba(20,24,28,.35);opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.on{opacity:1;pointer-events:auto}
+.toc{
+  position:fixed;z-index:80;top:0;right:0;height:100dvh;width:min(87vw,340px);
+  background:var(--paper);border-left:1px solid var(--line);
+  transform:translateX(101%);transition:transform .24s ease;
+  display:flex;flex-direction:column;padding-right:env(safe-area-inset-right);
+  font-family:var(--sans);
+}
+.toc.on{transform:none}
+.toc-head{flex:none;display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px 18px;border-bottom:1px solid var(--line-2)}
+.toc-head h2{margin:0;font-family:var(--sans);font-size:11.5px;letter-spacing:.12em;color:var(--ink-3);font-weight:600}
+.toc-list{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:10px 14px 28px 16px}
+.toc a{
+  display:flex;gap:10px;align-items:baseline;
+  padding:.34rem .5rem .34rem .75rem;border-left:2px solid transparent;border-radius:0;
+  color:var(--ink-2);text-decoration:none;font-size:13.5px;line-height:1.5;
+  transition:color .15s,border-color .15s;
+}
+.toc a:hover{background:none;color:var(--navy)}
+.toc a.cur{background:none;color:var(--navy);border-left-color:var(--navy);font-weight:600}
+.toc a .n{flex:none;width:22px;font-family:var(--sans);font-size:12px;color:var(--ink-3);font-weight:400;text-align:left;font-variant-numeric:tabular-nums}
+.toc a.cur .n{color:var(--navy)}
+.toc a .t{flex:1;min-width:0}
+/* 상태 표시 : 작은 사각점 */
+.toc a .d{flex:none;width:6px;height:6px;border-radius:0;margin-top:.55em;background:transparent}
+.toc a .d.red{background:var(--red)} .toc a .d.amber{background:var(--amber)}
+.toc a .d.blue{background:var(--blue)} .toc a .d.violet{background:var(--navy)}
+.toc .grp{margin:1rem 0 .3rem;padding:.9rem .5rem .2rem .75rem;border-top:1px solid var(--line-2);font-size:11.5px;letter-spacing:.04em;color:var(--ink-3);font-weight:600;line-height:1.5}
+
+/* ---------------- 본문 셸 ---------------- */
+.shell{max-width:1320px;margin:0 auto;display:flex;gap:0}
+main{
+  flex:1;min-width:0;
+  padding:calc(var(--topbar) + 12px) var(--pad) 110px;
+  padding-left:max(var(--pad),env(safe-area-inset-left));
+  padding-right:max(var(--pad),env(safe-area-inset-right));
+}
+.wrap{max-width:var(--wide-w);margin:0}
+.wrap > p,.wrap > ul,.wrap > ol,.wrap > h3,.wrap > h4,.wrap > blockquote,.hero .sub{max-width:var(--text-w)}
+.wrap > blockquote:has(.tbl,pre){max-width:var(--wide-w)}
+
+/* ---------------- 표지 ---------------- */
+.hero{padding:2.6rem 0 0}
+.eyebrow{
+  display:block;margin:0 0 1rem;padding:0;background:none;border-radius:0;
+  font-family:var(--sans);font-size:12.5px;font-weight:500;letter-spacing:.04em;color:var(--ink-3);
+}
+.hero h1{margin:0 0 1.1rem;padding:0;border:0;font-family:var(--serif);font-size:2.6rem;line-height:1.3;letter-spacing:-.02em;font-weight:700}
+.hero .sub{margin:0 0 1.4rem;color:var(--ink-2);font-size:1.06rem;line-height:1.85}
+.facts{display:flex;flex-wrap:wrap;gap:0;margin:0 0 2.2rem;font-family:var(--sans);font-size:13px;color:var(--ink-3)}
+.facts span{border:0;padding:0;border-radius:0;background:none}
+.facts span + span::before{content:"·";margin:0 .7rem;color:var(--line-strong)}
+
+/* 문서 결론 요약 (진단 원장) — 학술서 요약표처럼 위아래 괘선 */
+.ledger{
+  background:none;border:0;border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);
+  border-radius:0;box-shadow:none;padding:1rem 0 1.1rem;margin:0 0 1.6rem;font-family:var(--sans);
+}
+.ledger-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:.2rem}
+.ledger-top h2{margin:0;padding:0;border:0;font-family:var(--sans);font-size:13px;line-height:1.5;letter-spacing:.02em;color:var(--ink);font-weight:600;display:block}
+.ledger-top .verdict{display:inline-flex;align-items:center;gap:.4em;font-size:13px;font-weight:600;color:var(--red)}
+.ledger-top .verdict::before{content:"";width:6px;height:6px;background:currentColor}
+.ledger .band{display:flex;gap:2px;margin:.9rem 0 .7rem}
+.ledger .band i{flex:1;height:14px;border-radius:0;background:var(--line);transition:none}
+.ledger .band i.blue{background:var(--blue)}
+.ledger .band i.amber{background:var(--amber)}
+.ledger .band i.red{background:var(--red)}
+.ledger .band i:hover{transform:none}
+.ledger .legend{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13px;color:var(--ink-2)}
+.ledger .legend span{display:inline-flex;align-items:center;gap:.4em}
+.ledger .legend span::before{content:"";width:7px;height:7px;background:currentColor}
+.ledger .legend .blue{color:var(--blue)} .ledger .legend .amber{color:var(--amber)} .ledger .legend .red{color:var(--red)}
+.ledger .legend span{color:inherit}
+.ledger .legend b{font-family:var(--sans);font-size:13.5px;font-weight:600}
+.ledger .legend .blue b,.ledger .legend .amber b,.ledger .legend .red b{color:inherit}
+.ledger .note{margin:.9rem 0 0;padding-top:.8rem;border-top:1px solid var(--line-2);font-family:var(--serif);font-size:16px;color:var(--ink-2);line-height:1.85}
+.ledger .note a{color:var(--navy);font-weight:600;text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px;border:0}
+
+/* 핵심 지표 — 카드 대신 한 줄짜리 수치표 */
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:0;margin:0 0 3rem;border-bottom:1px solid var(--line);font-family:var(--sans)}
+@media(min-width:520px){.metrics{grid-template-columns:repeat(4,1fr)}}
+.metric{background:none;border:0;border-radius:0;padding:.7rem .9rem .8rem;border-left:1px solid var(--line-2)}
+.metric:first-child{border-left:0;padding-left:0}
+@media(max-width:519px){.metric:nth-child(3){border-left:0;padding-left:0}}
+.metric .k{font-size:12px;color:var(--ink-3);letter-spacing:.02em;margin-bottom:.15rem}
+.metric .metric-v{font-family:var(--sans);font-size:1.45rem;font-weight:600;letter-spacing:-.01em;color:var(--ink);line-height:1.35}
+.metric .n{font-size:12px;color:var(--ink-3);margin-top:.1rem}
+
+/* ---------------- 본문 계층 ---------------- */
+h1,h2,h3,h4{line-height:1.4;scroll-margin-top:calc(var(--topbar) + 18px)}
+
+/* 부(部) 제목 */
+main h1{
+  margin:6rem 0 2.4rem;padding-top:1.6rem;border-top:1.5px solid var(--ink);
+  font-family:var(--serif);font-size:2.3rem;font-weight:700;letter-spacing:-.02em;line-height:1.35;position:relative;
+}
+/* 장 제목 : 회색 번호 → 명조 제목, 그 아래 가는 괘선 */
+main h2{
+  display:block;margin:5rem 0 2rem;padding-bottom:1.3rem;border-bottom:1px solid var(--line);
+  font-family:var(--serif);font-size:2rem;font-weight:700;letter-spacing:-.015em;line-height:1.38;
+}
+main h2 .sn{
+  display:inline-block;background:none;padding:0;border-radius:0;margin:0 .5em 0 0;
+  font-family:var(--sans);font-size:.8em;font-weight:500;letter-spacing:0;line-height:1;
+  color:var(--navy);font-variant-numeric:tabular-nums;vertical-align:.04em;
+}
+main h3{margin:3rem 0 1rem;font-family:var(--sans);font-size:1.22rem;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
+main h4{margin:2.2rem 0 .6rem;font-family:var(--sans);font-size:1.05rem;font-weight:600}
+h2.sev-red .sn,h3.sev-red{color:var(--red)}
+h2.sev-red .sn{background:none}
+
+p{margin:0 0 1.15rem}
+main > .wrap > hr,.wrap hr{border:0;height:1px;background:var(--line);margin:3.4rem 0}
+strong,b{font-weight:700;color:var(--ink)}
+a{color:var(--navy);text-decoration-color:var(--line-strong);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--navy)}
+ul,ol{margin:0 0 1.3rem;padding-left:1.4rem}
+li{margin:0 0 .45rem}
+li::marker{color:var(--ink-3)}
+ul ul,ol ol,ul ol,ol ul{margin:.45rem 0 0}
+
+/* 인라인 코드 */
+:not(pre) > code{
+  background:var(--inline-bg);border:0;padding:.08em .34em;border-radius:2px;
+  font-size:.84em;color:var(--inline-ink);word-break:normal;overflow-wrap:anywhere;
+}
+
+/* ---------------- 코드와 결과 ----------------
+   pre.src  = 파이썬 코드 : 짙은 남색, 왼쪽 3px 강철 청색
+   pre      = 실행 결과·텍스트 : 밝은 회색, 왼쪽 2px 괘선           */
+pre{
+  margin:1.1rem 0 1.6rem;padding:1rem 1.2rem;border-radius:0;
+  background:var(--out-bg);border:1px solid var(--line);border-left:2px solid var(--line-strong);
+  overflow-x:auto;-webkit-overflow-scrolling:touch;
+  font-size:12.8px;line-height:1.7;tab-size:4;
+}
+pre code{white-space:pre;color:var(--ink-2);background:none;border:0;padding:0;font-size:inherit}
+pre.src{
+  background:var(--code-bg);border:1px solid var(--code-line);border-left:3px solid var(--code-accent);
+  padding:1.1rem 1.3rem;font-size:13px;line-height:1.75;
+}
+pre.src code{color:var(--code-ink)}
+/* 구문 강조 (highlight.js 토큰) */
+pre.src .hljs-comment,pre.src .hljs-quote{color:#7f94a8}
+pre.src .hljs-keyword,pre.src .hljs-literal,pre.src .hljs-meta .hljs-keyword{color:#93bbe6}
+pre.src .hljs-string,pre.src .hljs-regexp{color:#a9d0a5}
+pre.src .hljs-number{color:#e0bf8c}
+pre.src .hljs-built_in,pre.src .hljs-type{color:#c7b3e0}
+pre.src .hljs-title,pre.src .hljs-title.function_,pre.src .hljs-section{color:#e3c9a8}
+pre.src .hljs-params,pre.src .hljs-variable,pre.src .hljs-attr,pre.src .hljs-property{color:var(--code-ink)}
+pre.src .hljs-meta{color:#9fb0c2}
+
+/* ---------------- 표 : 학술서 스타일 ---------------- */
+.tbl{position:relative;margin:1.6rem 0 2rem;border:0;border-radius:0;background:none}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:0}
+table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:14px;line-height:1.65;color:var(--ink);border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink)}
+thead th{background:none;color:var(--ink);font-size:13px;font-weight:600;letter-spacing:0;text-align:left;padding:.6rem .8rem;white-space:nowrap;border-bottom:1px solid var(--line-strong)}
+tbody td{padding:.6rem .8rem;border-bottom:1px solid var(--line-2);vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:nth-child(2n) td{background:none}
+td:first-child,th:first-child{padding-left:.2rem}
+td:last-child,th:last-child{padding-right:.2rem}
+td code{font-size:12.4px}
+.swipe{
+  position:absolute;top:-1.5rem;right:0;z-index:2;
+  font-family:var(--sans);font-size:11.5px;letter-spacing:0;
+  color:var(--ink-3);background:none;padding:0;border-radius:0;pointer-events:none;opacity:1;transition:opacity .3s;
+}
+.tbl.scrolled .swipe{opacity:0}
+
+/* ---------------- 인용 = 실무 해설 : 참고 ---------------- */
+blockquote{
+  margin:1.8rem 0;padding:.15rem 0 .15rem 1.25rem;
+  background:none;border:0;border-left:1px solid var(--line-strong);border-radius:0;
+  font-size:16px;line-height:1.85;color:var(--ink-2);
+}
+blockquote > :last-child{margin-bottom:0}
+blockquote strong,blockquote b{color:var(--ink)}
+blockquote h3{margin:.2rem 0 .6rem;font-family:var(--sans);font-size:16px;font-weight:600;color:var(--ink)}
+blockquote h3:first-child{margin-top:0}
+blockquote pre{font-size:12.4px}
+blockquote table{font-size:13.4px}
+blockquote .tbl{background:none}
+blockquote blockquote{border-left-color:var(--line);background:none}
+/* 주의 : 1px 적갈색 선 + 적갈색 머리글(작은 사각점), 본문은 본문색 */
+blockquote.warn{border-left-color:var(--red);font-size:17px;color:var(--ink)}
+blockquote.warn > h3:first-child{color:var(--red)}
+h3.caution{display:flex;align-items:baseline;gap:.5em}
+h3.caution::before{content:"";flex:none;width:7px;height:7px;background:var(--red);transform:translateY(-.12em)}
+blockquote.warn > h3.caution:first-child{color:var(--red)}
+
+/* 체크리스트 : 글자 대신 그린 빈 칸 */
+ul.checks{list-style:none;padding-left:0}
+ul.checks > li{position:relative;padding-left:1.6rem}
+ul.checks > li::before{content:"";position:absolute;left:.1rem;top:.55em;width:.8em;height:.8em;border:1.3px solid var(--ink-3);background:transparent}
+
+/* ---------------- 수식 : 코드 바탕 + 왼쪽 2px 남색 ---------------- */
+.math{
+  margin:1.1rem 0 1.6rem;padding:1rem 1.2rem;text-align:center;
+  background:var(--inline-bg);border:0;border-left:2px solid var(--navy);border-radius:0;
+  font-family:var(--mono);font-size:14.5px;line-height:1.5;color:var(--ink);
+  overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;max-width:var(--wide-w);
+}
+.math .fr{display:inline-block;vertical-align:middle;text-align:center;margin:0 .3em}
+.math .fr > span{display:block;padding:0 .45em}
+.math .fr > span:first-child{border-bottom:1.3px solid currentColor;padding-bottom:2px}
+.math .fr > span:last-child{padding-top:2px}
+.math .big{font-size:1.5em;vertical-align:-.15em;margin:0 .1em}
+.math em{font-style:normal;color:var(--navy)}
+
+/* ---------------- 상태 표기 : 작은 사각점 + 글자 ---------------- */
+.chip{
+  display:inline-flex;align-items:center;gap:.35em;
+  font-family:var(--sans);font-size:12.5px;font-weight:600;padding:0;border-radius:0;background:none;
+  vertical-align:.05em;white-space:nowrap;
+}
+.chip::before{content:"";flex:none;width:7px;height:7px;background:currentColor}
+.chip.red{background:none;color:var(--red)}
+.chip.amber{background:none;color:var(--amber)}
+.chip.blue{background:none;color:var(--blue)}
+
+/* ---------------- 위로 버튼 ---------------- */
+.up{
+  position:fixed;z-index:50;
+  right:max(16px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));
+  width:40px;height:40px;border-radius:2px;
+  border:1px solid var(--line);background:var(--paper);color:var(--ink-2);box-shadow:none;cursor:pointer;
+  display:grid;place-items:center;opacity:0;transform:none;pointer-events:none;transition:opacity .2s;
+}
+.up.on{opacity:1;pointer-events:auto}
+.up:hover{color:var(--navy);border-color:var(--line-strong)}
+.up svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+footer{margin-top:4.5rem;padding-top:1.2rem;border-top:1px solid var(--line);font-family:var(--sans);font-size:13px;color:var(--ink-3);line-height:1.7}
+
+@media(max-width:959px){
+  .hero h1{font-size:2rem}
+  main h1{font-size:1.8rem}
+  main h2{font-size:1.65rem}
+}
+/* ---------------- 데스크톱: 왼쪽 고정 목차 ---------------- */
+@media(min-width:960px){
+  :root{--pad:52px}
+  .shell{padding-left:var(--rail)}
+  .toc{
+    transform:none;width:var(--rail);left:0;right:auto;
+    border-left:0;border-right:1px solid var(--line);
+    background:var(--paper);top:var(--topbar);height:calc(100dvh - var(--topbar));padding-top:0;
+  }
+  .toc-head{display:none}
+  .toc-list{padding:24px 14px 60px 18px}
+  .scrim{display:none}
+  .tb-menu{display:none}
+  main{padding-top:calc(var(--topbar) + 24px)}
+}
+
+/* ---------------- 인쇄 ---------------- */
+@media print{
+  .topbar,.toc,.scrim,.up,.swipe{display:none !important}
+  .shell{padding:0}
+  main{padding:0}
+  body{background:#fff;font-size:10.5pt}
+  .tbl-scroll{overflow:visible}
+  pre,blockquote,table,.tbl{break-inside:avoid}
+  h1,h2,h3{break-after:avoid}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="progress" id="bar"></div>
+  <div class="tb-now" id="now">신용위험 모델링 완전 해설</div>
+  <button class="tb-btn" id="fsm" aria-label="글자 작게" title="글자 작게">A<span style="font-size:10px">&minus;</span></button>
+  <button class="tb-btn" id="fsp" aria-label="글자 크게" title="글자 크게">A<span style="font-size:10px">+</span></button>
+  <button class="tb-btn" id="theme" aria-label="밝기 전환" title="밝기 전환">
+    <svg id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
+    <svg id="moon" viewBox="0 0 24 24" style="display:none"><path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.3 8.3 0 1 0 10.5 10.5z"/></svg>
+  </button>
+  <button class="tb-btn tb-menu" id="menu" aria-label="목차 열기" aria-expanded="false" title="목차">
+    <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+</header>
+
+<div class="scrim" id="scrim"></div>
+
+<nav class="toc" id="toc" aria-label="목차">
+  <div class="toc-head">
+    <h2>목차</h2>
+    <button class="tb-btn" id="close" aria-label="목차 닫기">
+      <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="toc-list"><a href="#s-0-시작하기-전에-이-문서를-읽는-법" data-t="s-0-시작하기-전에-이-문서를-읽는-법"><span class="n">00</span><span class="t">시작하기 전에 — 이 문서를 읽는 법</span><span class="d"></span></a>
+<a href="#s-30초-요약-결론부터" data-t="s-30초-요약-결론부터"><span class="n">—</span><span class="t">30초 요약 — 결론부터</span><span class="d red"></span></a>
+<a href="#s-1-환경-설정과-시각화-도구-셀-05" data-t="s-1-환경-설정과-시각화-도구-셀-05"><span class="n">01</span><span class="t">환경 설정과 시각화 도구 (셀 0~5)</span><span class="d"></span></a>
+<a href="#s-2-데이터-불러오기-셀-68" data-t="s-2-데이터-불러오기-셀-68"><span class="n">02</span><span class="t">데이터 불러오기 (셀 6~8)</span><span class="d"></span></a>
+<a href="#s-3-타깃정답-정의-무엇을-부도라고-부를-것인가-셀-912" data-t="s-3-타깃정답-정의-무엇을-부도라고-부를-것인가-셀-912"><span class="n">03</span><span class="t">타깃(정답) 정의 — 무엇을 &quot;부도&quot;라고 부를 것인가 (셀 9~12)</span><span class="d"></span></a>
+<a href="#s-4-결측치-처리-셀-1315" data-t="s-4-결측치-처리-셀-1315"><span class="n">04</span><span class="t">결측치 처리 (셀 13~15)</span><span class="d"></span></a>
+<a href="#s-5-타입-정리와-숨어-있던-버그-셀-1619" data-t="s-5-타입-정리와-숨어-있던-버그-셀-1619"><span class="n">05</span><span class="t">타입 정리와 숨어 있던 버그 (셀 16~19)</span><span class="d"></span></a>
+<a href="#s-6-데이터-누수-감사-이-노트북의-하이라이트-셀-2023" data-t="s-6-데이터-누수-감사-이-노트북의-하이라이트-셀-2023"><span class="n">06</span><span class="t">데이터 누수 감사 — 이 노트북의 하이라이트 (셀 20~23)</span><span class="d red"></span></a>
+<a href="#s-7-날짜-파생변수와-빈티지-분석-셀-2426" data-t="s-7-날짜-파생변수와-빈티지-분석-셀-2426"><span class="n">07</span><span class="t">날짜 파생변수와 빈티지 분석 (셀 24~26)</span><span class="d"></span></a>
+<a href="#s-8-피처-세트-구성-셀-2729" data-t="s-8-피처-세트-구성-셀-2729"><span class="n">08</span><span class="t">피처 세트 구성 (셀 27~29)</span><span class="d"></span></a>
+<a href="#s-9-out-of-time-분할-시간을-기준으로-나누기-셀-3032" data-t="s-9-out-of-time-분할-시간을-기준으로-나누기-셀-3032"><span class="n">09</span><span class="t">Out-of-Time 분할 — 시간을 기준으로 나누기 (셀 30~32)</span><span class="d amber"></span></a>
+<a href="#s-10-woe와-iv-신용-모델의-전통-무기-셀-3338" data-t="s-10-woe와-iv-신용-모델의-전통-무기-셀-3338"><span class="n">10</span><span class="t">WoE와 IV — 신용 모델의 전통 무기 (셀 33~38)</span><span class="d amber"></span></a>
+<a href="#s-11-전처리-파이프라인-누수를-구조적으로-막기-셀-3940" data-t="s-11-전처리-파이프라인-누수를-구조적으로-막기-셀-3940"><span class="n">11</span><span class="t">전처리 파이프라인 — 누수를 구조적으로 막기 (셀 39~40)</span><span class="d red"></span></a>
+<a href="#s-12-모델-학습-5개를-동시에-셀-4143" data-t="s-12-모델-학습-5개를-동시에-셀-4143"><span class="n">12</span><span class="t">모델 학습 — 5개를 동시에 (셀 41~43)</span><span class="d amber"></span></a>
+<a href="#s-13-평가-어떤-숫자를-믿어야-하나-셀-4447" data-t="s-13-평가-어떤-숫자를-믿어야-하나-셀-4447"><span class="n">13</span><span class="t">평가 — 어떤 숫자를 믿어야 하나 (셀 44~47)</span><span class="d amber"></span></a>
+<a href="#s-14-임계값-최적화-몇-부터-거절할-것인가-셀-4849" data-t="s-14-임계값-최적화-몇-부터-거절할-것인가-셀-4849"><span class="n">14</span><span class="t">임계값 최적화 — 몇 %부터 거절할 것인가 (셀 48~49)</span><span class="d amber"></span></a>
+<a href="#s-15-확률-보정-pd가-진짜-확률이-되게-만들기-셀-5052" data-t="s-15-확률-보정-pd가-진짜-확률이-되게-만들기-셀-5052"><span class="n">15</span><span class="t">확률 보정 — PD가 진짜 확률이 되게 만들기 (셀 50~52)</span><span class="d amber"></span></a>
+<a href="#s-16-최종-oot-평가-미래-데이터에서의-진실-셀-5355" data-t="s-16-최종-oot-평가-미래-데이터에서의-진실-셀-5355"><span class="n">16</span><span class="t">최종 OOT 평가 — 미래 데이터에서의 진실 (셀 53~55)</span><span class="d red"></span></a>
+<a href="#s-17-shap-모델이-왜-그렇게-판단했는지-셀-5672" data-t="s-17-shap-모델이-왜-그렇게-판단했는지-셀-5672"><span class="n">17</span><span class="t">SHAP — 모델이 왜 그렇게 판단했는지 (셀 56~72)</span><span class="d red"></span></a>
+<a href="#s-18-permutation-importance-pdp-shap-교차-검증-셀-7376" data-t="s-18-permutation-importance-pdp-shap-교차-검증-셀-7376"><span class="n">18</span><span class="t">Permutation Importance &amp; PDP — SHAP 교차 검증 (셀 73~76)</span><span class="d red"></span></a>
+<a href="#s-19-스코어카드-변환-확률을-점수로-셀-7779" data-t="s-19-스코어카드-변환-확률을-점수로-셀-7779"><span class="n">19</span><span class="t">스코어카드 변환 — 확률을 점수로 (셀 77~79)</span><span class="d red"></span></a>
+<a href="#s-20-psi-모델이-언제-늙는지-감시하기-셀-8082" data-t="s-20-psi-모델이-언제-늙는지-감시하기-셀-8082"><span class="n">20</span><span class="t">PSI — 모델이 언제 늙는지 감시하기 (셀 80~82)</span><span class="d red"></span></a>
+<a href="#s-21-저장과-추론-함수-셀-8385" data-t="s-21-저장과-추론-함수-셀-8385"><span class="n">21</span><span class="t">저장과 추론 함수 (셀 83~85)</span><span class="d red"></span></a>
+<div class="grp">최종 종합 — 이 모델은 쓸 수 있나?</div>
+<a href="#s-종합-진단표" data-t="s-종합-진단표"><span class="n">—</span><span class="t">종합 진단표</span><span class="d red"></span></a>
+<a href="#s-한-줄-결론" data-t="s-한-줄-결론"><span class="n">—</span><span class="t">한 줄 결론</span><span class="d"></span></a>
+<div class="grp">실무에서 이 작업이 어떻게 쓰이나</div>
+<a href="#s-1-이-파이프라인이-그대로-쓰이는-곳" data-t="s-1-이-파이프라인이-그대로-쓰이는-곳"><span class="n">—</span><span class="t">1. 이 파이프라인이 그대로 쓰이는 곳</span><span class="d"></span></a>
+<a href="#s-2-실제-프로젝트-진행-흐름" data-t="s-2-실제-프로젝트-진행-흐름"><span class="n">—</span><span class="t">2. 실제 프로젝트 진행 흐름</span><span class="d"></span></a>
+<a href="#s-3-이-노트북-결과로-지금-당장-할-수-있는-것" data-t="s-3-이-노트북-결과로-지금-당장-할-수-있는-것"><span class="n">—</span><span class="t">3. 이 노트북 결과로 지금 당장 할 수 있는 것</span><span class="d"></span></a>
+<div class="grp">한계 — 무엇을 믿으면 안 되나</div>
+<a href="#s-a-데이터의-한계" data-t="s-a-데이터의-한계"><span class="n">—</span><span class="t">A. 데이터의 한계</span><span class="d"></span></a>
+<a href="#s-b-방법론의-한계" data-t="s-b-방법론의-한계"><span class="n">—</span><span class="t">B. 방법론의 한계</span><span class="d"></span></a>
+<a href="#s-c-공정성규제의-한계" data-t="s-c-공정성규제의-한계"><span class="n">—</span><span class="t">C. 공정성·규제의 한계</span><span class="d"></span></a>
+<a href="#s-d-운영의-한계" data-t="s-d-운영의-한계"><span class="n">—</span><span class="t">D. 운영의 한계</span><span class="d"></span></a>
+<div class="grp">다음에 뭘 하면 좋은가 — 우선순위별 실행 계획</div>
+<a href="#s-1순위-지금-당장-12일-코드-몇-줄" data-t="s-1순위-지금-당장-12일-코드-몇-줄"><span class="n">—</span><span class="t">1순위 — 지금 당장 (1~2일, 코드 몇 줄)</span><span class="d"></span></a>
+<a href="#s-2순위-이번-주-25일" data-t="s-2순위-이번-주-25일"><span class="n">—</span><span class="t">2순위 — 이번 주 (2~5일)</span><span class="d"></span></a>
+<a href="#s-3순위-이번-달-13주" data-t="s-3순위-이번-달-13주"><span class="n">—</span><span class="t">3순위 — 이번 달 (1~3주)</span><span class="d"></span></a>
+<a href="#s-4순위-장기-13개월" data-t="s-4순위-장기-13개월"><span class="n">—</span><span class="t">4순위 — 장기 (1~3개월)</span><span class="d"></span></a>
+<div class="grp">부록 — 핵심 용어 정리</div>
+<a href="#s-마지막으로-이-프로젝트에서-가장-값진-것" data-t="s-마지막으로-이-프로젝트에서-가장-값진-것"><span class="n">—</span><span class="t">마지막으로 — 이 프로젝트에서 가장 값진 것</span><span class="d"></span></a></div>
+</nav>
+
+<div class="shell">
+  <main>
+    <div class="wrap">
+
+<section class="hero">
+  <span class="eyebrow">실행 결과 기반 해설 · 2,260,668건 · 2007–2018</span>
+  <h1>신용위험 모델링 노트북 완전 해설</h1>
+  <p class="sub">노트북 87개 셀을 21개 구간으로 나눠, <b>코드가 하는 일 → 실제 나온 숫자 →
+  실무 해설</b> 순서로 풀어 씁니다. 마지막에 실무 적용·한계·다음 단계까지 이어집니다.</p>
+  <div class="facts">
+    <span>21개 섹션</span><span>읽는 데 약 60분</span>
+    <span>LendingClub 226만 건</span><span>피처 139개</span>
+  </div>
+
+  <div class="ledger">
+    <div class="ledger-top">
+      <h2>문서 결론 요약</h2>
+      <span class="verdict">학습용 A급 · 실무 배포 불가</span>
+    </div>
+    <div class="band" role="img" aria-label="종합 진단 13개 항목: 양호 5, 주의 2, 문제 6"><i class="blue"></i><i class="blue"></i><i class="blue"></i><i class="blue"></i><i class="blue"></i><i class="amber"></i><i class="amber"></i><i class="red"></i><i class="red"></i><i class="red"></i><i class="red"></i><i class="red"></i><i class="red"></i></div>
+    <div class="legend">
+      <span class="blue"><b>5</b> 양호</span>
+      <span class="amber"><b>2</b> 주의</span>
+      <span class="red"><b>6</b> 치명적·심각</span>
+    </div>
+    <p class="note">겉보기 성적표(AUC 0.732 · KS 0.338)는 정상 범위입니다. 그런데 모델의
+    SHAP 중요도 <b>65.4%가 <code>int_rate</code> 하나</b>이고, 그 금리는 고객 특성이 아니라
+    렌딩클럽이 이미 매긴 값입니다. 자세한 근거는
+    <a href="#s-종합-진단표">종합 진단표</a>에 있습니다.</p>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="k">OOT AUC</div><div class="metric-v">0.732</div><div class="n">정상 범위</div></div>
+    <div class="metric"><div class="k">KS</div><div class="metric-v">0.338</div><div class="n">양호</div></div>
+    <div class="metric"><div class="k">학습 부도율</div><div class="metric-v">15.5%</div><div class="n">Train</div></div>
+    <div class="metric"><div class="k">검증 부도율</div><div class="metric-v">3.0%</div><div class="n">만기 편향</div></div>
+  </div>
+</section>
+
+
+
+
+<h2 id="s-0-시작하기-전에-이-문서를-읽는-법"><span class="sn">00</span>시작하기 전에 — 이 문서를 읽는 법</h2>
+<p>이 문서는 여러분이 돌린 노트북을 <strong>21개 구간</strong>으로 나눠서, 각 구간마다 세 가지를 설명합니다.</p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>표시</th>
+<th>뜻</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>코드가 하는 일</strong></td>
+<td>이 부분 코드가 무엇을 하는지</td>
+</tr>
+<tr>
+<td><strong>실제로 나온 결과</strong></td>
+<td>여러분 노트북에서 나온 진짜 숫자</td>
+</tr>
+<tr>
+<td><strong>실무 해설</strong></td>
+<td>은행/핀테크 현업에서 이게 왜 중요한지, 뭘 조심해야 하는지</td>
+</tr>
+</tbody>
+</table></div></div>
+<hr/>
+<h2 class="sev-red" id="s-30초-요약-결론부터">30초 요약 — 결론부터</h2>
+<p>여러분이 만든 모델의 성적표는 이렇습니다.</p>
+<pre><code>최종 모델    : HistGradientBoosting
+AUC (미래)   : 0.732     ← 업계 정상 범위 (0.70~0.78)
+KS           : 0.338     ← 양호 (0.3 이상이면 OK)
+학습 데이터  : 141만 건
+</code></pre>
+<p><strong>"AUC 0.73이면 괜찮은 거 아니야?"</strong> — 맞습니다. 숫자만 보면 정상적인 신용 모델입니다.
+<strong>그런데 이 모델은 지금 상태로는 실무에 쓸 수 없습니다.</strong> 이유는 4가지이고, 전부 아래 본문에서
+실제 숫자로 확인하게 됩니다.</p>
+<ol>
+<li><strong>모델이 사실상 변수 하나(금리)로만 예측하고 있습니다.</strong> SHAP 중요도의 <strong>65.4%가 <code>int_rate</code></strong> 입니다.</li>
+<li><strong>그 금리는 고객의 특성이 아니라 렌딩클럽이 이미 매긴 점수입니다.</strong> 즉 <strong>남의 모델을 베끼고 있는 것</strong>입니다.</li>
+<li><strong>미래 데이터(2018년)의 부도율이 2.99%인데 학습 데이터는 15.46%였습니다.</strong> 5배 차이인데,
+고객이 갑자기 착해진 게 아니라 <strong>아직 부도날 시간이 없었을 뿐</strong>입니다.</li>
+<li><strong>확률 보정이 미래 데이터에서 깨졌습니다.</strong> 예측 PD 17.95% 구간의 실제 부도율은 4.82%였습니다.</li>
+</ol>
+<p>이걸 하나씩 뜯어보겠습니다.</p>
+<hr/>
+<h2 id="s-1-환경-설정과-시각화-도구-셀-05"><span class="sn">01</span>환경 설정과 시각화 도구 (셀 0~5)</h2>
+<h3>코드가 하는 일</h3>
+<pre class="src"><code class="language-python">SEED = 42
+SNAPSHOT_DATE = pd.Timestamp("2019-01-01")
+DATA_PATH = Path("./data/loan_2014_18.csv")
+</code></pre>
+<p>세 줄이 전부지만 각각 이유가 있습니다.</p>
+<p><strong><code>SEED = 42</code></strong> — 컴퓨터의 "랜덤"은 사실 진짜 랜덤이 아니라 씨앗 숫자에서 만들어내는 가짜 랜덤입니다.
+씨앗을 고정하면 <strong>몇 번을 돌려도 똑같은 결과</strong>가 나옵니다. 데이터를 섞을 때, 랜덤포레스트가 나무를
+만들 때 전부 이 씨앗을 씁니다.</p>
+<p><strong><code>SNAPSHOT_DATE</code></strong> — "오늘이 언제인가"를 고정합니다. 원본 코드는 <code>pd.to_datetime("today")</code>를
+써서 <strong>실행한 날짜에 따라 결과가 달라졌습니다.</strong> 3월에 돌린 결과와 7월에 돌린 결과가 다르면
+그건 분석이 아니라 사고입니다.</p>
+<p>그 다음 셀에서는 Kaggle에만 있던 <code>utils.py</code>의 그래프 함수들을 matplotlib으로 다시 만들었습니다.
+<code>plot_gradient_bar</code>, <code>plot_stacked_categorical</code>, <code>save_and_display</code> 세 개입니다.</p>
+<h3>실제로 나온 결과</h3>
+<pre><code>pandas       2.2.3      numpy   2.1.3
+sklearn      1.6.1      shap    0.50.0
+lightgbm     4.6.0      xgboost 3.0.4
+python       3.13.5
+스냅샷 기준일: 2019-01-01
+데이터 경로  : C:\Users\juhyu\Insights\Loan risk\loan.csv
+</code></pre>
+<p>패키지가 전부 최신이라 문제없이 돌았습니다.</p>
+<h3>실무 해설</h3>
+<blockquote>
+<p><strong>재현성(reproducibility)은 금융 모델의 법적 요구사항입니다.</strong></p>
+<p>금융감독원이나 내부 감사가 "작년 3월에 승인 거절된 이 고객, 왜 거절됐는지 그때 모델로
+재현해 보세요"라고 요구할 수 있습니다. 이때 시드가 고정 안 되어 있거나 <code>today()</code> 같은 게
+코드에 박혀 있으면 <strong>재현이 불가능</strong>하고, 그 자체로 지적 사항이 됩니다.</p>
+<p>실무에서는 여기서 한 단계 더 나가서 <strong>패키지 버전까지 고정</strong>합니다.
+(<code>requirements.txt</code> 또는 Docker 이미지) sklearn 1.5와 1.6이 같은 코드에서 다른 결과를
+낼 수 있기 때문입니다.</p>
+</blockquote>
+<hr/>
+<h2 id="s-2-데이터-불러오기-셀-68"><span class="sn">02</span>데이터 불러오기 (셀 6~8)</h2>
+<h3>코드가 하는 일</h3>
+<pre class="src"><code class="language-python">df_raw = pd.read_csv(DATA_PATH, low_memory=False)
+if str(df_raw.columns[0]).lower().startswith("unnamed"):
+    df_raw = df_raw.drop(columns=df_raw.columns[0])
+</code></pre>
+<p><code>low_memory=False</code>는 "컬럼 타입을 추측할 때 파일 일부만 보지 말고 전체를 봐라"는 뜻입니다.
+안 쓰면 같은 컬럼이 앞부분은 숫자, 뒷부분은 문자로 읽히는 사고가 납니다.</p>
+<p>원본 코드는 <code>df.drop(df.columns[0])</code>으로 <strong>무조건 첫 컬럼을 삭제</strong>했는데, 이건 위험합니다.
+파일에 인덱스 컬럼이 없으면 <strong>멀쩡한 데이터를 날립니다.</strong> 그래서 이름이 <code>Unnamed:</code>로 시작할 때만
+지우도록 바꿨습니다.</p>
+<h3>실제로 나온 결과</h3>
+<pre><code>shape: 2,260,668 rows x 145 cols
+</code></pre>
+<p><strong>226만 건, 145개 컬럼.</strong> 참고로 여러분은 원본이 쓴 2014~2018년 부분집합이 아니라
+<strong>렌딩클럽 전체 데이터(2007~2018)</strong> 를 쓰셨습니다. 이게 나중에 재미있는 결과로 이어집니다.</p>
+<p>결측률 상위를 보면:</p>
+<pre><code>id                                          100.0%  ← 전부 비어있음
+member_id                                   100.0%
+url                                         100.0%
+orig_projected_additional_accrued_interest   99.6%
+hardship_amount / hardship_dpd / ...         99.5%
+settlement_amount / settlement_term          98.5%
+</code></pre>
+<h3>실무 해설</h3>
+<blockquote>
+<p><strong><code>hardship_*</code>과 <code>settlement_*</code>이 99.5% 비어 있다는 사실 자체가 신호입니다.</strong></p>
+<p>"hardship"은 상환곤란 프로그램, "settlement"는 채무조정입니다. 이 값이 채워진 0.5%는
+<strong>이미 부실이 확정된 고객</strong>이라는 뜻입니다. 즉 이 컬럼들은 "결측이 아닌 것" 자체가
+정답을 알려주는 <strong>누수 변수</strong>입니다. (뒤에서 제거됩니다)</p>
+<p>실무 팁: 새 데이터셋을 받으면 가장 먼저 <strong>결측률 99% 근처 컬럼</strong>을 찾아보세요.
+열에 아홉은 "특수한 사건이 일어났을 때만 채워지는 필드"이고, 그 사건이 우리가 예측하려는
+대상과 관련 있으면 곧바로 누수입니다.</p>
+</blockquote>
+<hr/>
+<h2 id="s-3-타깃정답-정의-무엇을-부도라고-부를-것인가-셀-912"><span class="sn">03</span>타깃(정답) 정의 — 무엇을 "부도"라고 부를 것인가 (셀 9~12)</h2>
+<h3>코드가 하는 일</h3>
+<p>이게 <strong>모델링 전체에서 가장 중요한 결정</strong>입니다. 코드는 세 가지 정의를 준비해뒀습니다.</p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>정의</th>
+<th>부도(1)로 볼 상태</th>
+<th>특징</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>original</code></td>
+<td>16일 이상 연체 + 상각 + 부도</td>
+<td>원본과 동일 (기본값)</td>
+</tr>
+<tr>
+<td><code>basel90</code></td>
+<td>31일 이상 연체 + 상각 + 부도</td>
+<td>국제 규제(Basel) 기준에 가까움</td>
+</tr>
+<tr>
+<td><code>matured_only</code></td>
+<td>상각 + 부도만, <strong>진행중 건은 아예 제외</strong></td>
+<td>편향 없음, 데이터는 절반으로</td>
+</tr>
+</tbody>
+</table></div></div>
+<p>그리고 <strong>타깃의 방향을 뒤집었습니다.</strong> 원본은 "정상=1"이었는데, 이걸 "부도=1"로 바꿨습니다.</p>
+<p><strong>왜?</strong> <code>model.predict_proba(X)[:, 1]</code>은 "1일 확률"을 줍니다. 정상=1이면 이게 <strong>상환 확률</strong>이 되고,
+PD(부도확률)를 얻으려면 매번 <code>1 - p</code>를 해야 합니다. 그러면 SHAP 부호도 뒤집히고, 비용 계산도
+뒤집히고, 실수하기 딱 좋습니다. <strong>부도=1로 두면 모델 출력이 곧바로 PD가 됩니다.</strong></p>
+<h3>실제로 나온 결과</h3>
+<pre><code>Fully Paid                                  1,041,952
+Current                                       919,695
+Charged Off                                   261,655
+Late (31-120 days)                             21,897
+In Grace Period                                 8,952
+Late (16-30 days)                               3,737
+Does not meet the credit policy...Fully Paid    1,988   ← 매핑 안 됨
+Does not meet the credit policy...Charged Off     761   ← 매핑 안 됨
+Default                                            31
+
+⚠️ 매핑되지 않은 loan_status 2,749건 → 제거
+
+부도(1) 287,320 / 정상(0) 1,970,599
+부도율 : 12.72%   (불균형비 1:6.9)
+</code></pre>
+<p><strong>여기서 두 가지를 짚어야 합니다.</strong></p>
+<p><strong>(1) "Does not meet the credit policy" 2,749건이 조용히 버려졌습니다.</strong>
+코드가 경고를 띄우고 지웠는데, 사실 이건 <strong>초창기(2007~2008) 렌딩클럽이 자기 심사 기준을
+통과 못 한 대출을 실험적으로 내준 것</strong>입니다. 상태 뒤에 붙은 "Fully Paid / Charged Off"를
+보고 매핑했어야 맞습니다. 2,749건은 226만 건 중 0.12%라 결과에 영향은 없지만,
+<strong>"경고가 떴는데 그냥 넘어갔다"는 건 실무에서 위험한 습관</strong>입니다.</p>
+<p><strong>(2) 부도율 12.72%, 불균형비 1:6.9.</strong>
+100명 중 13명이 부도. 이 정도면 "심한 불균형"까진 아니지만, <strong>정확도(Accuracy)를 쓰면 안 되는
+수준</strong>입니다. 전부 "정상"이라고 찍어도 정확도 87.3%가 나오니까요.</p>
+<h3>실무 해설</h3>
+<blockquote>
+<p><strong>타깃 정의를 바꾸면 모델이 통째로 바뀝니다. 이건 기술 문제가 아니라 정책 문제입니다.</strong></p>
+<p>실무에서 이 결정은 데이터 사이언티스트가 혼자 하지 않습니다. 리스크 관리 부서, 상품 부서,
+준법 부서가 같이 정합니다. 왜냐하면:</p>
+<ul>
+<li><strong>부도 기준을 느슨하게(16일 연체)</strong> 잡으면 → 부도 건수가 늘고 → 모델이 보수적이 되고
+→ <strong>승인율이 떨어져 매출이 줄어듭니다.</strong></li>
+<li><strong>엄격하게(90일 연체)</strong> 잡으면 → 승인율은 오르지만 → <strong>실제 손실을 과소평가</strong>합니다.</li>
+</ul>
+<p>국제 기준(Basel III)은 <strong>90일 연체 또는 "상환 가능성 없음" 판단</strong>을 부도로 봅니다.
+한국 금융권도 이 기준을 따릅니다. 그래서 <code>original</code> 정의(16일)는 사실 <strong>학습용으로는 괜찮지만
+실무 기준으로는 너무 공격적</strong>입니다.</p>
+<p><strong>실습 과제</strong>: <code>TARGET_DEF = "basel90"</code>으로 바꿔서 다시 돌려보세요. 부도율이 얼마나
+떨어지고 AUC가 어떻게 변하는지 보면, 타깃 정의의 힘을 체감할 수 있습니다.</p>
+</blockquote>
+<hr/>
+<h2 id="s-4-결측치-처리-셀-1315"><span class="sn">04</span>결측치 처리 (셀 13~15)</h2>
+<h3>코드가 하는 일</h3>
+<pre class="src"><code class="language-python">MISSING_THRESHOLD = 51.0     # 51% 넘게 비어 있으면 컬럼 삭제
+
+KEEP_NA_FLAG = ["mths_since_last_delinq", ...]   # 단, 이건 "비었다"는 사실을 기록
+for c in KEEP_NA_FLAG:
+    df[f"{c}_isna"] = df[c].isna().astype(int)
+</code></pre>
+<p>핵심 아이디어: <strong>결측에는 두 종류가 있습니다.</strong></p>
+<ul>
+<li><strong>그냥 없는 것</strong> (<code>url</code>이 전부 비어 있음) → 지우면 됨</li>
+<li><strong>없다는 게 정보인 것</strong> (<code>mths_since_last_delinq</code> = "마지막 연체 이후 개월 수")
+→ 이게 비어 있으면 <strong>연체를 한 번도 안 했다</strong>는 뜻! 오히려 좋은 신호입니다.</li>
+</ul>
+<p>두 번째 경우를 그냥 지우거나 평균으로 채우면 <strong>중요한 정보를 버리는 것</strong>입니다.
+그래서 <code>_isna</code> 플래그 컬럼을 따로 만들어 남겼습니다.</p>
+<h3>실제로 나온 결과</h3>
+<pre><code>결측이 있는 컬럼: 105개
+51.0% 초과로 제거할 컬럼: 44개
+제거 후 shape: (2,257,919, 105)
+</code></pre>
+<p>145개 → 44개 삭제 → 4개 플래그 추가 = 105개.</p>
+<h3>실무 해설</h3>
+<blockquote>
+<p><strong>"51%"라는 숫자에는 이론적 근거가 없습니다.</strong> 관행일 뿐입니다.</p>
+<p>실무에서는 임계값을 기계적으로 정하지 않고 <strong>컬럼별로 판단</strong>합니다.
+90% 비어 있어도 그 10%가 결정적이면 살립니다. 대신 이때는 반드시 <strong>"결측 = 별도 구간"</strong> 으로
+처리해서 WoE를 계산합니다.</p>
+<p>그리고 실무에서 진짜 중요한 질문은 이겁니다:
+<strong>"운영 시점에도 이 컬럼이 채워질까?"</strong></p>
+<p>학습 데이터에서는 80% 채워져 있는데 실제 신규 신청 시스템에서는 20%만 들어오는 필드가
+흔합니다. (예: 배치로 나중에 붙는 외부 신용정보) 이런 걸 모르고 모델에 넣으면
+<strong>배포하자마자 성능이 폭락</strong>합니다. 이걸 실무에서 <strong>"학습-서빙 불일치(training-serving skew)"</strong> 라고
+부르고, ML 시스템 장애 원인 1위입니다.</p>
+</blockquote>
+<hr/>
+<h2 id="s-5-타입-정리와-숨어-있던-버그-셀-1619"><span class="sn">05</span>타입 정리와 숨어 있던 버그 (셀 16~19)</h2>
+<h3>코드가 하는 일</h3>
+<p>여기서 문자열을 숫자로, 문자열을 날짜로 바꿉니다.</p>
+<pre class="src"><code class="language-python"># "13.56%" → 13.56
+df[c] = pd.to_numeric(df[c].astype(str).str.rstrip("%"), errors="coerce")
+
+# "36 months" → 36
+df["term_months"] = pd.to_numeric(df["term"].str.extract(r"(\d+)")[0])
+df["term_36_months"] = (df["term_months"] == 36).astype(int)   # ← 여기가 핵심
+</code></pre>
+<h3>원본에 있던 조용한 버그</h3>
+<p>원본은 이렇게 썼습니다.</p>
+<pre class="src"><code class="language-python">df.term_36_months = np.where(df.term == '36 months', 1, 0)   # ❌
+df.drop('term', axis=1, inplace=True)
+</code></pre>
+<p><strong>pandas에서 없는 컬럼을 점(<code>.</code>)으로 만들면 컬럼이 안 생깁니다.</strong>
+<code>df["x"] = 1</code>은 컬럼을 만들지만, <code>df.x = 1</code>은 <strong>그냥 객체에 속성을 붙일 뿐</strong>입니다.
+파이썬이 <code>UserWarning</code>을 띄우긴 하는데, 노트북에서 <code>warnings.filterwarnings('ignore')</code>를
+해놨으면 그마저도 안 보입니다.</p>
+<p>결과: <code>term_36_months</code>는 만들어지지 않았고, 바로 다음 줄에서 <code>term</code>을 지웠으니
+<strong>대출 기간 정보가 통째로 사라졌습니다.</strong> 에러도 안 나고 조용히요.</p>
+<h3>실제로 나온 결과</h3>
+<pre><code>term_months
+36    1,607,316   (71%)
+60      650,603   (29%)
+
+home_ownership (통합 전 → 후)
+MORTGAGE 1,110,194        MORTGAGE 1,110,194
+RENT       893,666   →    RENT       893,666
+OWN        252,870        OWN        252,870
+ANY            996        OTHER        1,189   ← ANY+OTHER+NONE 통합
+OTHER          144
+NONE            49
+
+희소 purpose 통합: ['vacation', 'moving', 'house', 'wedding',
+                    'renewable_energy', 'educational']
+현재 shape: (2,257,919, 101)
+</code></pre>
+<p><code>ANY</code>(996건), <code>OTHER</code>(144건), <code>NONE</code>(49건)을 하나로 묶었습니다.
+226만 건 중 1,189건이면 0.05%인데, 이런 극소수 범주를 그대로 두면 모델이
+<strong>"NONE인 사람 49명 중 20명이 부도했으니 NONE은 부도율 41%"</strong> 같은
+말도 안 되는 규칙을 학습합니다. 우연을 법칙으로 착각하는 거죠.</p>
+<h3>실무 해설</h3>
+<blockquote>
+<p><strong>1. 경고 무시(<code>warnings.filterwarnings('ignore')</code>)는 양날의 검입니다.</strong>
+노트북이 깔끔해지는 대신 <strong>진짜 문제도 안 보입니다.</strong>
+실무 습관: 개발할 때는 경고를 켜두고, 최종 배포본에서만 끕니다.</p>
+<p><strong>2. 희소 범주 통합에는 규칙이 필요합니다.</strong>
+이 코드는 "1% 미만이면 other"라는 단순 규칙을 썼는데, 실무에서는 보통 이렇게 합니다:</p>
+<ul>
+<li><strong>최소 표본 수 기준</strong>: 각 구간에 최소 500~1,000건, 그리고 부도 건수 최소 50건</li>
+<li><strong>WoE 유사도 기준</strong>: WoE 값이 비슷한 범주끼리 묶기 (통계적으로 구분이 안 되니까)</li>
+<li><strong>비즈니스 논리 기준</strong>: <code>wedding</code>과 <code>vacation</code>을 묶는 게 말이 되나? → 둘 다 "재량적 소비"라 OK</li>
+</ul>
+<p><strong>3. 어떤 범주를 묶었는지 반드시 문서로 남겨야 합니다.</strong>
+나중에 운영 중에 <code>NONE</code>이 갑자기 늘어나면 재검토해야 하는데, 기록이 없으면
+아무도 모릅니다.</p>
+</blockquote>
+<hr/>
+<h2 class="sev-red" id="s-6-데이터-누수-감사-이-노트북의-하이라이트-셀-2023"><span class="sn">06</span>데이터 누수 감사 — 이 노트북의 하이라이트 (셀 20~23)</h2>
+<h3>코드가 하는 일</h3>
+<p><strong>데이터 누수(data leakage)</strong> 란 <strong>"정답을 알고 나서 만들어진 정보"를 문제 풀 때 쓰는 것</strong>입니다.</p>
+<p>비유하자면:</p>
+<blockquote>
+<p>시험 문제를 푸는데 <strong>채점된 답안지 뒷면</strong>을 보고 있는 것.
+100점이 나오지만, 실전에서는 답안지가 없으니 0점입니다.</p>
+</blockquote>
+<p>코드는 두 단계로 잡아냅니다.</p>
+<p><strong>1단계 — 이름으로 잡기 (도메인 지식)</strong></p>
+<pre class="src"><code class="language-python">LEAKY_COLS = ["recoveries", "collection_recovery_fee", "total_rec_prncp",
+              "out_prncp", "last_pymnt_amnt", "debt_settlement_flag",
+              "hardship_flag", "last_fico_range_high", ...]
+</code></pre>
+<p><strong>2단계 — 숫자로 잡기 (단변량 AUC 스캔)</strong></p>
+<pre class="src"><code class="language-python">def univariate_auc(data, target="default"):
+    # 변수 하나만으로 정답을 얼마나 맞히는지 측정
+    # AUC 0.85 넘으면 → 거의 확실히 누수
+</code></pre>
+<p><strong>AUC가 뭔가?</strong> 0.5면 동전 던지기(아무 정보 없음), 1.0이면 완벽. 정상적인 신용 변수 하나로는
+<strong>0.55~0.68</strong> 정도가 나옵니다. 변수 <strong>하나</strong>가 0.85를 넘는다면, 그건 예측이 아니라 <strong>정답 유출</strong>입니다.</p>
+<h3>실제로 나온 결과</h3>
+<pre><code>현재 데이터에 존재하는 누수 컬럼 18개:
+['total_pymnt', 'total_pymnt_inv', 'total_rec_prncp', 'total_rec_int',
+ 'total_rec_late_fee', 'recoveries', 'collection_recovery_fee', 'out_prncp',
+ 'out_prncp_inv', 'last_pymnt_amnt', 'last_pymnt_d', 'funded_amnt',
+ 'funded_amnt_inv', 'debt_settlement_flag', 'hardship_flag',
+ 'last_credit_pull_d', 'collections_12_mths_ex_med', 'tot_coll_amt']
+</code></pre>
+<p>단변량 AUC 스캔 결과:</p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>순위</th>
+<th>변수</th>
+<th>AUC</th>
+<th>판정</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>recoveries</strong></td>
+<td><strong>0.808</strong></td>
+<td><span class="chip amber">의심</span></td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>collection_recovery_fee</strong></td>
+<td><strong>0.793</strong></td>
+<td><span class="chip amber">의심</span></td>
+</tr>
+<tr>
+<td>3</td>
+<td>total_rec_prncp</td>
+<td>0.712</td>
+<td>(누수)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>out_prncp</td>
+<td>0.689</td>
+<td>(누수)</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td><strong>int_rate</strong></td>
+<td><strong>0.678</strong></td>
+<td><span class="chip blue">정상</span></td>
+</tr>
+<tr>
+<td>6</td>
+<td>last_pymnt_amnt</td>
+<td>0.672</td>
+<td>(누수)</td>
+</tr>
+<tr>
+<td>...</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>15</td>
+<td>inq_last_6mths</td>
+<td>0.561</td>
+<td><span class="chip blue">정상</span></td>
+</tr>
+<tr>
+<td>19</td>
+<td>dti</td>
+<td>0.558</td>
+<td><span class="chip blue">정상</span></td>
+</tr>
+</tbody>
+</table></div></div>
+<p><strong>해석</strong>: <code>recoveries</code>(상각 후 회수금)는 <strong>변수 하나만으로 정답의 81%를 맞힙니다.</strong>
+당연합니다 — 회수금이 0원이 아니라는 건 <strong>이미 부도가 나서 추심에 넘어갔다는 뜻</strong>이니까요.
+"이 사람이 부도할까?"를 예측하는데 "이 사람에게서 얼마를 추심했나"를 보고 있는 겁니다.</p>
+<p>그리고 <strong>정상 변수 중 1등은 <code>int_rate</code>(0.678)</strong> 입니다. 이게 뒤에서 아주 중요해집니다.</p>
+<h3>실무 해설</h3>
+<blockquote>
+<p><strong>원본 Kaggle 노트북은 이 12개를 최종 피처로 선택했습니다:</strong></p>
+<pre><code>out_prncp, total_rec_prncp, total_rec_int, total_rec_late_fee,
+recoveries, last_pymnt_amnt, debt_settlement_flag, int_rate%,
+loan_age, time_since_last_payment, time_since_last_credit_pull,
+loan_amnt_div_instlmnt
+</code></pre>
+<p><strong>12개 중 9개가 누수 변수입니다.</strong> 그래서 AUC 0.98~0.99가 나왔고,
+노트북은 "Neural Network가 아주 좋은 점수를 냈다"고 결론지었습니다.</p>
+<h3>실무에서 누수가 발각되는 순간</h3>
+<ol>
+<li><strong>개발 단계</strong>: AUC 0.95+ → 시니어가 "이거 이상한데?" 하고 잡아냄 (가장 좋은 시나리오)</li>
+<li><strong>검증 단계</strong>: 모델검증팀(MRM)이 변수 정의서를 보고 반려 → 2~3개월 손실</li>
+<li><strong>배포 후</strong>: 실제 승인율/부도율이 예측과 전혀 다름 → <strong>금융사고</strong></li>
+</ol>
+<p>3번이 실제로 일어나면 손실이 수십억 단위입니다. 그래서 금융권에는
+<strong>모델 리스크 관리(Model Risk Management)</strong> 라는 별도 조직이 있고,
+미국은 연준의 <strong>SR 11-7</strong> 지침이 이걸 의무화합니다. 한국도 금감원 모델리스크 가이드라인이 있습니다.</p>
+<h3>누수 잡는 실무 체크리스트</h3>
+<ul class="checks">
+<li><strong>"이 값은 언제 생기는가?"</strong> 를 변수 하나하나 물어본다 (변수 정의서 필수)</li>
+<li>대출 <strong>실행 시점 이후</strong>에 생기는 값은 전부 제외</li>
+<li><strong>단변량 AUC 스캔</strong> 돌리기 (5분이면 끝남)</li>
+<li>상위 변수의 이름을 <strong>소리 내어 읽어보기</strong> — "회수금이 많아서 부도한다"가 말이 되나?</li>
+<li>타깃과 상관계수 <strong>0.5 이상</strong>인 변수는 전부 의심</li>
+</ul>
+<h3>이 코드의 미흡한 점</h3>
+<p><code>hardship_*</code> 계열 컬럼들(hardship_amount, hardship_dpd 등)은 99.5% 결측이라
+<strong>51% 규칙에 걸려 자동으로 삭제</strong>됐습니다. 운 좋게 처리된 거지 의도적으로 막은 게 아닙니다.
+<code>LEAKY_COLS</code> 리스트를 <strong>prefix 매칭</strong>으로 바꾸는 게 더 안전합니다:</p>
+<pre class="src"><code class="language-python">LEAKY_PREFIXES = ["hardship_", "settlement_", "debt_settlement_",
+                  "total_rec_", "recoveries", "out_prncp", "last_pymnt"]
+leaky = [c for c in df.columns if any(c.startswith(p) for p in LEAKY_PREFIXES)]
+</code></pre>
+</blockquote>
+<hr/>
+<h2 id="s-7-날짜-파생변수와-빈티지-분석-셀-2426"><span class="sn">07</span>날짜 파생변수와 빈티지 분석 (셀 24~26)</h2>
+<h3>코드가 하는 일</h3>
+<pre class="src"><code class="language-python"># ✅ 신청 시점에 알 수 있음
+df["credit_history_days"] = (df["issue_d"] - df["earliest_cr_line"]).dt.days
+
+# ✅ 도메인 지식 기반 비율 변수
+df["loan_to_income"]        = 대출금액 / 연소득
+df["installment_to_income"] = (월납입금 × 12) / 연소득
+df["fico_avg"]              = (FICO하단 + FICO상단) / 2
+
+# ✅ 이상치 처리 — 연소득에 1억 달러 같은 오입력이 있음
+cap = df["annual_inc"].quantile(0.995)
+df["annual_inc"] = df["annual_inc"].clip(upper=cap)
+df["log_annual_inc"] = np.log1p(df["annual_inc"])
+</code></pre>
+<p><strong>왜 비율을 만드나?</strong> "대출 5,000만원"만 봐서는 위험한지 알 수 없습니다.
+연봉 2억인 사람에겐 아무것도 아니고, 연봉 3천만원인 사람에겐 위험합니다.
+<strong>나눠줘야 비교가 됩니다.</strong> 이게 피처 엔지니어링의 본질입니다.</p>
+<p><strong>왜 로그를 씌우나?</strong> 연소득은 3천만원~10억원까지 퍼져 있는데, 대부분은 3천~1억 사이에 몰려 있습니다.
+로그를 씌우면 이 분포가 종 모양(정규분포)에 가까워져서 선형 모델이 잘 학습합니다.</p>
+<h3>실제로 나온 결과 — <strong>이게 가장 중요한 표입니다</strong></h3>
+<pre><code>연도별 건수 / 부도율
+issue_year   count     mean
+2007           251   17.93%
+2008         1,562   15.81%
+2009         4,716   12.60%
+2010        11,536   12.89%
+2011        21,721   15.18%
+2012        53,367   16.20%
+2013       134,814   15.60%
+2014       235,629   17.61%
+2015       421,095   18.31%   ← 최고점
+2016       434,407   16.68%
+2017       443,579   10.41%   ← 급감?
+2018       495,242    2.99%   ← 폭락??
+</code></pre>
+<p><strong>"2018년에 부도율이 3%로 떨어졌다! 렌딩클럽 심사가 좋아졌나?"</strong></p>
+<p><strong>아닙니다.</strong> 이게 <strong>만기 편향(maturity bias)</strong> 입니다.</p>
+<p><strong>그림으로 이해하기:</strong></p>
+<pre><code>데이터 관측 시점 = 2019년 초
+
+2015년 대출 (36개월) ├──────────────────────────┤ 완료  → 부도할 시간 충분 → 18.3%
+2016년 대출          ├──────────────────────┤     거의완료 → 16.7%
+2017년 대출              ├──────────────┤ 아직 진행중     → 10.4%
+2018년 대출                      ├────┤ 이제 시작        → 2.99%
+                                       ↑
+                              부도할 시간이 없었을 뿐!
+</code></pre>
+<p>2018년 12월에 실행된 대출은 관측 시점(2019년 초)까지 <strong>1~2개월밖에 안 지났습니다.</strong>
+1개월 만에 부도나는 사람은 거의 없습니다. 그래서 3%가 나온 겁니다.</p>
+<h3>실무 해설</h3>
+<blockquote>
+<h3>빈티지 분석(Vintage Analysis)이란</h3>
+<p>와인처럼 대출도 <strong>"몇 년산이냐"</strong> 로 묶어서 봅니다. 2015년산 대출, 2016년산 대출...
+그리고 <strong>각 빈티지가 실행 후 몇 개월째에 얼마나 부도하는지</strong>를 추적합니다.</p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>실행 후 경과</th>
+<th>2015년산 누적부도율</th>
+<th>2016년산</th>
+<th>2017년산</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>6개월</td>
+<td>2.1%</td>
+<td>2.3%</td>
+<td>2.0%</td>
+</tr>
+<tr>
+<td>12개월</td>
+<td>6.8%</td>
+<td>7.1%</td>
+<td>6.5%</td>
+</tr>
+<tr>
+<td>24개월</td>
+<td>14.2%</td>
+<td>14.8%</td>
+<td>(진행중)</td>
+</tr>
+<tr>
+<td>36개월</td>
+<td>18.3%</td>
+<td>(진행중)</td>
+<td>(진행중)</td>
+</tr>
+</tbody>
+</table></div></div>
+<p><em>(위 표는 설명용 예시 숫자입니다)</em></p>
+<p><strong>이렇게 봐야 "2016년산이 2015년산보다 나쁜가?"를 공정하게 비교할 수 있습니다.</strong>
+그냥 최종 부도율만 비교하면 최근 빈티지는 무조건 좋아 보입니다.</p>
+<h3>실무에서 이 문제를 푸는 방법</h3>
+<p><strong>성능 관측 기간(performance window)을 고정합니다.</strong></p>
+<pre><code>관측점(observation point) : 대출 실행 시점
+성능 관측 기간             : 실행 후 12개월 (또는 18/24개월)
+타깃 정의                  : 그 12개월 안에 90일 이상 연체가 발생했는가?
+</code></pre>
+<p>이렇게 하면 2015년산이든 2017년산이든 <strong>똑같이 12개월 창으로 재기 때문에 공정</strong>합니다.
+대신 <strong>최근 12개월치 데이터는 아직 결과가 안 나왔으니 학습에서 제외</strong>해야 합니다.</p>
+<p>이게 이 노트북의 가장 큰 방법론적 한계이고, 뒤에서 계속 문제를 일으킵니다.</p>
+<p><strong>이 노트북에서 당장 할 수 있는 개선</strong>:
+<code>TARGET_DEF = "matured_only"</code>로 바꾸면 진행중(<code>Current</code>) 건이 전부 빠집니다.
+데이터는 226만 → 130만으로 줄지만 <strong>편향은 사라집니다.</strong></p>
+</blockquote>
+<hr/>
+<h2 id="s-8-피처-세트-구성-셀-2729"><span class="sn">08</span>피처 세트 구성 (셀 27~29)</h2>
+<h3>코드가 하는 일</h3>
+<pre class="src"><code class="language-python">FEATURE_SET = "application"   # 신청 시점 정보만 사용
+</code></pre>
+<p>스위치 하나로 두 세계를 왔다 갔다 할 수 있게 만들었습니다.</p>
+<ul>
+<li><code>"application"</code> → 누수 변수 전부 제외 (<strong>실무에서 쓸 수 있는 모델</strong>)</li>
+<li><code>"all"</code> → 원본처럼 다 넣기 (<strong>AUC 0.98이 나오지만 가짜</strong>)</li>
+</ul>
+<p>그리고 <code>issue_year</code>는 피처에서 제외했습니다. <strong>왜?</strong> OOT 테스트가 2018년인데,
+학습 데이터에는 2018년이 없습니다. 모델이 "2018년이면..." 같은 규칙을 못 만들 뿐 아니라,
+아예 본 적 없는 값이라 예측이 무의미해집니다.</p>
+<h3>실제로 나온 결과</h3>
+<pre><code>FEATURE_SET = application
+피처 수: 90
+  - 수치형 : 82
+  - 범주형 : 8
+
+범주형: ['grade', 'home_ownership', 'verification_status', 'purpose',
+        'addr_state', 'initial_list_status', 'application_type',
+        'disbursement_method']
+</code></pre>
+<h3>실무 해설</h3>
+<blockquote>
+<p><strong>피처가 90개 → 원핫 인코딩 후 139개</strong>가 되는데, 실무 스코어카드는 보통 <strong>10~20개</strong>를 씁니다.</p>
+<p><strong>왜 그렇게 적게 쓰나?</strong></p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>이유</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>설명 가능성</strong></td>
+<td>고객에게 거절 사유를 설명해야 하는데 139개짜리 모델은 설명이 안 됨</td>
+</tr>
+<tr>
+<td><strong>안정성</strong></td>
+<td>변수가 많을수록 그중 하나가 흔들릴 확률이 높음 (뒤 PSI 섹션 참고)</td>
+</tr>
+<tr>
+<td><strong>운영 비용</strong></td>
+<td>변수 하나마다 데이터 파이프라인, 품질 모니터링, 장애 대응이 붙음</td>
+</tr>
+<tr>
+<td><strong>규제 심사</strong></td>
+<td>변수 하나하나 정당성을 소명해야 함</td>
+</tr>
+<tr>
+<td><strong>성능 차이 미미</strong></td>
+<td>상위 15개면 AUC의 95%가 나옴 (실제로 여러분 결과도 그렇습니다)</td>
+</tr>
+</tbody>
+</table></div></div>
+<p><strong>또 하나 중요한 것 — <code>addr_state</code>(거주 주)가 들어가 있습니다.</strong>
+이건 <strong>공정성(fairness) 리스크</strong>입니다. 미국에서 우편번호/주는 인종과 강하게 상관되어 있어서,
+이걸 쓰면 <strong>레드라이닝(redlining, 특정 지역 차별)</strong> 으로 간주될 수 있습니다.
+미국 ECOA/공정주택법, 한국 신용정보법 모두 이런 대리변수(proxy variable)를 문제 삼습니다.
+실무라면 <strong>반드시 제거하거나, 사용 시 공정성 검증을 통과</strong>해야 합니다.</p>
+</blockquote>
+<hr/>
+<h2 id="s-9-out-of-time-분할-시간을-기준으로-나누기-셀-3032"><span class="sn">09</span>Out-of-Time 분할 — 시간을 기준으로 나누기 (셀 30~32)</h2>
+<h3>코드가 하는 일</h3>
+<pre class="src"><code class="language-python">OOT_YEAR = 2018
+is_oot = df["issue_year"] &gt;= OOT_YEAR
+
+X_dev = X_full[~is_oot]    # 2007~2017: 개발용
+X_oot = X_full[is_oot]     # 2018: 최종 시험용 (딱 한 번만 사용)
+
+X_train, X_valid = train_test_split(X_dev, test_size=0.2, stratify=y_dev)
+</code></pre>
+<p><strong>3단 분할</strong>입니다.</p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>셋</th>
+<th>용도</th>
+<th>비유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Train</strong></td>
+<td>모델이 학습</td>
+<td>교과서</td>
+</tr>
+<tr>
+<td><strong>Valid</strong></td>
+<td>모델 고르기, 임계값 정하기, 보정하기</td>
+<td>모의고사</td>
+</tr>
+<tr>
+<td><strong>OOT Test</strong></td>
+<td>최종 성능 확인, <strong>딱 한 번만</strong></td>
+<td>수능</td>
+</tr>
+</tbody>
+</table></div></div>
+<p><strong>왜 Valid와 Test를 나누나?</strong> Valid를 보고 "이 모델이 낫네" 하고 고르는 순간,
+<strong>Valid는 이미 오염됩니다.</strong> 여러 모델 중 Valid에서 제일 잘한 걸 골랐으니,
+그 성능에는 운(運)이 섞여 있습니다. 그래서 <strong>한 번도 안 본 데이터(OOT)</strong> 가 따로 필요합니다.</p>
+<h3>실제로 나온 결과</h3>
+<pre><code>Train     n=1,410,141   부도율=15.46%
+Valid     n=  352,536   부도율=15.46%
+OOT Test  n=  495,242   부도율= 2.99%   ← 5배 차이!
+</code></pre>
+<p><strong>Train 15.46% vs OOT 2.99%.</strong> 7번 섹션에서 본 만기 편향이 그대로 드러났습니다.
+이 차이가 뒤에 나오는 <strong>모든 지표를 왜곡</strong>합니다.</p>
+<h3>실무 해설</h3>
+<blockquote>
+<p><strong>랜덤 분할 vs 시간 분할, 왜 이렇게 중요한가</strong></p>
+<p>랜덤으로 나누면 2015년 데이터가 Train에도, Test에도 들어갑니다. 그런데:</p>
+<ul>
+<li>같은 시기의 경기 상황, 금리 환경, 렌딩클럽의 심사 정책이 <strong>양쪽에 똑같이 들어갑니다.</strong></li>
+<li>모델이 "2015년 특유의 패턴"을 외워서 Test에서 잘 맞힙니다.</li>
+<li><strong>실제 배포는 항상 "미래"에 하는데, 미래는 학습 데이터에 없습니다.</strong></li>
+</ul>
+<p>그래서 시계열 성격이 있는 데이터는 <strong>무조건 시간 분할</strong>입니다. 이건 신용 모델뿐 아니라
+수요예측, 이탈예측, 주가예측 전부 마찬가지입니다.</p>
+<p><strong>더 나아가면</strong>: 실무에서는 <strong>Walk-Forward Validation</strong>을 씁니다.</p>
+<pre><code>학습[2014-2015] → 검증[2016]
+학습[2014-2016] → 검증[2017]
+학습[2014-2017] → 검증[2018]
+</code></pre>
+<p>이렇게 여러 번 반복해서 <strong>"이 모델이 어느 시기에나 안정적인가"</strong> 를 봅니다.
+한 번의 OOT는 그 해가 특이했을 수도 있으니까요.</p>
+<p><strong>여러분 결과의 문제</strong>: OOT의 부도율이 2.99%라서, 이건 "2018년 고객이 좋았다"가 아니라
+<strong>"2018년 데이터가 아직 안 익었다"</strong> 입니다. 제대로 하려면 OOT를 <strong>2016년</strong>으로 잡고
+2017~2018은 아예 빼는 게 맞습니다. (2016년산은 관측 시점 기준 2~3년 지나서 충분히 익음)</p>
+</blockquote>
+<hr/>
+<h2 id="s-10-woe와-iv-신용-모델의-전통-무기-셀-3338"><span class="sn">10</span>WoE와 IV — 신용 모델의 전통 무기 (셀 33~38)</h2>
+<h3>코드가 하는 일</h3>
+<p><strong>WoE (Weight of Evidence, 증거 가중치)</strong> 는 <strong>"이 구간은 평균보다 얼마나 안전한가"</strong> 를
+하나의 숫자로 바꾸는 방법입니다.</p>
+<div class="math"><em>WoE</em> = ln ( <span class="fr"><span>이 구간의 정상 비중</span><span>이 구간의 부도 비중</span></span> )</div>
+<ul>
+<li>WoE <strong>양수(+)</strong> = 평균보다 <strong>안전</strong></li>
+<li>WoE <strong>음수(−)</strong> = 평균보다 <strong>위험</strong></li>
+<li>WoE <strong>0</strong> = 평균과 같음</li>
+</ul>
+<p><strong>IV (Information Value, 정보값)</strong> 는 그 변수 전체의 예측력을 <strong>하나의 숫자로 요약</strong>한 것입니다.</p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>IV</th>
+<th>판정</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; 0.02</td>
+<td>예측력 없음 → 버림</td>
+</tr>
+<tr>
+<td>0.02 ~ 0.1</td>
+<td>약함</td>
+</tr>
+<tr>
+<td>0.1 ~ 0.3</td>
+<td>보통</td>
+</tr>
+<tr>
+<td>0.3 ~ 0.5</td>
+<td><strong>강함</strong></td>
+</tr>
+<tr>
+<td>&gt; 0.5</td>
+<td><strong>의심</strong> (누수 아닌지 확인)</td>
+</tr>
+</tbody>
+</table></div></div>
+<p><strong>개선한 점 3가지:</strong></p>
+<ol>
+<li><strong>Laplace 스무딩</strong> — 원본은 <code>1e-6</code>을 더해서 0 나눗셈을 피했는데, 그러면 표본이 적은
+구간에서 WoE가 ±13 같은 미친 값이 나옵니다. 각 구간에 0.5건씩 더하는 방식으로 바꿨습니다.</li>
+<li><strong>Train에서만 계산</strong> — 원본은 전체 데이터로 계산해서 검증 데이터 정보가 새어 들어갔습니다.</li>
+<li><strong>최소 구간 크기 강제</strong> — 2% 미만 구간은 자동으로 <code>SMALL</code>로 통합.</li>
+</ol>
+<h3>실제로 나온 결과</h3>
+<pre><code>              feature        iv  n_bins  strength
+0               grade  0.426685      7      강함
+1            int_rate  0.422118     10      강함
+2  loan_amnt_div_instlmnt 0.258935  10      보통
+3  installment_to_income  0.090115  11      약함
+4       loan_to_income  0.089069     11      약함
+5  acc_open_past_24mths  0.083600    10      약함
+6         term_months  0.077712      2      약함
+7      term_36_months  0.077712      2      약함   ← term_months와 완전 중복!
+...
+12                dti  0.049897     11      약함
+15     inq_last_6mths  0.044651      5      약함
+</code></pre>
+<p><strong>grade의 WoE 표 — 교과서에 실어도 될 만큼 완벽합니다:</strong></p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>등급</th>
+<th>건수</th>
+<th>부도</th>
+<th>부도율</th>
+<th>WoE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>G</strong></td>
+<td>9,098</td>
+<td>3,748</td>
+<td><strong>41.20%</strong></td>
+<td>−1.343</td>
+</tr>
+<tr>
+<td>F</td>
+<td>30,734</td>
+<td>11,785</td>
+<td>38.35%</td>
+<td>−1.224</td>
+</tr>
+<tr>
+<td>E</td>
+<td>92,735</td>
+<td>28,996</td>
+<td>31.27%</td>
+<td>−0.911</td>
+</tr>
+<tr>
+<td>D</td>
+<td>203,689</td>
+<td>49,103</td>
+<td>24.11%</td>
+<td>−0.552</td>
+</tr>
+<tr>
+<td>C</td>
+<td>417,964</td>
+<td>70,168</td>
+<td>16.79%</td>
+<td>−0.098</td>
+</tr>
+<tr>
+<td>B</td>
+<td>417,890</td>
+<td>42,915</td>
+<td>10.27%</td>
+<td>+0.469</td>
+</tr>
+<tr>
+<td><strong>A</strong></td>
+<td>238,031</td>
+<td>11,315</td>
+<td><strong>4.75%</strong></td>
+<td>+1.299</td>
+</tr>
+</tbody>
+</table></div></div>
+<p><strong>A등급 4.75% → G등급 41.20%. 완벽하게 단조 증가합니다.</strong>
+등급이 한 칸 내려갈 때마다 부도율이 계단처럼 올라갑니다. 이런 걸 <strong>단조성(monotonicity)</strong> 이라고
+하고, 좋은 신용 변수의 필수 조건입니다.</p>
+<h3>실무 해설</h3>
+<blockquote class="warn">
+<h3 class="caution">여기서 반드시 짚어야 할 것 — <code>grade</code>와 <code>int_rate</code>의 정체</h3>
+<p>IV 1위 <code>grade</code>(0.427)와 2위 <code>int_rate</code>(0.422)는 <strong>고객의 특성이 아닙니다.</strong>
+<strong>렌딩클럽이 자기 심사 모델로 매긴 등급과, 그 등급에 따라 책정한 금리</strong>입니다.</p>
+<p>즉 이 두 변수를 쓰는 모델은:</p>
+<pre><code>우리 모델 = f(렌딩클럽 모델의 출력, 기타 변수들)
+</code></pre>
+<p><strong>남의 모델 결과를 베끼고 있는 것</strong>입니다. 이건 실무에서 심각한 문제입니다.</p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>문제</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>신규 심사에 못 씀</strong></td>
+<td>우리가 심사하는 시점에는 <code>grade</code>가 아직 없음. 우리가 매겨야 하는 값임</td>
+</tr>
+<tr>
+<td><strong>순환 논리</strong></td>
+<td>"금리가 높아서 위험하다" → "위험해서 금리가 높은 건데?"</td>
+</tr>
+<tr>
+<td><strong>선택 편향 상속</strong></td>
+<td>렌딩클럽이 거절한 고객은 데이터에 없음. 그 모델의 편견을 그대로 물려받음</td>
+</tr>
+<tr>
+<td><strong>거절 사유로 못 씀</strong></td>
+<td>고객에게 "당신은 금리가 높아서 거절됐습니다"라고 할 수 없음</td>
+</tr>
+</tbody>
+</table></div></div>
+<p><strong>반드시 해야 할 실험</strong>: <code>grade</code>와 <code>int_rate</code>를 빼고 다시 돌려보세요.
+AUC가 0.73 → 0.62~0.65 정도로 떨어질 겁니다. <strong>그게 진짜 실력입니다.</strong>
+나머지 88개 변수가 실제로 얼마나 기여하는지 알 수 있습니다.</p>
+<h3>중복 변수 문제</h3>
+<p><code>term_months</code>(0.0777)와 <code>term_36_months</code>(0.0777) — <strong>IV가 소수점까지 똑같습니다.</strong>
+당연합니다. 36개월/60개월 두 값밖에 없으니 두 변수는 정보가 100% 동일합니다.
+이런 완전 중복 변수는 <strong>선형 모델의 계수를 망가뜨립니다.</strong> (뒤 17번 섹션에서 실제로 확인됩니다)
+하나는 지워야 합니다.</p>
+<h3>왜 트리 모델 시대에도 WoE를 배우나</h3>
+<p>LightGBM이 더 좋은데 왜 굳이? 세 가지 이유입니다.</p>
+<ol>
+<li><strong>규제 대응</strong> — 감독당국은 여전히 "WoE + 로지스틱 회귀" 스코어카드를 가장 신뢰합니다.
+설명이 되고, 검증이 되고, 30년간 검증된 방법이기 때문입니다.</li>
+<li><strong>탐색 도구</strong> — IV 표를 보면 <strong>모델을 만들기 전에</strong> 어떤 변수가 쓸모 있는지 5분 만에 압니다.</li>
+<li><strong>결측/이상치 자동 처리</strong> — WoE는 결측을 별도 구간으로 다루므로 대치가 필요 없습니다.</li>
+</ol>
+<p>실무 관행: <strong>탐색은 WoE/IV로, 챔피언 모델은 GBM으로, 규제 제출용은 스코어카드로</strong> —
+이렇게 병행 운영하는 곳이 많습니다.</p>
+</blockquote>
+<hr/>
+<h2 class="sev-red" id="s-11-전처리-파이프라인-누수를-구조적으로-막기-셀-3940"><span class="sn">11</span>전처리 파이프라인 — 누수를 구조적으로 막기 (셀 39~40)</h2>
+<h3>코드가 하는 일</h3>
+<pre class="src"><code class="language-python">num_pipe = Pipeline([("imputer", SimpleImputer(strategy="median"))])
+cat_pipe = Pipeline([
+    ("imputer", SimpleImputer(strategy="most_frequent")),
+    ("ohe", OneHotEncoder(handle_unknown="infrequent_if_exist",
+                          min_frequency=0.01, sparse_output=False)),
+])
+preprocessor = ColumnTransformer([("num", num_pipe, num_cols),
+                                  ("cat", cat_pipe, cat_cols)])
+
+preprocessor.fit(X_train)     # ⭐ 학습 데이터에서만 규칙을 배움
+Xtr = to_df(X_train)          # 배운 규칙을 적용
+Xva = to_df(X_valid)          # 같은 규칙 적용 (다시 배우지 않음)
+Xte = to_df(X_oot)            # 같은 규칙 적용
+</code></pre>
+<h3>원본은 이렇게 했습니다 <span class="chip red">잘못된 방식</span></h3>
+<pre class="src"><code class="language-python">imputer = SimpleImputer(strategy='mean')
+X_imputed = imputer.fit_transform(df_final)     # 전체 데이터로 평균 계산
+X_train, X_test = train_test_split(...)          # 그 다음에 나눔
+</code></pre>
+<p><strong>무엇이 문제인가?</strong> 평균을 계산할 때 <strong>테스트 데이터의 값이 이미 들어갔습니다.</strong>
+시험 문제를 채점 기준 만들 때 참고한 셈입니다. 미세하지만 성능이 부풀려집니다.</p>
+<p><strong><code>Pipeline</code>의 진짜 가치는 편의성이 아니라 "실수를 구조적으로 불가능하게 만드는 것"입니다.</strong>
+<code>fit</code>은 train에만, <code>transform</code>은 모두에 — 이 규칙이 코드 구조에 박혀 있어서 어길 수가 없습니다.</p>
+<p><strong><code>handle_unknown="infrequent_if_exist"</code></strong> 는 중요한 안전장치입니다.
+OOT 데이터에 학습 때 못 본 새로운 범주(예: 새로운 주(州) 코드)가 나와도
+에러 없이 "희귀 범주"로 처리합니다. 이게 없으면 <strong>운영 중에 크래시</strong>가 납니다.</p>
+<p><strong>중앙값 vs 평균</strong>: 연소득 같은 변수는 극단값(1억 달러 오입력) 때문에 평균이 왜곡됩니다.
+중앙값은 이런 이상치에 흔들리지 않습니다.</p>
+<h3>실제로 나온 결과</h3>
+<pre><code>수치형 82개 / 범주형 8개
+변환 후 피처 수: 139
+</code></pre>
+<p>범주형 8개가 원핫 인코딩되면서 57개 컬럼으로 늘어났습니다. (82 + 57 = 139)</p>
+<h3>실무 해설</h3>
+<blockquote>
+<p><strong>파이프라인은 "저장 가능한 단위"라는 게 핵심입니다.</strong></p>
+<p>실무에서 모델을 배포할 때, 모델 파일만 저장하면 안 됩니다. <strong>전처리 규칙도 같이 저장</strong>해야 합니다.</p>
+<ul>
+<li>중앙값이 얼마였는지</li>
+<li>원핫 인코딩 컬럼 순서가 어땠는지</li>
+<li>어떤 범주를 "희귀"로 분류했는지</li>
+</ul>
+<p>이게 안 맞으면 <strong>에러도 안 나고 조용히 틀린 예측</strong>을 합니다. 가장 무서운 종류의 버그입니다.
+<code>joblib.dump({"preprocessor": ..., "model": ...})</code> 로 통째로 저장하는 이유입니다.</p>
+<p><strong>더 나아가면</strong>: 실무에서는 <strong>Feature Store</strong>를 씁니다.
+학습 파이프라인과 서빙 파이프라인이 <strong>같은 코드</strong>로 피처를 만들도록 강제하는 시스템입니다.
+(Feast, Tecton, 또는 사내 구축) 학습-서빙 불일치를 원천 차단하는 방법입니다.</p>
+</blockquote>
+<hr/>
+<h2 id="s-12-모델-학습-5개를-동시에-셀-4143"><span class="sn">12</span>모델 학습 — 5개를 동시에 (셀 41~43)</h2>
+<h3>코드가 하는 일</h3>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>모델</th>
+<th>원리 (한 줄)</th>
+<th>왜 넣었나</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Logistic Regression</strong></td>
+<td>각 변수에 가중치를 곱해 더한 뒤 확률로 변환</td>
+<td>해석 가능성의 기준선, 규제 제출용</td>
+</tr>
+<tr>
+<td><strong>Random Forest</strong></td>
+<td>결정나무 400개를 만들어 투표</td>
+<td>안정적, 튜닝 부담 적음</td>
+</tr>
+<tr>
+<td><strong>HistGradientBoosting</strong></td>
+<td>나무를 순차적으로 만들며 이전 나무의 실수를 보정</td>
+<td>sklearn 내장 중 최강</td>
+</tr>
+<tr>
+<td><strong>Neural Network</strong></td>
+<td>층층이 쌓인 계산 유닛</td>
+<td>복잡한 비선형 패턴</td>
+</tr>
+<tr>
+<td><strong>LightGBM</strong></td>
+<td>부스팅의 최적화 버전</td>
+<td>보통 최고 성능 + 가장 빠름</td>
+</tr>
+</tbody>
+</table></div></div>
+<p><strong>불균형 처리</strong>: <code>class_weight="balanced"</code> — 부도 사례가 1/7밖에 없으니
+<strong>부도 1건을 7건처럼 취급</strong>하라고 알려줍니다.</p>
+<h3>실제로 나온 결과 — <strong>학습 시간이 충격적입니다</strong></h3>
+<pre><code>✓ Logistic Regression    1375.8s   ← 23분!
+✓ Random Forest           477.9s   ← 8분
+✓ HistGradientBoosting    108.4s   ← 1분 48초
+✓ Neural Network          142.1s   ← 2분 22초
+✓ LightGBM                 10.7s   ← 11초 (128배 빠름!)
+</code></pre>
+<p><strong>"가장 단순한 모델(로지스틱 회귀)이 가장 오래 걸렸다."</strong></p>
+<p>이건 오타가 아닙니다. 이유는 <code>solver="saga"</code> 때문입니다. <code>saga</code>는 대용량과 L1 규제를
+지원하는 대신 <strong>수렴이 느립니다.</strong> 141만 행 × 139 열에서는 최악의 선택이었습니다.</p>
+<p><strong>개선 방법:</strong></p>
+<pre class="src"><code class="language-python">LogisticRegression(solver="lbfgs", max_iter=1000)   # L2만 쓸 거면 lbfgs가 훨씬 빠름
+# 또는 SGDClassifier(loss="log_loss") 로 미니배치 학습
+</code></pre>
+<h3>실무 해설</h3>
+<blockquote>
+<h3>학습 시간이 실무에서 왜 중요한가</h3>
+<p><strong>개발 속도 = 실험 횟수</strong>입니다. 한 번 돌리는 데 23분이면 하루에 20번밖에 실험 못 합니다.
+11초면 하루에 수천 번 할 수 있습니다. 이 차이가 <strong>모델 품질의 차이</strong>로 직결됩니다.</p>
+<p>그래서 실무 워크플로는 이렇습니다:</p>
+<ol>
+<li><strong>탐색 단계</strong> — LightGBM으로 빠르게 100번 실험 (피처 조합, 하이퍼파라미터)</li>
+<li><strong>확정 단계</strong> — 최종 후보만 다른 모델들과 비교</li>
+<li><strong>제출 단계</strong> — 규제 제출용 로지스틱 회귀는 마지막에 한 번만</li>
+</ol>
+<h3 class="caution">LightGBM이 11초 만에 끝났다는 것의 의미</h3>
+<p><code>n_estimators=2000</code>으로 설정했는데 11초에 끝났다는 건, <strong>조기 종료(early stopping)가
+아주 일찍 발동</strong>했다는 뜻입니다. 나무를 200개도 안 만들고 멈춘 겁니다.</p>
+<p>그리고 실제로 LightGBM은 <strong>AUC 0.6912로 꼴찌</strong>를 했습니다.
+이건 LightGBM이 나쁜 게 아니라 <strong>학습이 덜 됐다</strong>는 신호입니다.
+뒤에 SHAP 섹션에서 이게 심각한 결과를 낳습니다.</p>
+<p><strong>개선 방법:</strong></p>
+<pre class="src"><code class="language-python">lgb.LGBMClassifier(
+    n_estimators=3000,
+    learning_rate=0.02,          # 더 천천히
+    min_child_samples=200,
+    scale_pos_weight=(1-부도율)/부도율,   # is_unbalance 대신 명시적으로
+)
+# 조기 종료를 300라운드로 늘리고, eval_metric을 "average_precision"으로
+</code></pre>
+</blockquote>
+<hr/>
+<h2 id="s-13-평가-어떤-숫자를-믿어야-하나-셀-4447"><span class="sn">13</span>평가 — 어떤 숫자를 믿어야 하나 (셀 44~47)</h2>
+<h3>코드가 하는 일</h3>
+<p>5가지 지표를 계산합니다. <strong>각각 다른 질문에 답합니다.</strong></p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>지표</th>
+<th>답하는 질문</th>
+<th>좋은 값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AUC</strong></td>
+<td>부도할 사람을 더 위험하게 순위 매기나?</td>
+<td>0.70~0.78</td>
+</tr>
+<tr>
+<td><strong>Gini</strong></td>
+<td>AUC를 0~1로 늘린 것 (= 2×AUC−1)</td>
+<td>0.40~0.56</td>
+</tr>
+<tr>
+<td><strong>KS</strong></td>
+<td>정상 집단과 부도 집단을 얼마나 갈라놓나?</td>
+<td>0.30+</td>
+</tr>
+<tr>
+<td><strong>PR-AUC</strong></td>
+<td>부도라고 찍은 것 중 진짜 부도 비율은?</td>
+<td>부도율보다 높으면 OK</td>
+</tr>
+<tr>
+<td><strong>Brier</strong></td>
+<td>확률 예측값이 실제와 얼마나 가까운가?</td>
+<td>낮을수록 좋음</td>
+</tr>
+</tbody>
+</table></div></div>
+<p><strong>AUC를 직관적으로</strong>: 부도한 사람 1명과 정상인 1명을 무작위로 뽑았을 때,
+<strong>모델이 부도한 사람에게 더 높은 점수를 줄 확률</strong>입니다.
+0.73이면 100번 중 73번 맞게 순위를 매긴다는 뜻입니다.</p>
+<h3>실제로 나온 결과 (Validation)</h3>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>모델</th>
+<th>AUC</th>
+<th>Gini</th>
+<th>KS</th>
+<th>PR-AUC</th>
+<th>Brier</th>
+<th>Recall@0.5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HistGradientBoosting</strong></td>
+<td><strong>0.7204</strong></td>
+<td>0.4407</td>
+<td><strong>0.3181</strong></td>
+<td><strong>0.3201</strong></td>
+<td>0.2130</td>
+<td>0.675</td>
+</tr>
+<tr>
+<td>Neural Network</td>
+<td>0.7153</td>
+<td>0.4305</td>
+<td>0.3118</td>
+<td>0.3134</td>
+<td><strong>0.1201</strong></td>
+<td><strong>0.027</strong> <span class="chip amber">주의</span></td>
+</tr>
+<tr>
+<td>Logistic Regression</td>
+<td>0.7065</td>
+<td>0.4129</td>
+<td>0.3004</td>
+<td>0.3014</td>
+<td>0.2187</td>
+<td>0.666</td>
+</tr>
+<tr>
+<td>Random Forest</td>
+<td>0.7056</td>
+<td>0.4111</td>
+<td>0.2956</td>
+<td>0.3037</td>
+<td>0.2147</td>
+<td>0.657</td>
+</tr>
+<tr>
+<td>LightGBM</td>
+<td>0.6912</td>
+<td>0.3823</td>
+<td>0.2764</td>
+<td>0.2842</td>
+<td>0.1291</td>
+<td><strong>0.000</strong> <span class="chip amber">주의</span></td>
+</tr>
+</tbody>
+</table></div></div>
+<p><strong>세 가지를 읽어야 합니다.</strong></p>
+<p><strong>(1) 모델 간 차이가 거의 없습니다 (0.691 ~ 0.720).</strong>
+가장 좋은 모델과 가장 나쁜 모델의 차이가 <strong>0.029</strong>밖에 안 됩니다.
+"딥러닝이 훨씬 좋다"거나 "부스팅이 압도적"이라는 얘기는 여기서 안 통합니다.
+<strong>정형 데이터(테이블 데이터)에서는 원래 이렇습니다.</strong> 성능의 대부분은 모델이 아니라
+<strong>피처와 데이터 품질</strong>에서 나옵니다.</p>
+<p><strong>(2) Neural Network와 LightGBM의 Recall이 0에 가깝습니다.</strong>
+Recall 0.000은 <strong>"부도라고 예측한 사람이 한 명도 없다"</strong> 는 뜻입니다.
+임계값 0.5에서 이 두 모델의 최대 예측 확률이 0.5를 못 넘긴 겁니다.
+즉 <strong>불균형 처리가 제대로 안 됐습니다.</strong></p>
+<ul>
+<li>MLP는 애초에 <code>class_weight</code>를 지원하지 않습니다 (코드 주석에도 적혀 있음)</li>
+<li>LightGBM은 <code>is_unbalance=True</code>를 줬는데 조기 종료가 너무 빨라서 효과가 안 났습니다</li>
+</ul>
+<p><strong>(3) Brier가 낮은 모델이 오히려 Recall이 0입니다.</strong>
+NN의 Brier 0.1201은 가장 좋은데, 이건 <strong>"모두에게 15% 정도라고 찍었더니 평균적으로 맞았다"</strong> 는
+뜻입니다. 판별은 못 하고 평균만 맞힌 겁니다. <strong>지표 하나만 보면 안 되는 이유</strong>입니다.</p>
+<h3>실무 해설</h3>
+<blockquote>
+<h3>AUC 0.72가 좋은 건가?</h3>
+<p><strong>네, 정상 범위입니다.</strong> 오히려 이게 신용 모델의 현실입니다.</p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>도메인</th>
+<th>전형적 AUC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>리테일 신용 스코어카드 (신규 신청)</td>
+<td><strong>0.70 ~ 0.78</strong></td>
+</tr>
+<tr>
+<td>행동 스코어카드 (기존 고객, 거래이력 있음)</td>
+<td>0.80 ~ 0.88</td>
+</tr>
+<tr>
+<td>기업 신용평가 (재무제표 활용)</td>
+<td>0.80 ~ 0.90</td>
+</tr>
+<tr>
+<td>이미지 분류 (고양이 vs 개)</td>
+<td>0.99+</td>
+</tr>
+</tbody>
+</table></div></div>
+<p><strong>왜 신용은 낮나?</strong> 사람의 미래 행동은 본질적으로 예측하기 어렵기 때문입니다.
+실직, 이혼, 질병, 사고 — 데이터에 없는 요인이 부도의 상당 부분을 결정합니다.
+<strong>AUC 0.95짜리 신용 모델을 봤다면 99% 확률로 누수입니다.</strong></p>
+<h3>실무에서 진짜 보는 지표는 따로 있습니다</h3>
+<p>AUC/KS는 "모델 성능"이지 "사업 성과"가 아닙니다. 실무 보고서에는 이런 게 들어갑니다:</p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>지표</th>
+<th>계산</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>승인율</strong></td>
+<td>승인 건수 / 신청 건수</td>
+<td>매출 규모</td>
+</tr>
+<tr>
+<td><strong>손실률</strong></td>
+<td>부도손실 / 대출잔액</td>
+<td>실제 손실</td>
+</tr>
+<tr>
+<td><strong>RAROC</strong></td>
+<td>(수익 − 예상손실) / 자본</td>
+<td>자본 대비 수익성</td>
+</tr>
+<tr>
+<td><strong>Swap-in/out 분석</strong></td>
+<td>기존 모델 대비 승인 결정이 바뀐 건</td>
+<td>실제 개선 효과</td>
+</tr>
+</tbody>
+</table></div></div>
+<p><strong>Swap 분석이 특히 중요합니다.</strong> "새 모델이 AUC 0.02 좋아졌다"보다
+"기존 모델이 승인했지만 새 모델이 거절한 5,000건의 실제 부도율이 32%였다"가
+훨씬 설득력 있습니다.</p>
+</blockquote>
+<hr/>
+<h2 id="s-14-임계값-최적화-몇-부터-거절할-것인가-셀-4849"><span class="sn">14</span>임계값 최적화 — 몇 %부터 거절할 것인가 (셀 48~49)</h2>
+<h3>코드가 하는 일</h3>
+<pre class="src"><code class="language-python">COST_FN = 10.0   # 부도날 사람을 승인 → 원금 손실
+COST_FP = 1.0    # 정상인을 거절     → 이자수익 손실
+
+# 임계값을 0.01부터 0.99까지 바꿔가며 총 비용이 최소인 지점 찾기
+</code></pre>
+<p><strong>왜 0.5가 기본값인가? 아무 이유 없습니다.</strong> <code>predict()</code>의 기본값일 뿐입니다.</p>
+<p>실제로는 두 오류의 비용이 완전히 다릅니다.</p>
+<pre><code>FN (부도자 승인) : 1,000만원 빌려주고 못 받음 → 손실 약 600만원 (LGD 60%)
+FP (정상인 거절) : 3년간 벌었을 이자마진      → 손실 약 60만원
+
+→ FN이 FP보다 10배 비쌈
+</code></pre>
+<h3>실제로 나온 결과</h3>
+<pre><code>최적 임계값 : 0.350
+비용 절감   : 11.4%
+</code></pre>
+<p>임계값 0.35에서 Validation 성능:</p>
+<pre><code>혼동행렬 [행=실제, 열=예측]
+              예측:정상   예측:부도
+실제:정상      109,801     188,228   ← 정상인데 거절한 사람
+실제:부도        6,231      48,276
+
+부도 Recall    : 0.886   ← 부도자의 88.6%를 잡아냄 ✅
+부도 Precision : 0.204   ← 거절한 사람 중 20.4%만 진짜 부도 ⚠️
+Accuracy       : 0.448   ← 정확도가 45%?!
+</code></pre>
+<p><strong>"정확도가 45%면 동전 던지기보다 나쁜 거 아닌가?"</strong></p>
+<p><strong>아닙니다.</strong> 여기서 정확도는 아무 의미가 없습니다. 우리는 일부러
+<strong>"의심스러우면 거절"</strong> 하는 쪽으로 기울인 것이고, 그 결과 정상인 18만 8천 명을 거절했습니다.
+그게 <strong>의도한 전략</strong>입니다.</p>
+<h3>실무 해설</h3>
+<blockquote class="warn">
+<h3 class="caution">이 결과의 심각한 문제</h3>
+<p><strong>정상 고객 188,228명을 거절했습니다. 전체 정상 고객 298,029명 중 63%입니다.</strong></p>
+<p>실무에서 이런 모델을 배포하면:</p>
+<ul>
+<li>신청자의 <strong>67%가 거절</strong>됩니다 (승인율 33%)</li>
+<li>매출이 <strong>3분의 1로 폭락</strong>합니다</li>
+<li>영업 부서가 폭동을 일으킵니다</li>
+</ul>
+<p><strong>비용 비율 10:1이 너무 공격적</strong>이었습니다. 실제 계산은 이렇게 해야 합니다:</p>
+<pre><code>FN 비용 = 대출금액 × EAD × LGD
+        = 1,500만원 × 0.9 × 0.6 = 810만원
+
+FP 비용 = 대출금액 × 순이자마진 × 기간 × (1 − 부도율)
+        = 1,500만원 × 0.04 × 3년 × 0.85 = 153만원
+
+실제 비율 = 810 / 153 ≈ 5.3 : 1
+</code></pre>
+<p>게다가 <strong>거절된 고객의 평생가치(CLV)</strong> 도 계산에 넣어야 합니다.
+거절당한 고객은 다시 안 옵니다. 다른 상품(카드, 예금)의 잠재 수익도 함께 잃습니다.</p>
+<h3>실무에서 임계값을 정하는 진짜 방법</h3>
+<p>비용 최소화만으로는 안 됩니다. <strong>제약 조건 하에서 최적화</strong>합니다.</p>
+<pre><code>목표    : 기대손실 최소화
+제약 1  : 승인율 ≥ 55%        (영업 목표)
+제약 2  : 예상 부도율 ≤ 8%     (리스크 한도)
+제약 3  : 규제 자본비율 충족
+</code></pre>
+<p>그리고 <strong>하나의 임계값이 아니라 여러 구간</strong>을 씁니다:</p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>PD 구간</th>
+<th>결정</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0 ~ 5%</td>
+<td><strong>자동 승인</strong> — 우대금리</td>
+</tr>
+<tr>
+<td>5 ~ 12%</td>
+<td><strong>자동 승인</strong> — 표준금리</td>
+</tr>
+<tr>
+<td>12 ~ 20%</td>
+<td><strong>조건부 승인</strong> — 고금리 또는 한도 축소</td>
+</tr>
+<tr>
+<td>20 ~ 30%</td>
+<td><strong>수동 심사</strong> — 사람이 서류 검토</td>
+</tr>
+<tr>
+<td>30% 이상</td>
+<td><strong>자동 거절</strong></td>
+</tr>
+</tbody>
+</table></div></div>
+<p>이렇게 하면 이분법적 승인/거절이 아니라 <strong>위험에 맞춘 가격 정책(risk-based pricing)</strong> 이
+가능해집니다. 실제 금융사는 전부 이 방식입니다.</p>
+</blockquote>
+<hr/>
+<h2 id="s-15-확률-보정-pd가-진짜-확률이-되게-만들기-셀-5052"><span class="sn">15</span>확률 보정 — PD가 진짜 확률이 되게 만들기 (셀 50~52)</h2>
+<h3>코드가 하는 일</h3>
+<pre class="src"><code class="language-python">calibrated = CalibratedClassifierCV(fitted[BEST], method="isotonic", cv="prefit")
+calibrated.fit(Xva, y_valid)
+</code></pre>
+<p><strong>보정(calibration)이란?</strong> 모델이 "PD 12%"라고 했으면, <strong>그런 사람 100명 중 실제로 12명이
+부도해야</strong> 합니다. 이게 안 맞으면 확률이 아니라 그냥 순위 점수입니다.</p>
+<p><strong>왜 어긋나나?</strong> <code>class_weight="balanced"</code>를 쓰면 부도 사례를 7배 무겁게 취급하므로,
+모델은 <strong>부도 확률을 체계적으로 부풀립니다.</strong> 순위는 정확한데 절대값이 틀립니다.</p>
+<p><strong>isotonic regression</strong>: 예측 확률을 실제 부도율에 맞춰 <strong>단조 증가하는 계단 함수</strong>로
+다시 매핑합니다. 순위는 그대로 두고 값만 고칩니다.</p>
+<h3>실제로 나온 결과 — <strong>교과서에 실을 만한 결과입니다</strong></h3>
+<pre><code>Brier  보정 전 0.21298 → 보정 후 0.11930   (44% 개선!)
+AUC    보정 전 0.72036 → 보정 후 0.72070   (순위는 그대로)
+평균 PD  예측 0.1546 vs 실제 0.1546          (완벽히 일치)
+</code></pre>
+<p><strong>정확히 의도한 대로 작동했습니다.</strong></p>
+<ul>
+<li>Brier(확률 정확도)는 <strong>44% 개선</strong></li>
+<li>AUC(순위 능력)는 <strong>거의 변화 없음</strong> (+0.0003)</li>
+<li>평균 예측 PD가 실제 부도율과 <strong>소수점 4자리까지 일치</strong></li>
+</ul>
+<h3>실무 해설</h3>
+<blockquote>
+<h3>보정이 왜 돈 문제인가</h3>
+<p>은행의 <strong>기대손실(Expected Loss)</strong> 공식:</p>
+</blockquote>
+<div class="math"><em>EL</em>  =  PD × LGD × EAD</div>
+<blockquote>
+<ul>
+<li><strong>PD</strong> = 부도확률 (우리 모델)</li>
+<li><strong>LGD</strong> = 부도시 손실률 (담보 회수 후 못 받는 비율, 보통 40~70%)</li>
+<li><strong>EAD</strong> = 부도시 익스포저 (부도 시점의 잔액)</li>
+</ul>
+<p>이 EL이 결정하는 것들:</p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>용도</th>
+<th>PD가 틀리면</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>대손충당금</strong></td>
+<td>회계 오류 → <strong>재무제표 재작성, 감사 지적</strong></td>
+</tr>
+<tr>
+<td><strong>위험조정 금리</strong></td>
+<td>금리를 잘못 매김 → 손실 또는 경쟁력 상실</td>
+</tr>
+<tr>
+<td><strong>규제자본(RWA)</strong></td>
+<td>자본을 잘못 쌓음 → <strong>감독 제재</strong></td>
+</tr>
+<tr>
+<td><strong>IFRS 9 / K-IFRS</strong></td>
+<td>기대신용손실 계산 오류 → <strong>회계 부정 소지</strong></td>
+</tr>
+</tbody>
+</table></div></div>
+<p><strong>순위만 맞고 확률이 틀린 모델은 대출 승인은 가능하지만 회계는 불가능합니다.</strong>
+그래서 보정은 선택이 아니라 필수입니다.</p>
+<h3 class="caution">이 코드의 함정 — 곧 확인됩니다</h3>
+<p>보정을 <strong>Validation 셋</strong>에서 학습시켰습니다. Validation의 부도율은 15.46%입니다.
+그런데 <strong>OOT 셋의 부도율은 2.99%</strong> 입니다.</p>
+<p>15.46%짜리 세계에서 배운 보정 규칙을 2.99%짜리 세계에 적용하면 <strong>당연히 틀립니다.</strong>
+19번 섹션(스코어카드)에서 이게 실제로 얼마나 망가졌는지 보게 됩니다.</p>
+</blockquote>
+<hr/>
+<h2 class="sev-red" id="s-16-최종-oot-평가-미래-데이터에서의-진실-셀-5355"><span class="sn">16</span>최종 OOT 평가 — 미래 데이터에서의 진실 (셀 53~55)</h2>
+<h3>실제로 나온 결과</h3>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>모델</th>
+<th>OOT AUC</th>
+<th>Valid AUC</th>
+<th>하락</th>
+<th>OOT PR-AUC</th>
+<th>Valid PR-AUC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Neural Network</td>
+<td>0.7372</td>
+<td>0.7153</td>
+<td><strong>−0.022</strong></td>
+<td>0.0822</td>
+<td>0.3134</td>
+</tr>
+<tr>
+<td><strong>HistGradientBoosting</strong></td>
+<td><strong>0.7320</strong></td>
+<td>0.7204</td>
+<td><strong>−0.012</strong></td>
+<td><strong>0.0813</strong></td>
+<td>0.3201</td>
+</tr>
+<tr>
+<td>Logistic Regression</td>
+<td>0.7141</td>
+<td>0.7065</td>
+<td>−0.008</td>
+<td>0.0685</td>
+<td>0.3014</td>
+</tr>
+<tr>
+<td>Random Forest</td>
+<td>0.7097</td>
+<td>0.7056</td>
+<td>−0.004</td>
+<td>0.0684</td>
+<td>0.3037</td>
+</tr>
+<tr>
+<td>LightGBM</td>
+<td>0.6869</td>
+<td>0.6912</td>
+<td>+0.004</td>
+<td>0.0613</td>
+<td>0.2842</td>
+</tr>
+</tbody>
+</table></div></div>
+<h3>여기서 이상한 점 두 가지</h3>
+<p><strong>(1) AUC가 미래 데이터에서 오히려 올라갔습니다.</strong></p>
+<p>보통은 떨어져야 정상인데 0.7204 → 0.7320으로 <strong>올랐습니다.</strong> 왜?</p>
+<p>2018년 대출 중에서 <strong>1~12개월 만에 부도난 사람들</strong>만 부도로 잡혔습니다.
+이렇게 <strong>초기에 빨리 망하는 사람들</strong>은 특징이 아주 뚜렷합니다 — 금리가 최고로 높고,
+등급이 최하위이고, 신용조회를 미친 듯이 많이 했습니다.
+<strong>구분하기 쉬운 사람들만 남은 것</strong>입니다.</p>
+<p>반면 3년에 걸쳐 서서히 부도하는 사람들(중간 등급)은 아직 데이터에 안 잡혔습니다.
+그래서 <strong>문제가 쉬워졌습니다.</strong></p>
+<p><strong>(2) PR-AUC가 0.32 → 0.081로 폭락했습니다. (4분의 1)</strong></p>
+<p>이건 <strong>AUC와 PR-AUC의 근본적 차이</strong> 때문입니다.</p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th></th>
+<th>기저 부도율에 영향받나?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AUC</strong></td>
+<td><span class="chip red">안 받음 (순위만 봄)</span></td>
+</tr>
+<tr>
+<td><strong>PR-AUC</strong></td>
+<td><span class="chip blue">크게 받음 (Precision이 기저율에 종속)</span></td>
+</tr>
+</tbody>
+</table></div></div>
+<p>부도율이 15.46% → 2.99%로 5배 줄었으니, <strong>아무 정보 없이 찍어도 나오는 PR-AUC 기준선</strong>
+자체가 0.155 → 0.030으로 떨어집니다. 그래서 모델 PR-AUC도 같이 떨어진 겁니다.</p>
+<p><strong>즉 PR-AUC 0.081은 "모델이 나빠졌다"가 아니라 "모집단이 바뀌었다"는 뜻입니다.</strong>
+비교할 때는 <strong>기저율 대비 몇 배인가</strong>로 봐야 합니다:</p>
+<ul>
+<li>Valid: 0.3201 / 0.1546 = <strong>2.07배</strong></li>
+<li>OOT: 0.0813 / 0.0299 = <strong>2.72배</strong> → 오히려 개선</li>
+</ul>
+<h3>임계값 0.35에서의 OOT 혼동행렬 — <strong>여기가 진짜 문제입니다</strong></h3>
+<pre><code>              예측:정상   예측:부도
+실제:정상      242,371     238,088   ← 정상인 24만 명 거절!
+실제:부도        2,748      12,035
+
+부도 Recall    : 0.814
+부도 Precision : 0.048   ← 거절한 사람 25만 명 중 진짜 부도는 4.8%
+Accuracy       : 0.514
+</code></pre>
+<p><strong>거절한 25만 건 중 95.2%가 멀쩡한 고객이었습니다.</strong></p>
+<p>이유는 명확합니다. 임계값 0.35는 <strong>부도율 15.46%짜리 Validation에서 정한 값</strong>입니다.
+부도율 2.99%인 세계에 그대로 적용하니 <strong>너무 빡빡한 문</strong>이 된 겁니다.</p>
+<h3>실무 해설</h3>
+<blockquote>
+<h3>여기서 배울 것 — "임계값과 보정은 모집단에 종속된다"</h3>
+<p>모델 파라미터(가중치)는 그대로여도, <strong>임계값과 보정 곡선은 모집단이 바뀌면 다시 맞춰야 합니다.</strong></p>
+<p>실무에서 모집단이 바뀌는 상황:</p>
+<ul>
+<li>마케팅 채널 변경 (오프라인 지점 → 앱 유입)</li>
+<li>상품 변경 (금리 인하로 우량 고객 유입)</li>
+<li>경기 변동 (코로나, 금리 급등)</li>
+<li>경쟁사 정책 변경 (경쟁사가 조이면 우리 쪽으로 나쁜 고객이 몰림)</li>
+</ul>
+<p><strong>대응 방법:</strong></p>
+<ol>
+<li><strong>주기적 재보정(recalibration)</strong> — 모델은 그대로, 보정만 월/분기 단위로 갱신</li>
+<li><strong>기저율 보정(prior correction)</strong> — 새 모집단의 부도율을 알면 수식으로 보정 가능</li>
+</ol>
+</blockquote>
+<div class="math"><em>p</em><sub>new</sub> = <span class="fr"><span>p · <span class="fr"><span>π<sub>new</sub></span><span>π<sub>old</sub></span></span></span><span>p · <span class="fr"><span>π<sub>new</sub></span><span>π<sub>old</sub></span></span> + (1−p) · <span class="fr"><span>1−π<sub>new</sub></span><span>1−π<sub>old</sub></span></span></span></span></div>
+<blockquote>
+<ol start="3">
+<li><strong>승인율 기준 임계값</strong> — "PD 0.35 이상 거절"이 아니라 <strong>"상위 위험 20% 거절"</strong> 로 운영
+이러면 모집단이 바뀌어도 승인율이 안정적입니다. 실무에서 아주 흔한 방식입니다.</li>
+</ol>
+<h3>모델 선택 재고</h3>
+<p>코드는 <strong>Validation 기준으로 HistGradientBoosting</strong>을 골랐습니다.
+그런데 OOT에서는 <strong>Neural Network가 1등(0.7372)</strong> 입니다.</p>
+<p>그렇다고 NN으로 바꾸면 안 됩니다. <strong>OOT를 보고 모델을 고르는 순간 OOT는 오염됩니다.</strong>
+이건 원칙의 문제입니다. 대신 이렇게 판단합니다:</p>
+<ul>
+<li>두 모델의 차이 0.005는 <strong>통계적으로 무의미</strong> (신뢰구간이 겹침)</li>
+<li>HGB가 <strong>더 빠르고, SHAP 지원이 좋고, 튜닝이 쉬움</strong> → 유지가 맞음</li>
+<li>NN은 <strong>설명이 거의 불가능</strong> → 신용 심사에는 부적합</li>
+</ul>
+</blockquote>
+<hr/>
+<h2 class="sev-red" id="s-17-shap-모델이-왜-그렇게-판단했는지-셀-5672"><span class="sn">17</span>SHAP — 모델이 왜 그렇게 판단했는지 (셀 56~72)</h2>
+<h3>SHAP의 원리 — 축구팀 비유</h3>
+<p>축구팀이 3골을 넣었습니다. <strong>각 선수가 몇 골씩 기여했나?</strong></p>
+<ul>
+<li>손흥민 없이 뛰면 평균 1.2골 → 손흥민 기여 1.8골</li>
+<li>김민재 없이 뛰면 평균 2.4골 → 김민재 기여 0.6골</li>
+<li>...</li>
+</ul>
+<p>이걸 <strong>가능한 모든 조합</strong>에 대해 계산해서 평균 낸 것이 <strong>Shapley value</strong>입니다.
+1953년 노벨경제학상 수상자 로이드 섀플리가 만든 개념이고, 2017년에 머신러닝에 적용됐습니다.</p>
+<div class="math"><em>f</em>(x) = φ<sub>0</sub> + <span class="big">∑</span><sub>j=1..M</sub> φ<sub>j</sub></div>
+<ul>
+<li><code>φ₀</code> = 기준값 (아무것도 모를 때의 평균 예측)</li>
+<li><code>φⱼ</code> = 변수 <code>j</code>의 기여도</li>
+</ul>
+<p><strong>기여도를 다 더하면 정확히 예측값이 됩니다.</strong> 이게 SHAP의 핵심 보장입니다.</p>
+<h3>SHAP 계산 결과</h3>
+<pre><code>SHAP 대상 모델: LightGBM
+SHAP 표본: (3000, 139)
+shap values shape: (3000, 139)
+base value (평균 예측): -1.505
+</code></pre>
+<p>base value −1.505는 <strong>로그 오즈</strong> 단위입니다. 확률로 바꾸면 약 18.2%.</p>
+<h3>전역 중요도 — <strong>여기서 심각한 문제가 드러납니다</strong></h3>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>변수</th>
+<th>평균 |SHAP|</th>
+<th>비중</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>int_rate</strong></td>
+<td>0.0885</td>
+<td><strong>65.40%</strong> <span class="chip red">심각</span></td>
+</tr>
+<tr>
+<td>acc_open_past_24mths</td>
+<td>0.0151</td>
+<td>11.18%</td>
+</tr>
+<tr>
+<td>loan_to_income</td>
+<td>0.0058</td>
+<td>4.31%</td>
+</tr>
+<tr>
+<td>tot_hi_cred_lim</td>
+<td>0.0043</td>
+<td>3.19%</td>
+</tr>
+<tr>
+<td>grade_D</td>
+<td>0.0041</td>
+<td>3.03%</td>
+</tr>
+<tr>
+<td>avg_cur_bal</td>
+<td>0.0038</td>
+<td>2.77%</td>
+</tr>
+<tr>
+<td>installment_to_income</td>
+<td>0.0035</td>
+<td>2.56%</td>
+</tr>
+<tr>
+<td>open_rv_24m</td>
+<td>0.0033</td>
+<td>2.44%</td>
+</tr>
+<tr>
+<td>home_ownership_MORTGAGE</td>
+<td>0.0022</td>
+<td>1.64%</td>
+</tr>
+<tr>
+<td>...</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>revol_util</strong></td>
+<td><strong>0.0000</strong></td>
+<td><strong>0.00%</strong> <span class="chip amber">주의</span></td>
+</tr>
+<tr>
+<td><strong>installment</strong></td>
+<td><strong>0.0000</strong></td>
+<td><strong>0.00%</strong> <span class="chip amber">주의</span></td>
+</tr>
+<tr>
+<td><strong>loan_amnt</strong></td>
+<td><strong>0.0000</strong></td>
+<td><strong>0.00%</strong> <span class="chip amber">주의</span></td>
+</tr>
+</tbody>
+</table></div></div>
+<h3 class="caution">세 가지 심각한 발견</h3>
+<p><strong>(1) 모델이 사실상 <code>int_rate</code> 하나로 예측하고 있습니다 (65.4%).</strong></p>
+<p>139개 변수를 넣었는데 <strong>1개가 3분의 2를 차지</strong>합니다.
+상위 2개(<code>int_rate</code> + <code>acc_open_past_24mths</code>)만으로 **76.6%**입니다.
+나머지 137개 변수는 다 합쳐도 23%밖에 안 됩니다.</p>
+<p><strong>이건 "변수 138개는 사실상 장식"이라는 뜻입니다.</strong></p>
+<p><strong>(2) <code>revol_util</code>, <code>installment</code>, <code>loan_amnt</code>의 SHAP이 정확히 0입니다.</strong></p>
+<p>SHAP 0.0000은 <strong>"LightGBM이 이 변수로 단 한 번도 분기하지 않았다"</strong> 는 뜻입니다.
+<code>revol_util</code>(리볼빙 한도 소진율)은 신용평가의 <strong>핵심 변수 중 하나</strong>인데 아예 안 썼습니다.</p>
+<p>원인은 <strong>12번 섹션에서 본 조기 종료</strong>입니다. 11초 만에 학습이 끝나서
+나무를 충분히 못 만들었고, 그래서 상위 몇 개 변수만 쓴 겁니다.</p>
+<blockquote class="warn">
+<p><strong>중요한 오해 방지</strong>: SHAP 중요도가 0이라는 건 <strong>"이 변수가 쓸모없다"가 아니라
+"이 모델이 이 변수를 안 썼다"</strong> 는 뜻입니다. 변수 자체의 가치와 모델의 사용 여부는 다릅니다.</p>
+</blockquote>
+<p><strong>(3) <code>int_rate</code>는 우리가 쓰면 안 되는 변수입니다.</strong></p>
+<p>10번 섹션에서 얘기했듯이, <code>int_rate</code>는 <strong>렌딩클럽이 자기 심사 결과에 따라 매긴 금리</strong>입니다.</p>
+<pre><code>렌딩클럽 심사모델 → 등급(grade) 결정 → 금리(int_rate) 결정
+                                              ↓
+                                    우리 모델이 이걸 보고 예측
+</code></pre>
+<p><strong>우리 모델의 65%는 "렌딩클럽 모델을 흉내내는 부분"입니다.</strong></p>
+<h3>개별 설명과 Reason Codes</h3>
+<pre><code>■ 고위험 고객 (예측 PD 21.1%) — 주요 거절 사유
+      요인                   변수        고객값   기여도
+0  적용 금리가 높음         int_rate      29.690   0.1359
+1  acc_open_past_24mths                  7.000   0.0164
+2  grade_D                               0.000   0.0127
+3  소득 대비 대출금액이 큼   loan_to_income  0.472   0.0081
+
+■ 저위험 고객 (예측 PD 15.1%) — 승인 근거
+0  적용 금리가 높음         int_rate       6.070  -0.2096
+1  acc_open_past_24mths                  1.000  -0.0088
+</code></pre>
+<pre><code>가장 흔한 거절 사유 Top 10:
+적용 금리가 높음                  1,330건  (44%)
+acc_open_past_24mths               732건
+grade_D                            542건
+avg_cur_bal                        144건
+tot_hi_cred_lim                     85건
+</code></pre>
+<h3>실무 해설 — <strong>여기가 이 프로젝트의 핵심 문제입니다</strong></h3>
+<blockquote>
+<h3>문제 1: 거절 사유가 순환 논리입니다</h3>
+<p>고객에게 이렇게 통지해야 합니다:</p>
+<blockquote>
+<p>"귀하의 대출 신청이 거절되었습니다. <strong>주된 사유: 적용 금리가 높음</strong>"</p>
+</blockquote>
+<p>고객: <strong>"금리는 너희가 정한 거잖아요?"</strong></p>
+<p>이건 법적으로 문제가 됩니다.</p>
+<ul>
+<li>미국 <strong>ECOA / Regulation B</strong>: 거절 사유는 <strong>신청자의 특성</strong>이어야 함</li>
+<li>한국 <strong>신용정보법 제36조의2</strong>: 자동화 평가 결과에 대한 설명 요구권</li>
+<li>EU <strong>GDPR 제22조</strong>: 자동화된 의사결정에 대한 설명 권리</li>
+</ul>
+<p><strong>"금리가 높아서"는 사유가 아니라 결과입니다.</strong></p>
+<h3>문제 2: 44%의 고객이 똑같은 사유를 받습니다</h3>
+<p>3,000명 중 1,330명이 "적용 금리가 높음"을 1순위 사유로 받았습니다.
+개인화된 설명이 아니라 <strong>복사-붙여넣기</strong>입니다. 규제 목적을 전혀 달성하지 못합니다.</p>
+<h3>문제 3: 영어 컬럼명이 그대로 노출됩니다</h3>
+<p><code>acc_open_past_24mths</code>, <code>grade_D</code>, <code>tot_hi_cred_lim</code>, <code>avg_cur_bal</code> —
+고객은 물론이고 심사역도 못 알아봅니다.
+<code>FEATURE_LABELS</code> 사전을 <strong>139개 전부</strong> 채워야 합니다.</p>
+<h3>문제 4: 고위험/저위험 PD 차이가 겨우 6%p입니다</h3>
+<p>가장 위험한 고객 21.1%, 가장 안전한 고객 15.1%. <strong>차이가 6%포인트밖에 안 납니다.</strong>
+정상적인 모델이라면 최상위는 1~2%, 최하위는 50%+ 가 나와야 합니다.
+이건 <strong>모델이 거의 구분을 못 하고 있다</strong>는 신호이고,
+LightGBM이 학습 부족(11초)이라는 12번 섹션의 진단과 일치합니다.</p>
+<h3>올바른 개선 방향</h3>
+<pre class="src"><code class="language-python"># 1) grade, sub_grade, int_rate, installment 를 전부 제거
+LENDER_DECISION_COLS = ["grade", "sub_grade", "int_rate", "installment",
+                        "loan_amnt_div_instlmnt", "installment_to_income"]
+# installment 도 금리의 함수라서 간접 누수입니다
+
+# 2) 고객 고유 특성만으로 재학습
+#    → FICO, DTI, 소득, 신용이력, 연체이력, 조회건수, 계좌 수 등
+
+# 3) AUC가 0.62~0.66으로 떨어질 것 → 그게 진짜 실력
+#    그 상태에서 피처 엔지니어링으로 끌어올리는 게 진짜 작업
+</code></pre>
+<h3>SHAP 값을 실무에 쓰는 방법</h3>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>용도</th>
+<th>방법</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>거절 사유 통지</strong></td>
+<td>상위 4개 양(+)의 기여 변수 → 고객 친화적 문구로 변환</td>
+</tr>
+<tr>
+<td><strong>심사역 지원</strong></td>
+<td>심사 화면에 waterfall 그래프 표시 → 사람이 판단 보조</td>
+</tr>
+<tr>
+<td><strong>모델 검증</strong></td>
+<td>도메인 논리와 반대 부호인 변수 색출</td>
+</tr>
+<tr>
+<td><strong>고객 코칭</strong></td>
+<td>"리볼빙 사용률을 50% 아래로 낮추면 점수 30점 상승"</td>
+</tr>
+<tr>
+<td><strong>누수 탐지</strong></td>
+<td>상위 변수 이름을 소리 내어 읽어보기</td>
+</tr>
+<tr>
+<td><strong>드리프트 감지</strong></td>
+<td>SHAP 중요도 순위가 월별로 바뀌는지 추적</td>
+</tr>
+</tbody>
+</table></div></div>
+</blockquote>
+<hr/>
+<h2 class="sev-red" id="s-18-permutation-importance-pdp-shap-교차-검증-셀-7376"><span class="sn">18</span>Permutation Importance &amp; PDP — SHAP 교차 검증 (셀 73~76)</h2>
+<h3>코드가 하는 일</h3>
+<p><strong>Permutation Importance(순열 중요도)</strong>: 변수 하나의 값을 <strong>무작위로 섞어버린 뒤</strong>
+성능(AUC)이 얼마나 떨어지는지 잽니다.</p>
+<pre><code>원래 AUC 0.69
+→ int_rate 값을 무작위로 섞음
+→ AUC 0.49로 떨어짐
+→ int_rate의 중요도 = 0.20
+</code></pre>
+<p><strong>SHAP과 뭐가 다른가?</strong></p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th></th>
+<th>SHAP</th>
+<th>Permutation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>측정 대상</td>
+<td><strong>모델이 얼마나 의존하나</strong></td>
+<td><strong>실제 성능에 얼마나 기여하나</strong></td>
+</tr>
+<tr>
+<td>정답(y) 필요?</td>
+<td><span class="chip red">문제</span></td>
+<td><span class="chip blue">양호</span></td>
+</tr>
+<tr>
+<td>모델 내부 봄?</td>
+<td><span class="chip blue">양호</span></td>
+<td><span class="chip red">(블랙박스로 취급)</span></td>
+</tr>
+</tbody>
+</table></div></div>
+<p><strong>둘이 다르면 뭔가 잘못된 겁니다.</strong> 그래서 교차 검증용으로 씁니다.</p>
+<h3>실제로 나온 결과 — <strong>충격적입니다</strong></h3>
+<pre><code>                    feature  auc_drop      std
+0                  int_rate   0.20200  0.03545   ← 압도적
+1            loan_to_income   0.00120  0.00243
+2               open_acc_6m   0.00112  0.00035
+3                   grade_E   0.00083  0.00015
+4   home_ownership_MORTGAGE   0.00072  0.00096
+5      acc_open_past_24mths   0.00065  0.00563
+...
+10                loan_amnt   0.00000  0.00000
+11               revol_util   0.00000  0.00000
+12                revol_bal   0.00000  0.00000
+...
+
+순위 상관계수 (Spearman): 0.164   ← 매우 낮음!
+</code></pre>
+<p><strong>해석:</strong></p>
+<p><strong>(1) <code>int_rate</code> 하나를 섞으면 AUC가 0.202 떨어집니다.</strong>
+모델 전체 AUC가 0.687인데, 이 변수 하나 없으면 <strong>0.485(= 동전 던지기)</strong> 가 됩니다.
+<strong>이 모델은 사실상 <code>int_rate</code> 단일 변수 모델입니다.</strong></p>
+<p><strong>(2) 2등부터는 전부 0.001 이하입니다.</strong>
+<code>loan_to_income</code> 0.0012, <code>open_acc_6m</code> 0.0011... <strong>측정 오차 수준</strong>입니다.
+표준편차(std)가 값보다 큰 경우도 많습니다 (<code>acc_open_past_24mths</code>: 값 0.00065, 오차 0.00563).
+<strong>통계적으로 0과 구분이 안 됩니다.</strong></p>
+<p><strong>(3) SHAP과 Permutation의 순위 상관이 0.164밖에 안 됩니다.</strong></p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>변수</th>
+<th>SHAP 순위</th>
+<th>Permutation 순위</th>
+<th>차이</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>grade_D</td>
+<td>5위</td>
+<td><strong>139위</strong></td>
+<td>134</td>
+</tr>
+<tr>
+<td>tot_hi_cred_lim</td>
+<td>4위</td>
+<td><strong>136위</strong></td>
+<td>132</td>
+</tr>
+<tr>
+<td>avg_cur_bal</td>
+<td>6위</td>
+<td><strong>134위</strong></td>
+<td>128</td>
+</tr>
+<tr>
+<td>emp_length_isna</td>
+<td>10위</td>
+<td><strong>138위</strong></td>
+<td>128</td>
+</tr>
+<tr>
+<td>open_acc_6m</td>
+<td>15위</td>
+<td><strong>3위</strong></td>
+<td>12</td>
+</tr>
+</tbody>
+</table></div></div>
+<p><strong><code>grade_D</code>는 SHAP에서 5위인데 Permutation에서 139위(꼴찌)입니다.</strong>
+그리고 <code>auc_drop</code>이 <strong>−0.0049(음수)</strong> 입니다. 즉 <strong>이 변수를 섞었더니 성능이 오히려 좋아졌습니다.</strong></p>
+<p>이게 뜻하는 것: <strong>모델이 <code>grade_D</code>를 쓰긴 쓰는데, 그 사용이 성능에 도움이 안 되거나
+오히려 방해가 됩니다.</strong> 노이즈에 과적합한 것입니다.</p>
+<h3>실무 해설</h3>
+<blockquote>
+<h3>이 진단이 말하는 것</h3>
+<p><strong>"139개 변수짜리 모델이지만, 실제로는 1개 변수 모델이다."</strong></p>
+<p>이건 다음 중 하나(또는 전부)를 뜻합니다:</p>
+<ol>
+<li><strong>학습 부족</strong> — LightGBM이 11초 만에 조기 종료 (가장 유력)</li>
+<li><strong>지배적 변수</strong> — <code>int_rate</code>가 너무 강해서 다른 변수가 묻힘</li>
+<li><strong>피처 품질 부족</strong> — 나머지 변수들이 실제로 신호가 약함</li>
+</ol>
+<p><strong>검증 방법</strong>: <code>int_rate</code>와 <code>grade</code>를 빼고 다시 학습해 보세요.</p>
+<ul>
+<li>AUC가 0.62 이상 나오면 → 다른 변수들도 신호가 있는데 묻혀 있던 것</li>
+<li>AUC가 0.55 근처면 → 나머지 변수들이 실제로 쓸모없는 것</li>
+</ul>
+<h3>Permutation Importance의 함정</h3>
+<p><strong>상관관계가 높은 변수 쌍에서는 둘 다 중요도가 0으로 나옵니다.</strong></p>
+<p><code>term_months</code>와 <code>term_36_months</code>처럼 완전히 중복된 변수가 있으면,
+하나를 섞어도 <strong>다른 하나가 정보를 그대로 갖고 있어서</strong> 성능이 안 떨어집니다.
+그래서 둘 다 "중요하지 않다"고 나옵니다. <strong>둘 다 중요한데도요.</strong></p>
+<p>실무 대응: <strong>그룹 단위 permutation</strong>을 씁니다. 상관 높은 변수를 묶어서 한꺼번에 섞습니다.</p>
+<h3>그래서 뭘 믿어야 하나</h3>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>목적</th>
+<th>사용할 방법</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>고객 설명 / 규제 대응</strong></td>
+<td>SHAP (개별 설명이 가능한 유일한 방법)</td>
+</tr>
+<tr>
+<td><strong>피처 선택 / 제거 판단</strong></td>
+<td>Permutation (실제 성능 기여를 잼)</td>
+</tr>
+<tr>
+<td><strong>모델 디버깅</strong></td>
+<td>둘 다 — <strong>불일치하는 지점이 곧 버그</strong></td>
+</tr>
+</tbody>
+</table></div></div>
+</blockquote>
+<hr/>
+<h2 class="sev-red" id="s-19-스코어카드-변환-확률을-점수로-셀-7779"><span class="sn">19</span>스코어카드 변환 — 확률을 점수로 (셀 77~79)</h2>
+<h3>코드가 하는 일</h3>
+<pre class="src"><code class="language-python">BASE_SCORE, BASE_ODDS, PDO = 600, 50, 20
+FACTOR = PDO / np.log(2)                      # = 28.85
+OFFSET = BASE_SCORE - FACTOR * np.log(BASE_ODDS)   # = 487.1
+
+def pd_to_score(p):
+    good_bad_odds = (1 - p) / p
+    return OFFSET + FACTOR * np.log(good_bad_odds)
+</code></pre>
+<p><strong>왜 확률을 점수로 바꾸나?</strong></p>
+<ul>
+<li><strong>"부도확률 8.3%"</strong> → 고객도 심사역도 감이 안 옴</li>
+<li><strong>"신용점수 620점"</strong> → 직관적, 다른 점수와 비교 가능</li>
+</ul>
+<p><strong>PDO(Points to Double the Odds)</strong> 가 핵심 개념입니다.
+<strong>"오즈가 2배 좋아질 때 몇 점을 더 줄 것인가"</strong> 입니다.</p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>설정</th>
+<th>오즈 (정상:부도)</th>
+<th>부도확률</th>
+<th>점수</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>기준</td>
+<td>50 : 1</td>
+<td>1.96%</td>
+<td><strong>600점</strong></td>
+</tr>
+<tr>
+<td>2배 개선</td>
+<td>100 : 1</td>
+<td>0.99%</td>
+<td>620점</td>
+</tr>
+<tr>
+<td>4배 개선</td>
+<td>200 : 1</td>
+<td>0.50%</td>
+<td>640점</td>
+</tr>
+<tr>
+<td>절반 악화</td>
+<td>25 : 1</td>
+<td>3.85%</td>
+<td>580점</td>
+</tr>
+</tbody>
+</table></div></div>
+<p><strong>점수 20점 차이 = 위험이 정확히 2배 차이.</strong> 이게 PDO 20의 의미입니다.
+FICO(300~850), NICE, KCB 전부 이 원리로 만들어져 있습니다.</p>
+<h3>실제로 나온 결과</h3>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>점수 구간</th>
+<th>건수</th>
+<th>부도건수</th>
+<th><strong>실제 부도율</strong></th>
+<th><strong>예측 평균 PD</strong></th>
+<th>비중</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt;500 (초고위험)</td>
+<td>3,954</td>
+<td>649</td>
+<td><strong>16.41%</strong></td>
+<td>44.42%</td>
+<td>0.8%</td>
+</tr>
+<tr>
+<td>500–550</td>
+<td>225,147</td>
+<td>10,857</td>
+<td><strong>4.82%</strong></td>
+<td>17.95%</td>
+<td><strong>45.5%</strong></td>
+</tr>
+<tr>
+<td>550–600</td>
+<td>237,106</td>
+<td>3,193</td>
+<td><strong>1.35%</strong></td>
+<td>5.75%</td>
+<td><strong>47.9%</strong></td>
+</tr>
+<tr>
+<td>600–650</td>
+<td>28,711</td>
+<td>84</td>
+<td><strong>0.29%</strong></td>
+<td>1.26%</td>
+<td>5.8%</td>
+</tr>
+<tr>
+<td>650–700</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td><strong>0%</strong></td>
+</tr>
+<tr>
+<td>700+ (초우량)</td>
+<td>324</td>
+<td>0</td>
+<td><strong>0.00%</strong></td>
+<td>0.00%</td>
+<td>0.1%</td>
+</tr>
+</tbody>
+</table></div></div>
+<h3>잘된 점</h3>
+<p><strong>부도율이 완벽하게 단조 감소합니다.</strong>
+16.41% → 4.82% → 1.35% → 0.29% → 0.00%</p>
+<p>점수가 올라갈수록 부도율이 계단처럼 내려갑니다.
+<strong>최하위 구간과 최상위 구간의 부도율 차이가 무한대(16.41% vs 0%)</strong> 입니다.
+<strong>순위를 매기는 능력은 확실히 있습니다.</strong></p>
+<h3 class="caution">심각한 문제 두 가지</h3>
+<p><strong>(1) 예측 PD가 실제의 3~4배입니다 — 보정이 깨졌습니다.</strong></p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>구간</th>
+<th>예측 PD</th>
+<th>실제 부도율</th>
+<th>배율</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt;500</td>
+<td>44.42%</td>
+<td>16.41%</td>
+<td><strong>2.7배 과대</strong></td>
+</tr>
+<tr>
+<td>500–550</td>
+<td>17.95%</td>
+<td>4.82%</td>
+<td><strong>3.7배 과대</strong></td>
+</tr>
+<tr>
+<td>550–600</td>
+<td>5.75%</td>
+<td>1.35%</td>
+<td><strong>4.3배 과대</strong></td>
+</tr>
+<tr>
+<td>600–650</td>
+<td>1.26%</td>
+<td>0.29%</td>
+<td><strong>4.3배 과대</strong></td>
+</tr>
+</tbody>
+</table></div></div>
+<p>15번 섹션에서 예고한 대로입니다. <strong>부도율 15.46%인 Validation에서 보정을 학습했는데,
+부도율 2.99%인 OOT에 적용했으니 전부 3~4배 부풀려졌습니다.</strong></p>
+<p>이 상태로 대손충당금을 쌓으면 <strong>필요액의 4배를 쌓게 됩니다.</strong>
+회계상으로도, 자본 효율상으로도 심각한 문제입니다.</p>
+<p><strong>(2) 점수 분포가 100점 안에 뭉쳐 있습니다.</strong></p>
+<p>500~600점 구간에 <strong>93.4%(46만 건)</strong> 가 몰려 있습니다.
+650~700점 구간은 <strong>아예 0건</strong>입니다.</p>
+<p><strong>왜?</strong> 스코어카드의 점수 폭은 <strong>모델의 판별력(오즈 범위)</strong> 에 비례합니다.
+17번에서 봤듯이 이 모델은 최고위험 PD 21%, 최저위험 PD 15%로 <strong>6%포인트밖에 차이가 안 납니다.</strong>
+그러니 점수도 좁은 범위에 뭉칠 수밖에 없습니다.</p>
+<p><strong>FICO는 300~850점, 550점 폭</strong>을 씁니다. 우리는 실질적으로 <strong>100점 폭</strong>입니다.</p>
+<h3>실무 해설</h3>
+<blockquote>
+<h3>좋은 스코어카드의 조건</h3>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>조건</th>
+<th>우리 결과</th>
+<th>판정</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>점수↑ → 부도율↓ <strong>단조성</strong></td>
+<td>완벽</td>
+<td><span class="chip blue">양호</span></td>
+</tr>
+<tr>
+<td>각 구간 최소 표본 수 확보</td>
+<td>650–700 구간 0건</td>
+<td><span class="chip red">문제</span></td>
+</tr>
+<tr>
+<td>점수 분포가 넓게 퍼짐</td>
+<td>93%가 100점 안에</td>
+<td><span class="chip red">문제</span></td>
+</tr>
+<tr>
+<td>예측 PD ≈ 실제 부도율</td>
+<td>3~4배 과대</td>
+<td><span class="chip red">문제</span></td>
+</tr>
+<tr>
+<td>구간 간 부도율 차이가 뚜렷</td>
+<td>3~5배씩 차이</td>
+<td><span class="chip blue">양호</span></td>
+</tr>
+</tbody>
+</table></div></div>
+<h3>즉시 할 수 있는 개선</h3>
+<p><strong>1) 보정을 OOT 모집단에서 다시 학습</strong></p>
+<pre class="src"><code class="language-python"># OOT를 반으로 갈라 앞부분으로 재보정, 뒷부분으로 검증
+oot_cal, oot_test = train_test_split(Xte, test_size=0.5, stratify=y_oot)
+calibrated_v2 = CalibratedClassifierCV(fitted[BEST], method="isotonic", cv="prefit")
+calibrated_v2.fit(oot_cal, y_oot_cal)
+</code></pre>
+<p><strong>2) 기저율 보정 공식으로 즉시 조정</strong></p>
+<pre class="src"><code class="language-python">pi_old, pi_new = 0.1546, 0.0299     # Valid 부도율, OOT 부도율
+odds_ratio = (pi_new / (1 - pi_new)) / (pi_old / (1 - pi_old))
+pd_adj = (p * odds_ratio) / (p * odds_ratio + (1 - p))
+</code></pre>
+<p><strong>3) PDO를 키워서 점수 폭 확대</strong>
+<code>PDO=20</code> → <code>PDO=40</code>으로 바꾸면 점수 폭이 2배로 늘어납니다.
+단, 근본 원인(모델 판별력 부족)을 해결하는 건 아니고 <strong>눈금만 바꾸는 것</strong>입니다.</p>
+<h3>실무 스코어카드 운영 구조</h3>
+<pre><code>[점수 산출]  →  [컷오프 적용]  →  [의사결정]
+    ↓                ↓                ↓
+  620점        컷오프 580점        승인 + 표준금리
+
+동시에:
+├── 정책 룰(policy rule) 별도 적용
+│    · 최근 6개월 내 90일 연체 → 점수 무관 자동 거절
+│    · 파산 이력 5년 이내      → 자동 거절
+│    · 만 19세 미만 / DSR 초과 → 자동 거절
+└── 수동 심사 큐 (경계 구간 550~620점)
+</code></pre>
+<p><strong>모델 점수만으로 결정하는 금융사는 없습니다.</strong>
+반드시 <strong>정책 룰(하드 컷)</strong> 이 위에 얹힙니다. 모델이 놓칠 수 있는 명백한 리스크와
+법적 요건(연령, DSR 규제 등)을 처리하기 위해서입니다.</p>
+</blockquote>
+<hr/>
+<h2 class="sev-red" id="s-20-psi-모델이-언제-늙는지-감시하기-셀-8082"><span class="sn">20</span>PSI — 모델이 언제 늙는지 감시하기 (셀 80~82)</h2>
+<h3>코드가 하는 일</h3>
+<p><strong>PSI(Population Stability Index)</strong> = <strong>"학습할 때의 세상과 지금의 세상이 얼마나 다른가"</strong></p>
+<div class="math"><em>PSI</em> = <span class="big">∑</span><sub>i</sub> ( 현재비중<sub>i</sub> − 기준비중<sub>i</sub> ) × ln <span class="fr"><span>현재비중<sub>i</sub></span><span>기준비중<sub>i</sub></span></span></div>
+<p>계산법:</p>
+<ol>
+<li>학습 데이터를 10등분(분위수)해서 각 구간 비중을 구함</li>
+<li>현재 데이터를 <strong>같은 경계</strong>로 나눠서 비중을 구함</li>
+<li>두 비중의 차이를 합산</li>
+</ol>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>PSI</th>
+<th>판정</th>
+<th>조치</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; 0.10</td>
+<td>안정</td>
+<td>없음</td>
+</tr>
+<tr>
+<td>0.10 ~ 0.25</td>
+<td>주의</td>
+<td>모니터링 강화</td>
+</tr>
+<tr>
+<td>&gt; 0.25</td>
+<td><strong>불안정</strong></td>
+<td>원인 조사 + 재학습 검토</td>
+</tr>
+</tbody>
+</table></div></div>
+<h3>실제로 나온 결과</h3>
+<pre><code>[스코어 PSI] Train vs OOT = 0.1855  → 주의
+</code></pre>
+<p><strong>변수별 PSI:</strong></p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>순위</th>
+<th>변수</th>
+<th>PSI</th>
+<th>판정</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>all_util</strong></td>
+<td><strong>1.1283</strong></td>
+<td><span class="chip red">위험</span></td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>max_bal_bc</strong></td>
+<td><strong>1.0661</strong></td>
+<td><span class="chip red">위험</span></td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>total_bal_il</strong></td>
+<td><strong>1.0412</strong></td>
+<td><span class="chip red">위험</span></td>
+</tr>
+<tr>
+<td>4</td>
+<td>mths_since_rcnt_il</td>
+<td>0.8674</td>
+<td><span class="chip red">위험</span></td>
+</tr>
+<tr>
+<td>5</td>
+<td>open_rv_24m</td>
+<td>0.7215</td>
+<td><span class="chip red">위험</span></td>
+</tr>
+<tr>
+<td>6</td>
+<td>il_util</td>
+<td>0.6643</td>
+<td><span class="chip red">위험</span></td>
+</tr>
+<tr>
+<td>7</td>
+<td>inq_last_12m</td>
+<td>0.5885</td>
+<td><span class="chip red">위험</span></td>
+</tr>
+<tr>
+<td>8</td>
+<td>open_rv_12m</td>
+<td>0.5239</td>
+<td><span class="chip red">위험</span></td>
+</tr>
+<tr>
+<td>9</td>
+<td>open_acc_6m</td>
+<td>0.4988</td>
+<td><span class="chip red">위험</span></td>
+</tr>
+<tr>
+<td>10</td>
+<td>open_il_24m</td>
+<td>0.4709</td>
+<td><span class="chip red">위험</span></td>
+</tr>
+<tr>
+<td>11</td>
+<td>open_act_il</td>
+<td>0.3873</td>
+<td><span class="chip red">위험</span></td>
+</tr>
+<tr>
+<td>12</td>
+<td>inq_fi</td>
+<td>0.3856</td>
+<td><span class="chip red">위험</span></td>
+</tr>
+<tr>
+<td>...</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>19</td>
+<td>int_rate</td>
+<td>0.0928</td>
+<td>안정</td>
+</tr>
+</tbody>
+</table></div></div>
+<h3>탐정 놀이 — 왜 이 변수들만 흔들렸나?</h3>
+<p>불안정 변수들의 이름을 보세요:</p>
+<pre><code>all_util, il_util, max_bal_bc, total_bal_il, open_il_12m, open_il_24m,
+open_rv_12m, open_rv_24m, open_acc_6m, inq_last_12m, inq_fi, total_cu_tl
+</code></pre>
+<p><strong>공통점</strong>: 전부 <code>il</code>(installment loan), <code>rv</code>(revolving), <code>util</code>, <code>open_*_Nm</code>,
+<code>inq_*</code> 계열입니다.</p>
+<p><strong>정답</strong>: 이 필드들은 <strong>렌딩클럽이 2015~2016년경에 새로 추가한 확장 신용정보 항목</strong>입니다.
+그 이전 대출에는 <strong>전부 결측</strong>이었습니다.</p>
+<p>무슨 일이 일어났나:</p>
+<pre><code>2007~2015 데이터 → 이 필드들 전부 NaN
+                 → SimpleImputer(median)가 전부 같은 값으로 채움
+                 → 학습 데이터에서 이 변수들은 "거의 상수"
+
+2018 데이터      → 실제 값이 들어 있음
+                 → 분포가 완전히 다름
+                 → PSI 1.0+ 폭발
+</code></pre>
+<p><strong>즉 PSI 1.13은 "고객이 변했다"가 아니라 "데이터 수집 방식이 변했다"는 뜻입니다.</strong></p>
+<p>이건 실무에서 <strong>가장 흔한 PSI 알람의 원인</strong>이고, 동시에 <strong>가장 위험한 상황</strong>입니다.
+왜냐하면 모델이 "중앙값으로 채워진 가짜 값"으로 학습했는데
+운영에서는 "진짜 값"이 들어오기 때문입니다.</p>
+<h3>실무 해설</h3>
+<blockquote>
+<h3>PSI 모니터링 실무 체계</h3>
+<p><strong>일간 (Daily)</strong></p>
+<ul>
+<li>신청 건수, 승인율, 평균 점수</li>
+<li>시스템 오류율, 결측 필드 비율</li>
+</ul>
+<p><strong>주간 (Weekly)</strong></p>
+<ul>
+<li><strong>스코어 PSI</strong> — 점수 분포가 흔들리는가</li>
+<li>상위 15개 변수의 <strong>개별 PSI</strong></li>
+<li>점수 구간별 승인율</li>
+</ul>
+<p><strong>월간 (Monthly)</strong></p>
+<ul>
+<li><strong>CSI(Characteristic Stability Index)</strong> — 변수별 PSI를 점수 기여도로 가중</li>
+<li>빈티지별 조기연체율 (실행 후 3개월)</li>
+<li>자동 승인 vs 수동 심사 비율</li>
+</ul>
+<p><strong>분기 (Quarterly)</strong></p>
+<ul>
+<li><strong>성능 재검증</strong> — 실제 부도가 관측된 최신 코호트로 AUC/KS 재계산</li>
+<li><strong>보정 검증</strong> — 예측 PD vs 실제 부도율 비교</li>
+<li><strong>모델 재학습 여부 결정</strong></li>
+</ul>
+<h3>PSI 경보가 울렸을 때 순서</h3>
+<pre><code>1. 데이터 파이프라인 장애인가?        ← 가장 흔함! 먼저 확인
+   · 외부 데이터 공급 중단
+   · ETL 스키마 변경
+   · 결측 처리 로직 변경
+
+2. 모집단이 실제로 변했나?
+   · 신규 마케팅 채널
+   · 신상품 출시
+   · 경쟁사 정책 변화
+
+3. 경제 환경이 변했나?
+   · 금리, 실업률, 부동산
+
+4. 위 셋 다 아니면 → 진짜 드리프트 → 재학습
+</code></pre>
+<p><strong>1번을 먼저 확인하는 이유</strong>: 실무 PSI 알람의 <strong>70% 이상이 데이터 문제</strong>입니다.
+모델을 재학습해도 소용없고, 파이프라인을 고쳐야 합니다.</p>
+<h3>이 노트북에 대한 처방</h3>
+<pre class="src"><code class="language-python"># 신규 필드는 도입 시점 이후 데이터로만 학습해야 함
+NEW_FIELDS_SINCE_2016 = ["all_util", "il_util", "max_bal_bc", "total_bal_il",
+                         "open_il_12m", "open_il_24m", "open_rv_12m",
+                         "open_rv_24m", "open_acc_6m", "inq_last_12m",
+                         "inq_fi", "total_cu_tl", "mths_since_rcnt_il",
+                         "open_act_il"]
+
+# 방법 A: 이 필드들을 아예 제외
+feature_cols = [c for c in feature_cols if c not in NEW_FIELDS_SINCE_2016]
+
+# 방법 B: 학습 기간을 2016년 이후로 제한
+df = df[df["issue_year"] &gt;= 2016]
+
+# 방법 C: "필드 존재 여부" 플래그를 명시적 변수로 추가
+df["has_extended_bureau"] = df["all_util"].notna().astype(int)
+</code></pre>
+<p><strong>방법 B가 가장 깔끔합니다.</strong> 데이터가 434,407 + 443,579 + 495,242 = 137만 건이나
+남으므로 충분합니다.</p>
+</blockquote>
+<hr/>
+<h2 class="sev-red" id="s-21-저장과-추론-함수-셀-8385"><span class="sn">21</span>저장과 추론 함수 (셀 83~85)</h2>
+<h3>코드가 하는 일</h3>
+<pre class="src"><code class="language-python">artifact = {
+    "preprocessor": preprocessor,      # 전처리 규칙
+    "model": fitted[BEST],             # 모델
+    "calibrator": calibrated,          # 보정기
+    "feature_names": list(Xtr.columns),# 컬럼 순서 (중요!)
+    "threshold": float(best_t),        # 임계값
+    "scorecard": {...},                # 점수 변환 파라미터
+    "meta": {...},                     # 모델 카드
+}
+joblib.dump(artifact, "credit_risk_model.joblib")
+</code></pre>
+<p><strong>모델만 저장하면 안 되는 이유</strong>: 전처리 규칙(중앙값, 원핫 순서)이 없으면
+새 데이터를 똑같이 변환할 수 없습니다. <strong>에러가 안 나고 조용히 틀린 예측</strong>을 합니다.</p>
+<h3>실제로 나온 결과</h3>
+<pre><code>저장 완료:
+   models\credit_risk_model.joblib
+   models\model_card.json
+   outputs\information_value.csv
+   outputs\metrics_oot.csv
+   outputs\metrics_valid.csv
+   outputs\psi_report.csv
+</code></pre>
+<p>추론 함수 데모:</p>
+<pre><code>        PD  score decision              reason_1              reason_2
+0  0.07120    561       승인  acc_open_past_24mths   home_ownership_RENT
+1  0.25642    518       승인             적용 금리가 높음  acc_open_past_24mths
+2  0.09954    551       승인             적용 금리가 높음               bc_util
+3  0.07519    560       승인             적용 금리가 높음        리볼빙 한도 소진율이 높음
+4  0.25310    518       승인             적용 금리가 높음  acc_open_past_24mths
+</code></pre>
+<h3 class="caution">여기서도 문제가 보입니다</h3>
+<p><strong>PD 25.6%인 고객이 "승인"으로 나왔습니다.</strong> 임계값이 0.35라서 그렇습니다.
+<strong>4명 중 1명이 부도할 사람을 승인하는 모델</strong>입니다.</p>
+<p>그리고 <code>reason_2</code>에 <code>acc_open_past_24mths</code>, <code>bc_util</code> 같은 영어 컬럼명이 그대로 나옵니다.</p>
+<h3>실무 해설</h3>
+<blockquote>
+<h3>모델 카드(Model Card) — 실무 필수 문서</h3>
+<p>코드가 만든 <code>model_card.json</code>은 최소한의 버전입니다. 실무 모델 카드에는 이런 게 들어갑니다:</p>
+<pre><code>■ 모델 개요
+  · 모델명, 버전, 목적, 적용 상품
+  · 개발자, 승인자, 승인일
+
+■ 데이터
+  · 학습 기간, 표본 수, 부도 정의
+  · 제외 기준 (거절추론 여부)
+  · 데이터 계보(lineage)
+
+■ 성능
+  · AUC/KS/Gini (Train / Valid / OOT)
+  · 세그먼트별 성능 (연령, 소득, 지역, 상품)
+  · 보정 결과
+
+■ 공정성
+  · 보호속성별 승인율 격차
+  · 대리변수 검토 결과
+
+■ 한계
+  · 적용 불가 범위
+  · 알려진 취약점
+
+■ 모니터링
+  · PSI 임계값, 성능 경보 기준
+  · 재학습 트리거 조건
+  · 담당자, 검토 주기
+</code></pre>
+<h3>배포 아키텍처</h3>
+<pre><code>[신청 접수]
+     ↓
+[피처 조회] ← Feature Store (학습/서빙 동일 로직 보장)
+     ↓
+[전처리]    ← preprocessor.joblib
+     ↓
+[모델 예측] ← model.joblib
+     ↓
+[보정]      ← calibrator.joblib
+     ↓
+[점수 변환] → PD, Score
+     ↓
+[정책 룰]   → 하드 컷 적용
+     ↓
+[의사결정] → 승인 / 조건부 / 수동심사 / 거절
+     ↓
+[SHAP 사유] → 거절 시 사유 생성 및 통지
+     ↓
+[로깅]      → 입력·출력·버전 전부 저장 (재현성, 감사 대응)
+</code></pre>
+<p><strong>로깅이 특히 중요합니다.</strong> 나중에 "이 고객 왜 거절했나"를 재현하려면
+<strong>그 시점의 입력값, 모델 버전, 출력값이 전부 남아 있어야</strong> 합니다.</p>
+</blockquote>
+<hr/>
+<h1 id="s-최종-종합-이-모델은-쓸-수-있나">최종 종합 — 이 모델은 쓸 수 있나?</h1>
+<h2 class="sev-red" id="s-종합-진단표">종합 진단표</h2>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>항목</th>
+<th>결과</th>
+<th>판정</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>코드 재현성</td>
+<td>시드 고정, 스냅샷 고정, 파이프라인화</td>
+<td><span class="chip blue">우수</span></td>
+</tr>
+<tr>
+<td>데이터 누수 차단</td>
+<td>18개 컬럼 제거, 단변량 스캔</td>
+<td><span class="chip blue">우수</span></td>
+</tr>
+<tr>
+<td>검증 방법론</td>
+<td>Out-of-Time 3단 분할</td>
+<td><span class="chip blue">우수</span></td>
+</tr>
+<tr>
+<td>순위 판별력 (AUC/KS)</td>
+<td>0.732 / 0.338</td>
+<td><span class="chip blue">정상 범위</span></td>
+</tr>
+<tr>
+<td>스코어 단조성</td>
+<td>16.4% → 0% 완벽</td>
+<td><span class="chip blue">우수</span></td>
+</tr>
+<tr>
+<td><strong>타깃 정의</strong></td>
+<td>만기 편향으로 OOT 부도율 5배 왜곡</td>
+<td><span class="chip red">치명적</span></td>
+</tr>
+<tr>
+<td><strong>변수 정당성</strong></td>
+<td><code>int_rate</code>가 65%, 렌더 자체 결정값</td>
+<td><span class="chip red">치명적</span></td>
+</tr>
+<tr>
+<td><strong>모델 학습 충분성</strong></td>
+<td>LightGBM 11초 조기 종료, 변수 3개 SHAP=0</td>
+<td><span class="chip red">심각</span></td>
+</tr>
+<tr>
+<td><strong>확률 보정</strong></td>
+<td>OOT에서 3~4배 과대 예측</td>
+<td><span class="chip red">심각</span></td>
+</tr>
+<tr>
+<td><strong>거절 사유 품질</strong></td>
+<td>44%가 동일 사유, 영어 컬럼명 노출</td>
+<td><span class="chip red">심각</span></td>
+</tr>
+<tr>
+<td><strong>임계값 적정성</strong></td>
+<td>정상 고객 63% 거절</td>
+<td><span class="chip red">심각</span></td>
+</tr>
+<tr>
+<td><strong>데이터 안정성</strong></td>
+<td>12개 변수 PSI &gt; 0.25</td>
+<td><span class="chip amber">주의</span></td>
+</tr>
+<tr>
+<td>공정성 검증</td>
+<td>미실시, <code>addr_state</code> 사용 중</td>
+<td><span class="chip amber">미흡</span></td>
+</tr>
+</tbody>
+</table></div></div>
+<h2 id="s-한-줄-결론">한 줄 결론</h2>
+<blockquote>
+<p><strong>학습 프로젝트로는 A급입니다. 실무 배포는 불가능합니다.</strong></p>
+<p>방법론(누수 차단, OOT 검증, 보정, SHAP)은 실무 수준으로 잘 갖춰져 있습니다.
+하지만 <strong>타깃 정의와 변수 선택이라는 두 가지 근본 문제</strong> 때문에
+지금 나온 숫자들은 <strong>현실을 반영하지 않습니다.</strong></p>
+</blockquote>
+<hr/>
+<h1 id="s-실무에서-이-작업이-어떻게-쓰이나">실무에서 이 작업이 어떻게 쓰이나</h1>
+<h2 id="s-1-이-파이프라인이-그대로-쓰이는-곳">1. 이 파이프라인이 그대로 쓰이는 곳</h2>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>산업</th>
+<th>적용 사례</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>은행/카드</strong></td>
+<td>신용대출 심사, 카드 발급, 한도 부여, 금리 산정</td>
+</tr>
+<tr>
+<td><strong>핀테크 대출</strong></td>
+<td>자동 심사 엔진, 대안신용평가</td>
+</tr>
+<tr>
+<td><strong>BNPL</strong></td>
+<td>후불결제 한도 결정</td>
+</tr>
+<tr>
+<td><strong>보험</strong></td>
+<td>보험료 산정, 인수 심사</td>
+</tr>
+<tr>
+<td><strong>통신</strong></td>
+<td>단말기 할부 승인</td>
+</tr>
+<tr>
+<td><strong>커머스</strong></td>
+<td>셀러 정산 선지급 한도</td>
+</tr>
+</tbody>
+</table></div></div>
+<p><strong>같은 구조가 그대로 적용되는 다른 문제들:</strong></p>
+<ul>
+<li>고객 이탈 예측 (부도 → 이탈)</li>
+<li>설비 고장 예측 (부도 → 고장)</li>
+<li>보험 사기 탐지 (부도 → 사기)</li>
+<li>채용 후 조기퇴사 예측</li>
+</ul>
+<p><strong>핵심 공통점</strong>: 불균형 데이터 + 시간 흐름 + 설명 필요 + 비용 비대칭</p>
+<h2 id="s-2-실제-프로젝트-진행-흐름">2. 실제 프로젝트 진행 흐름</h2>
+<pre><code>[1개월] 문제 정의
+        · 타깃 정의 확정 (리스크·상품·준법 합의)  ← 이 노트북의 최대 약점
+        · 성능 관측 기간 결정
+        · 성공 기준 정의 (AUC가 아니라 승인율/손실률로)
+
+[2개월] 데이터 준비
+        · 변수 정의서 작성 (각 변수가 언제 생기는지)  ← 누수 차단의 근본
+        · 학습-서빙 가용성 확인
+        · 거절추론(reject inference) 설계
+
+[1개월] 모델 개발
+        · 이 노트북에서 한 작업 대부분이 여기
+
+[1개월] 검증
+        · 모델검증팀(MRM) 독립 검증
+        · 공정성 검증
+        · 스트레스 테스트
+
+[1개월] 배포 준비
+        · A/B 테스트 (신규 모델 10% 트래픽)
+        · Champion-Challenger 병행 운영
+        · 롤백 계획
+
+[상시]   모니터링
+        · PSI, 성능, 승인율 대시보드
+        · 분기 재검증, 연 1회 재학습
+</code></pre>
+<p><strong>개발은 전체의 1/6밖에 안 됩니다.</strong> 나머지는 정의·검증·운영입니다.</p>
+<h2 id="s-3-이-노트북-결과로-지금-당장-할-수-있는-것">3. 이 노트북 결과로 지금 당장 할 수 있는 것</h2>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>산출물</th>
+<th>활용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>IV 표</strong></td>
+<td>어떤 변수를 데이터 수집에 우선 투자할지 결정</td>
+</tr>
+<tr>
+<td><strong>누수 스캔 결과</strong></td>
+<td>다른 프로젝트 데이터에도 즉시 재사용 가능한 진단 도구</td>
+</tr>
+<tr>
+<td><strong>빈티지 표</strong></td>
+<td>"우리 상품의 부도는 몇 개월째에 발생하는가" 파악</td>
+</tr>
+<tr>
+<td><strong>PSI 리포트</strong></td>
+<td>데이터 파이프라인 품질 점검 (신규 필드 도입 시점 발견)</td>
+</tr>
+<tr>
+<td><strong>SHAP 중요도</strong></td>
+<td>심사 정책 룰 설계의 근거</td>
+</tr>
+</tbody>
+</table></div></div>
+<hr/>
+<h1 id="s-한계-무엇을-믿으면-안-되나">한계 — 무엇을 믿으면 안 되나</h1>
+<h2 id="s-a-데이터의-한계">A. 데이터의 한계</h2>
+<h3>1. <span class="chip red">심각</span> 생존 편향 (Survivorship Bias) — 가장 근본적인 한계</h3>
+<p><strong>데이터에는 "승인된 대출"만 있습니다. 거절된 신청자는 없습니다.</strong></p>
+<pre><code>전체 신청자 100명
+   ├── 렌딩클럽이 승인 → 60명 → 우리 데이터에 있음
+   └── 렌딩클럽이 거절 → 40명 → 우리 데이터에 없음 ❌
+</code></pre>
+<p>그래서 이 모델은 <strong>"렌딩클럽 심사를 통과한 사람 중에서" 누가 부도하는지</strong>만 압니다.
+전체 신청자 모집단에 대해서는 <strong>아무것도 모릅니다.</strong></p>
+<p><strong>실무 해결책 — 거절추론(Reject Inference)</strong></p>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>방법</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Parceling</strong></td>
+<td>거절자를 점수대별로 나눠 승인자의 부도율을 비례 배분</td>
+</tr>
+<tr>
+<td><strong>Fuzzy Augmentation</strong></td>
+<td>거절자 1명을 "부도 0.3명 + 정상 0.7명"으로 쪼개 학습</td>
+</tr>
+<tr>
+<td><strong>Bureau Outcome</strong></td>
+<td>신용평가사에서 거절자의 타사 대출 실적 조회 (가장 정확)</td>
+</tr>
+<tr>
+<td><strong>Random Approval</strong></td>
+<td>소량을 무작위 승인해 진짜 데이터 확보 (가장 정확하지만 비쌈)</td>
+</tr>
+</tbody>
+</table></div></div>
+<h3>2. <span class="chip red">심각</span> 만기 편향 — 이 분석의 최대 왜곡 요인</h3>
+<p>앞에서 반복 확인했듯이 <strong>2018년 부도율 2.99%는 가짜</strong>입니다.
+이것 하나 때문에 OOT 성능, 보정, 스코어카드, PSI가 전부 왜곡됐습니다.</p>
+<h3>3. <span class="chip amber">주의</span> 시대적 한계</h3>
+<p>2007~2018년 데이터입니다. 이후 일어난 일들:</p>
+<ul>
+<li>코로나19 (2020) — 정부 지원금으로 부도율 <strong>역사적 최저</strong></li>
+<li>급격한 금리 인상 (2022~2023) — 상환 부담 급증</li>
+<li>인플레이션 (2021~2023) — 실질소득 감소</li>
+</ul>
+<p><strong>과거 데이터로 학습한 모델은 처음 겪는 충격에 무력합니다.</strong></p>
+<h3>4. <span class="chip amber">주의</span> 미국 데이터</h3>
+<p>FICO, 미국 신용국(bureau) 체계 기준입니다.
+한국(NICE/KCB), 일본, 동남아는 신용 인프라 자체가 다릅니다.
+<strong>방법론은 그대로 쓸 수 있지만 변수는 전부 다시 짜야 합니다.</strong></p>
+<h2 id="s-b-방법론의-한계">B. 방법론의 한계</h2>
+<h3>5. <span class="chip red">심각</span> 렌더 결정변수 사용 (<code>grade</code>, <code>int_rate</code>)</h3>
+<p><strong>SHAP 중요도의 65%가 렌딩클럽이 이미 매긴 값</strong>입니다.
+신규 심사 모델로는 쓸 수 없습니다.</p>
+<h3>6. <span class="chip amber">주의</span> 상관관계 ≠ 인과관계</h3>
+<p>로지스틱 회귀 계수를 보면:</p>
+<pre><code>installment    +0.3042  (부도↑)
+loan_amnt      -0.1595  (부도↓)   ← ??
+term_months    +0.0787  (부도↑)
+term_36_months -0.0787  (부도↓)   ← 완전 중복 변수
+</code></pre>
+<p><strong><code>loan_amnt</code>가 클수록 안전하다?</strong> 상식과 반대입니다.
+이건 <strong>다중공선성(multicollinearity)</strong> 때문입니다.
+<code>loan_amnt</code>, <code>installment</code>, <code>term</code>은 수학적으로 거의 종속 관계라서,
+모델이 이들 사이에 <strong>양수/음수를 임의로 배분</strong>합니다.</p>
+<p><strong>따라서 이 계수를 "대출금액이 클수록 안전하다"고 읽으면 안 됩니다.</strong>
+개별 계수는 다른 변수를 고정했을 때의 효과일 뿐, 인과 효과가 아닙니다.</p>
+<h3>7. <span class="chip amber">주의</span> 단일 시점 검증</h3>
+<p>OOT를 2018년 한 해로만 잡았습니다. 그 해가 특이했을 수도 있습니다.
+<strong>Walk-forward 검증</strong>으로 여러 해에 걸쳐 확인해야 합니다.</p>
+<h3>8. <span class="chip amber">주의</span> 학습 부족</h3>
+<p>LightGBM 11초 종료, SHAP=0인 변수 다수. 하이퍼파라미터 튜닝을 전혀 안 했습니다.</p>
+<h2 id="s-c-공정성규제의-한계">C. 공정성·규제의 한계</h2>
+<h3>9. <span class="chip red">심각</span> 공정성 검증 미실시</h3>
+<p><strong><code>addr_state</code>(거주 주)가 모델에 들어가 있습니다.</strong>
+미국에서 지역 정보는 인종의 강력한 대리변수이고,
+이걸 대출 심사에 쓰면 <strong>레드라이닝(redlining)</strong> 으로 간주될 수 있습니다.</p>
+<p>검증해야 할 것:</p>
+<ul>
+<li>보호속성(인종/성별/연령)별 <strong>승인율 격차</strong></li>
+<li><strong>Disparate Impact Ratio</strong> — 소수집단 승인율 / 다수집단 승인율 ≥ 0.8 (80% 룰)</li>
+<li><strong>Equal Opportunity</strong> — 집단별 TPR 격차</li>
+<li>대리변수 탐지 — 보호속성을 다른 변수로 예측할 수 있는가</li>
+</ul>
+<h3>10. <span class="chip amber">주의</span> 거절 사유의 법적 부적합</h3>
+<p>"적용 금리가 높음"은 <strong>고객 특성이 아니라 우리의 결정</strong>입니다.
+ECOA/신용정보법상 적법한 사유로 인정받기 어렵습니다.</p>
+<h2 id="s-d-운영의-한계">D. 운영의 한계</h2>
+<h3>11. <span class="chip amber">주의</span> 학습-서빙 불일치 위험</h3>
+<p><code>all_util</code> 등 12개 변수가 PSI &gt; 0.25입니다.
+운영에서 이 필드가 안 들어오면 모델이 조용히 오작동합니다.</p>
+<h3>12. <span class="chip amber">주의</span> 모델 열화 속도 미측정</h3>
+<p>"몇 개월마다 재학습해야 하는가"를 실험으로 확인하지 않았습니다.</p>
+<hr/>
+<h1 id="s-다음에-뭘-하면-좋은가-우선순위별-실행-계획">다음에 뭘 하면 좋은가 — 우선순위별 실행 계획</h1>
+<h2 id="s-1순위-지금-당장-12일-코드-몇-줄">1순위 — 지금 당장 (1~2일, 코드 몇 줄)</h2>
+<h3>① 타깃 정의를 <code>matured_only</code>로 바꾸기 <span class="chip blue">가장 중요</span></h3>
+<pre class="src"><code class="language-python">TARGET_DEF = "matured_only"   # Current / In Grace / Late 전부 제외
+OOT_YEAR = 2016               # 충분히 익은 코호트로 테스트
+</code></pre>
+<p><strong>기대 효과</strong>: 만기 편향 제거 → OOT 부도율이 정상화 → <strong>보정, 스코어카드, PSI가 전부 의미를 회복</strong>합니다.
+지금 나온 모든 이상 현상의 근원이 여기입니다.</p>
+<h3>② 렌더 결정변수 제거하고 진짜 실력 측정 <span class="chip blue">중요</span></h3>
+<pre class="src"><code class="language-python">LENDER_DECISION = ["grade", "sub_grade", "int_rate", "installment",
+                   "loan_amnt_div_instlmnt", "installment_to_income"]
+exclude |= set(LENDER_DECISION)
+</code></pre>
+<p><strong>기대 효과</strong>: AUC가 0.73 → 0.62~0.66으로 떨어집니다.
+<strong>그게 진짜 실력</strong>이고, 여기서부터가 진짜 모델링의 시작입니다.
+SHAP도 훨씬 다양한 변수가 등장할 겁니다.</p>
+<h3>③ LightGBM 제대로 학습시키기</h3>
+<pre class="src"><code class="language-python">lgb.LGBMClassifier(
+    n_estimators=5000, learning_rate=0.02,
+    num_leaves=63, min_child_samples=200,
+    subsample=0.8, colsample_bytree=0.8, reg_lambda=5.0,
+    scale_pos_weight=(1-y_train.mean())/y_train.mean(),
+    random_state=SEED, verbose=-1)
+# early_stopping(300), eval_metric="average_precision"
+</code></pre>
+<h3>④ 중복 변수 제거</h3>
+<pre class="src"><code class="language-python">drop_dup = ["term_36_months",      # term_months와 100% 중복
+            "out_prncp_inv",       # out_prncp와 중복 (이미 제거됨)
+            "total_pymnt_inv"]     # total_pymnt와 중복 (이미 제거됨)
+</code></pre>
+<h3>⑤ 로지스틱 회귀 속도 개선</h3>
+<pre class="src"><code class="language-python">LogisticRegression(solver="lbfgs", max_iter=1000, n_jobs=-1)
+# saga → lbfgs 로 바꾸면 23분 → 2~3분
+</code></pre>
+<h2 id="s-2순위-이번-주-25일">2순위 — 이번 주 (2~5일)</h2>
+<h3>⑥ 신규 필드 문제 해결</h3>
+<pre class="src"><code class="language-python">df = df[df["issue_year"] &gt;= 2016]   # 확장 신용정보 도입 이후만
+# 137만 건 남으므로 충분
+</code></pre>
+<p><strong>기대 효과</strong>: PSI 1.13 → 0.1 이하로 정상화</p>
+<h3>⑦ 하이퍼파라미터 탐색</h3>
+<pre class="src"><code class="language-python">pip install optuna
+</code></pre>
+<pre class="src"><code class="language-python">import optuna
+def objective(trial):
+    params = {
+        "num_leaves": trial.suggest_int("num_leaves", 15, 255),
+        "learning_rate": trial.suggest_float("learning_rate", 0.005, 0.1, log=True),
+        "min_child_samples": trial.suggest_int("min_child_samples", 50, 500),
+        "reg_lambda": trial.suggest_float("reg_lambda", 1e-3, 100, log=True),
+        "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
+    }
+    m = lgb.LGBMClassifier(**params, n_estimators=3000, random_state=SEED, verbose=-1)
+    m.fit(Xtr, y_train, eval_set=[(Xva, y_valid)], eval_metric="auc",
+          callbacks=[lgb.early_stopping(200, verbose=False)])
+    return roc_auc_score(y_valid, m.predict_proba(Xva)[:, 1])
+
+study = optuna.create_study(direction="maximize")
+study.optimize(objective, n_trials=50)
+</code></pre>
+<h3>⑧ Walk-Forward 검증</h3>
+<pre class="src"><code class="language-python">for test_year in [2015, 2016, 2017]:
+    tr = df[df.issue_year &lt; test_year]
+    te = df[df.issue_year == test_year]
+    # 학습 → 평가 → AUC 기록
+# 연도별 AUC가 안정적인지 확인
+</code></pre>
+<h3>⑨ 승인율 기준 임계값으로 전환</h3>
+<pre class="src"><code class="language-python">TARGET_APPROVAL_RATE = 0.70
+threshold = np.quantile(pd_valid, TARGET_APPROVAL_RATE)
+# 모집단이 바뀌어도 승인율이 안정적으로 유지됨
+</code></pre>
+<h3>⑩ FEATURE_LABELS 완성</h3>
+<p>139개 변수 전부에 한글 라벨을 붙입니다. 거절 사유 품질이 즉시 올라갑니다.</p>
+<h2 id="s-3순위-이번-달-13주">3순위 — 이번 달 (1~3주)</h2>
+<h3>⑪ 단조 제약 스코어카드</h3>
+<pre class="src"><code class="language-python">mono = [0] * Xtr.shape[1]
+for i, c in enumerate(Xtr.columns):
+    if any(k in c for k in ["fico", "annual_inc", "credit_history"]):
+        mono[i] = -1        # 높을수록 안전
+    if any(k in c for k in ["dti", "inq_", "delinq", "util", "pub_rec"]):
+        mono[i] = 1         # 높을수록 위험
+lgb.LGBMClassifier(monotone_constraints=mono, ...)
+</code></pre>
+<p><strong>규제 심사에서 거의 필수</strong>입니다. 성능은 1~2% 떨어지지만 설명력이 크게 올라갑니다.</p>
+<h3>⑫ 정통 WoE 스코어카드 구현</h3>
+<pre><code>수치형 → 단조 구간화(binning) → WoE 변환 → 로지스틱 회귀 → 점수 배점표
+</code></pre>
+<p>결과물이 <strong>엑셀 한 장짜리 점수표</strong>가 되어 심사역이 손으로도 계산할 수 있습니다.
+챌린저 모델(GBM)과 성능을 비교하면 "설명력 vs 성능"의 대가를 정량화할 수 있습니다.</p>
+<h3>⑬ 공정성 검증 모듈</h3>
+<pre class="src"><code class="language-python">pip install fairlearn
+</code></pre>
+<pre class="src"><code class="language-python">from fairlearn.metrics import MetricFrame, demographic_parity_difference
+# addr_state 기반 지역 그룹 또는 소득 분위 그룹으로 대체 검증
+mf = MetricFrame(metrics={"승인율": lambda y,p: (p&lt;threshold).mean()},
+                 y_true=y_oot, y_pred=pd_oot, sensitive_features=group)
+print(mf.by_group)
+</code></pre>
+<h3>⑭ 세그먼트별 모델</h3>
+<pre class="src"><code class="language-python"># 신용이력이 짧은 고객(thin file)과 긴 고객은 위험 구조가 다름
+seg_thin  = df[df.credit_history_years &lt; 3]
+seg_thick = df[df.credit_history_years &gt;= 3]
+# 각각 모델을 만들어 단일 모델보다 나은지 비교
+</code></pre>
+<h3>⑮ 비즈니스 시뮬레이션</h3>
+<pre class="src"><code class="language-python"># 승인율을 50%~90%로 바꿔가며
+for rate in np.arange(0.5, 0.95, 0.05):
+    threshold = np.quantile(pd_oot, rate)
+    approved = pd_oot &lt; threshold
+    수익 = approved.sum() * 평균대출금 * 순이자마진 * 3
+    손실 = y_oot[approved].sum() * 평균대출금 * LGD
+    print(f"승인율 {rate:.0%}: 순이익 {수익-손실:,.0f}")
+</code></pre>
+<p><strong>"AUC 0.02 개선"보다 "순이익 12억 증가"가 훨씬 설득력 있습니다.</strong></p>
+<h2 id="s-4순위-장기-13개월">4순위 — 장기 (1~3개월)</h2>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>과제</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>거절추론(Reject Inference)</strong></td>
+<td>생존 편향 해결 — 진짜 심사 모델의 필수 조건</td>
+</tr>
+<tr>
+<td><strong>성능 관측 기간 고정 타깃</strong></td>
+<td>"실행 후 12개월 내 90일 연체" 방식으로 재정의</td>
+</tr>
+<tr>
+<td><strong>생존분석(Survival Analysis)</strong></td>
+<td>"부도할까?"가 아니라 "언제 부도할까?" — Cox 모형, DeepHit</td>
+</tr>
+<tr>
+<td><strong>LGD/EAD 모형</strong></td>
+<td>PD만으로는 EL 계산 불가. 3개 모형 세트 필요</td>
+</tr>
+<tr>
+<td><strong>스트레스 테스트</strong></td>
+<td>실업률 +3%p 시나리오에서 손실 추정</td>
+</tr>
+<tr>
+<td><strong>Champion-Challenger 운영</strong></td>
+<td>신규 모델을 10% 트래픽에 병행 투입</td>
+</tr>
+<tr>
+<td><strong>MLOps 파이프라인</strong></td>
+<td>MLflow(실험 추적) + Feature Store + 자동 모니터링</td>
+</tr>
+<tr>
+<td><strong>인과추론</strong></td>
+<td>"금리를 낮추면 부도가 줄어드나?" — 상관이 아닌 인과</td>
+</tr>
+</tbody>
+</table></div></div>
+<hr/>
+<h1 id="s-부록-핵심-용어-정리">부록 — 핵심 용어 정리</h1>
+<div class="tbl"><span class="swipe">↔ 밀기</span><div class="tbl-scroll"><table>
+<thead>
+<tr>
+<th>용어</th>
+<th>뜻</th>
+<th>이 노트북에서</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>PD</strong></td>
+<td>Probability of Default, 부도확률</td>
+<td>모델의 출력</td>
+</tr>
+<tr>
+<td><strong>LGD</strong></td>
+<td>Loss Given Default, 부도시 손실률</td>
+<td>미구현 (별도 모형 필요)</td>
+</tr>
+<tr>
+<td><strong>EAD</strong></td>
+<td>Exposure at Default, 부도시 잔액</td>
+<td>미구현</td>
+</tr>
+<tr>
+<td><strong>EL</strong></td>
+<td>Expected Loss = PD×LGD×EAD</td>
+<td>충당금·금리 산정 근거</td>
+</tr>
+<tr>
+<td><strong>WoE</strong></td>
+<td>Weight of Evidence</td>
+<td>10번 섹션</td>
+</tr>
+<tr>
+<td><strong>IV</strong></td>
+<td>Information Value, 변수 예측력</td>
+<td>grade 0.427이 최고</td>
+</tr>
+<tr>
+<td><strong>PSI</strong></td>
+<td>Population Stability Index</td>
+<td>0.1855 (주의)</td>
+</tr>
+<tr>
+<td><strong>CSI</strong></td>
+<td>Characteristic Stability Index</td>
+<td>미구현</td>
+</tr>
+<tr>
+<td><strong>AUC</strong></td>
+<td>ROC 곡선 아래 면적, 순위 판별력</td>
+<td>OOT 0.732</td>
+</tr>
+<tr>
+<td><strong>KS</strong></td>
+<td>Kolmogorov-Smirnov 통계량</td>
+<td>OOT 0.338</td>
+</tr>
+<tr>
+<td><strong>Gini</strong></td>
+<td>2×AUC−1</td>
+<td>OOT 0.464</td>
+</tr>
+<tr>
+<td><strong>Brier</strong></td>
+<td>확률 예측 정확도</td>
+<td>보정 후 0.119</td>
+</tr>
+<tr>
+<td><strong>PDO</strong></td>
+<td>Points to Double the Odds</td>
+<td>20점</td>
+</tr>
+<tr>
+<td><strong>SHAP</strong></td>
+<td>SHapley Additive exPlanations</td>
+<td>17번 섹션</td>
+</tr>
+<tr>
+<td><strong>OOT</strong></td>
+<td>Out-of-Time, 미래 데이터 검증</td>
+<td>2018년</td>
+</tr>
+<tr>
+<td><strong>누수</strong></td>
+<td>Data Leakage, 정답 유출</td>
+<td>18개 컬럼 제거</td>
+</tr>
+<tr>
+<td><strong>만기 편향</strong></td>
+<td>Maturity Bias</td>
+<td>이 분석 최대 왜곡 요인</td>
+</tr>
+<tr>
+<td><strong>거절추론</strong></td>
+<td>Reject Inference</td>
+<td>미구현 (장기 과제)</td>
+</tr>
+<tr>
+<td><strong>MRM</strong></td>
+<td>Model Risk Management</td>
+<td>미국 SR 11-7</td>
+</tr>
+</tbody>
+</table></div></div>
+<hr/>
+<h2 id="s-마지막으로-이-프로젝트에서-가장-값진-것">마지막으로 — 이 프로젝트에서 가장 값진 것</h2>
+<p><strong>"AUC 0.99가 나왔을 때 기뻐하지 않고 의심하는 습관"</strong> 입니다.</p>
+<p>원본 Kaggle 노트북은 AUC 0.99를 얻고 "Neural Network가 아주 좋다"고 결론지었습니다.
+여러분의 개선판은 AUC 0.73을 얻고, 그 숫자마저도 <strong>왜 못 믿는지</strong>를 스스로 증명했습니다.</p>
+<p><strong>더 낮은 숫자를 얻고 더 많은 문제를 발견한 것이 진전입니다.</strong></p>
+<p>실무에서 데이터 사이언티스트의 가치는 모델을 잘 만드는 것보다
+<strong>"이 모델을 믿어도 되는가"를 판단하는 능력</strong>에서 나옵니다.
+그 판단은 항상 세 가지 질문으로 시작합니다.</p>
+<blockquote>
+<ol>
+<li><strong>이 변수는 언제 생기는가?</strong> (누수)</li>
+<li><strong>이 정답은 다 익었는가?</strong> (만기 편향)</li>
+<li><strong>이 변수는 우리가 만들 수 있는 건가, 남이 준 건가?</strong> (순환 논리)</li>
+</ol>
+</blockquote>
+<p>이 노트북은 세 질문을 전부 던졌고, 세 번 다 문제를 찾아냈습니다.
+그게 이 프로젝트의 진짜 결과물입니다.</p>
+
+      <footer>
+        원본 노트북: Credit Risk EDA | Defaults, Segments &amp; Trends (Kaggle, beatafaron) 개선판<br>
+        데이터: LendingClub 2007–2018 · 2,260,668건 · 실행 결과 기준 해설
+      </footer>
+    </div>
+  </main>
+</div>
+
+<button class="up" id="up" aria-label="맨 위로">
+  <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<script>var NAVDATA=[{"id": "s-0-시작하기-전에-이-문서를-읽는-법", "n": "00", "t": "시작하기 전에 — 이 문서를 읽는 법"}, {"id": "s-30초-요약-결론부터", "n": "", "t": "30초 요약 — 결론부터"}, {"id": "s-1-환경-설정과-시각화-도구-셀-05", "n": "01", "t": "환경 설정과 시각화 도구 (셀 0~5)"}, {"id": "s-2-데이터-불러오기-셀-68", "n": "02", "t": "데이터 불러오기 (셀 6~8)"}, {"id": "s-3-타깃정답-정의-무엇을-부도라고-부를-것인가-셀-912", "n": "03", "t": "타깃(정답) 정의 — 무엇을 \"부도\"라고 부를 것인가 (셀 9~12)"}, {"id": "s-4-결측치-처리-셀-1315", "n": "04", "t": "결측치 처리 (셀 13~15)"}, {"id": "s-5-타입-정리와-숨어-있던-버그-셀-1619", "n": "05", "t": "타입 정리와 숨어 있던 버그 (셀 16~19)"}, {"id": "s-6-데이터-누수-감사-이-노트북의-하이라이트-셀-2023", "n": "06", "t": "데이터 누수 감사 — 이 노트북의 하이라이트 (셀 20~23)"}, {"id": "s-7-날짜-파생변수와-빈티지-분석-셀-2426", "n": "07", "t": "날짜 파생변수와 빈티지 분석 (셀 24~26)"}, {"id": "s-8-피처-세트-구성-셀-2729", "n": "08", "t": "피처 세트 구성 (셀 27~29)"}, {"id": "s-9-out-of-time-분할-시간을-기준으로-나누기-셀-3032", "n": "09", "t": "Out-of-Time 분할 — 시간을 기준으로 나누기 (셀 30~32)"}, {"id": "s-10-woe와-iv-신용-모델의-전통-무기-셀-3338", "n": "10", "t": "WoE와 IV — 신용 모델의 전통 무기 (셀 33~38)"}, {"id": "s-11-전처리-파이프라인-누수를-구조적으로-막기-셀-3940", "n": "11", "t": "전처리 파이프라인 — 누수를 구조적으로 막기 (셀 39~40)"}, {"id": "s-12-모델-학습-5개를-동시에-셀-4143", "n": "12", "t": "모델 학습 — 5개를 동시에 (셀 41~43)"}, {"id": "s-13-평가-어떤-숫자를-믿어야-하나-셀-4447", "n": "13", "t": "평가 — 어떤 숫자를 믿어야 하나 (셀 44~47)"}, {"id": "s-14-임계값-최적화-몇-부터-거절할-것인가-셀-4849", "n": "14", "t": "임계값 최적화 — 몇 %부터 거절할 것인가 (셀 48~49)"}, {"id": "s-15-확률-보정-pd가-진짜-확률이-되게-만들기-셀-5052", "n": "15", "t": "확률 보정 — PD가 진짜 확률이 되게 만들기 (셀 50~52)"}, {"id": "s-16-최종-oot-평가-미래-데이터에서의-진실-셀-5355", "n": "16", "t": "최종 OOT 평가 — 미래 데이터에서의 진실 (셀 53~55)"}, {"id": "s-17-shap-모델이-왜-그렇게-판단했는지-셀-5672", "n": "17", "t": "SHAP — 모델이 왜 그렇게 판단했는지 (셀 56~72)"}, {"id": "s-18-permutation-importance-pdp-shap-교차-검증-셀-7376", "n": "18", "t": "Permutation Importance & PDP — SHAP 교차 검증 (셀 73~76)"}, {"id": "s-19-스코어카드-변환-확률을-점수로-셀-7779", "n": "19", "t": "스코어카드 변환 — 확률을 점수로 (셀 77~79)"}, {"id": "s-20-psi-모델이-언제-늙는지-감시하기-셀-8082", "n": "20", "t": "PSI — 모델이 언제 늙는지 감시하기 (셀 80~82)"}, {"id": "s-21-저장과-추론-함수-셀-8385", "n": "21", "t": "저장과 추론 함수 (셀 83~85)"}, {"id": "s-최종-종합-이-모델은-쓸-수-있나", "n": "", "t": "최종 종합 — 이 모델은 쓸 수 있나?"}, {"id": "s-종합-진단표", "n": "", "t": "종합 진단표"}, {"id": "s-한-줄-결론", "n": "", "t": "한 줄 결론"}, {"id": "s-실무에서-이-작업이-어떻게-쓰이나", "n": "", "t": "실무에서 이 작업이 어떻게 쓰이나"}, {"id": "s-1-이-파이프라인이-그대로-쓰이는-곳", "n": "", "t": "1. 이 파이프라인이 그대로 쓰이는 곳"}, {"id": "s-2-실제-프로젝트-진행-흐름", "n": "", "t": "2. 실제 프로젝트 진행 흐름"}, {"id": "s-3-이-노트북-결과로-지금-당장-할-수-있는-것", "n": "", "t": "3. 이 노트북 결과로 지금 당장 할 수 있는 것"}, {"id": "s-한계-무엇을-믿으면-안-되나", "n": "", "t": "한계 — 무엇을 믿으면 안 되나"}, {"id": "s-a-데이터의-한계", "n": "", "t": "A. 데이터의 한계"}, {"id": "s-b-방법론의-한계", "n": "", "t": "B. 방법론의 한계"}, {"id": "s-c-공정성규제의-한계", "n": "", "t": "C. 공정성·규제의 한계"}, {"id": "s-d-운영의-한계", "n": "", "t": "D. 운영의 한계"}, {"id": "s-다음에-뭘-하면-좋은가-우선순위별-실행-계획", "n": "", "t": "다음에 뭘 하면 좋은가 — 우선순위별 실행 계획"}, {"id": "s-1순위-지금-당장-12일-코드-몇-줄", "n": "", "t": "1순위 — 지금 당장 (1~2일, 코드 몇 줄)"}, {"id": "s-2순위-이번-주-25일", "n": "", "t": "2순위 — 이번 주 (2~5일)"}, {"id": "s-3순위-이번-달-13주", "n": "", "t": "3순위 — 이번 달 (1~3주)"}, {"id": "s-4순위-장기-13개월", "n": "", "t": "4순위 — 장기 (1~3개월)"}, {"id": "s-부록-핵심-용어-정리", "n": "", "t": "부록 — 핵심 용어 정리"}, {"id": "s-마지막으로-이-프로젝트에서-가장-값진-것", "n": "", "t": "마지막으로 — 이 프로젝트에서 가장 값진 것"}];</script>
+<script>
+(function(){
+  var root=document.documentElement, bar=document.getElementById('bar'),
+      now=document.getElementById('now'), toc=document.getElementById('toc'),
+      scrim=document.getElementById('scrim'), up=document.getElementById('up'),
+      links=[].slice.call(toc.querySelectorAll('a')),
+      nav=NAVDATA, heads=nav.map(function(x){return document.getElementById(x.id);}),
+      fs=17, cur=-1, ticking=false;
+
+  /* ---- 드로어 ---- */
+  function drawer(open){
+    toc.classList.toggle('on',open); scrim.classList.toggle('on',open);
+    document.body.style.overflow = open ? 'hidden' : '';
+    document.getElementById('menu').setAttribute('aria-expanded',open);
+  }
+  document.getElementById('menu').onclick=function(){drawer(!toc.classList.contains('on'));};
+  document.getElementById('close').onclick=function(){drawer(false);};
+  scrim.onclick=function(){drawer(false);};
+  links.forEach(function(a){a.onclick=function(){
+    if(window.innerWidth<960) setTimeout(function(){drawer(false);},120);
+  };});
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'&&toc.classList.contains('on')) drawer(false);
+  });
+
+  /* ---- 스크롤: 진행률 + 현재 위치 ---- */
+  function paint(){
+    var y=window.scrollY||0,
+        h=document.documentElement.scrollHeight-window.innerHeight,
+        p=h>0?Math.min(100,y/h*100):0;
+    bar.style.width=p.toFixed(2)+'%';
+    up.classList.toggle('on',y>640);
+
+    var i=0, off=y+90;
+    for(var k=0;k<heads.length;k++){ if(heads[k]&&heads[k].offsetTop<=off) i=k; }
+    if(i!==cur){
+      cur=i;
+      var d=nav[i];
+      now.innerHTML=(d.n?'<b>'+d.n+'</b>':'')+
+        d.t.replace(/[<>&]/g,function(c){return{'<':'&lt;','>':'&gt;','&':'&amp;'}[c];});
+      links.forEach(function(a){a.classList.toggle('cur',a.dataset.t===d.id);});
+      var act=toc.querySelector('a.cur');
+      if(act&&window.innerWidth>=960){
+        var r=act.getBoundingClientRect(), c=toc.querySelector('.toc-list').getBoundingClientRect();
+        if(r.top<c.top+40||r.bottom>c.bottom-40) act.scrollIntoView({block:'center'});
+      }
+    }
+    ticking=false;
+  }
+  window.addEventListener('scroll',function(){
+    if(!ticking){ticking=true; requestAnimationFrame(paint);}
+  },{passive:true});
+  window.addEventListener('resize',paint,{passive:true});
+
+  up.onclick=function(){window.scrollTo({top:0,behavior:'smooth'});};
+
+  /* ---- 글자 크기 ---- */
+  function setFs(v){fs=Math.max(14,Math.min(21,v)); root.style.setProperty('--fs',fs+'px'); paint();}
+  document.getElementById('fsm').onclick=function(){setFs(fs-1);};
+  document.getElementById('fsp').onclick=function(){setFs(fs+1);};
+
+  /* ---- 다크 모드 ---- */
+  var mq=window.matchMedia('(prefers-color-scheme: dark)');
+  function apply(d){
+    root.setAttribute('data-theme',d?'dark':'light');
+    document.getElementById('sun').style.display=d?'none':'';
+    document.getElementById('moon').style.display=d?'':'none';
+  }
+  var dark=mq.matches; apply(dark);
+  mq.addEventListener&&mq.addEventListener('change',function(e){dark=e.matches;apply(dark);});
+  document.getElementById('theme').onclick=function(){dark=!dark;apply(dark);};
+
+  /* ---- 표: 넘치는 경우에만 스와이프 힌트, 한 번 밀면 숨김 ---- */
+  [].forEach.call(document.querySelectorAll('.tbl'),function(box){
+    var sc=box.querySelector('.tbl-scroll');
+    function chk(){ if(sc.scrollWidth<=sc.clientWidth+2) box.classList.add('scrolled'); }
+    chk(); window.addEventListener('resize',chk,{passive:true});
+    sc.addEventListener('scroll',function(){box.classList.add('scrolled');},{passive:true,once:true});
+  });
+
+  paint();
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>if(window.hljs){document.querySelectorAll('pre.src code.language-python').forEach(function(el){try{hljs.highlightElement(el)}catch(e){}})}</script>
+</body>
+</html>

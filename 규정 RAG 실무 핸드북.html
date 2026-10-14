@@ -1,0 +1,3098 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>규정 RAG 실무 핸드북</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* 지면 · 글자 */
+  --paper:#FAF9F6;
+  --paper-2:#f3f1eb;
+  --ink:#26292d;
+  --ink-2:#4b4f55;
+  --ink-3:#7a7d82;
+  /* 괘선 */
+  --rule:#e2dfd6;
+  --rule-2:#ece9e2;
+  --rule-3:#b7b3a8;
+  /* 포인트 */
+  --navy:#1f3a5f;
+  --navy-bg:#eef1f6;
+  /* 기존 인라인 스타일 호환용 (핵심 행 강조 = 남색) */
+  --seal:#1f3a5f;
+  --seal-bg:#eef1f6;
+  /* 상태색 — 작은 사각점과 함께만 사용 */
+  --st-off:#9a4a3c;
+  --st-on:#2f6b4f;
+  --valid:#2f6b4f;
+  --valid-bg:#eef3ef;
+  /* 코드 */
+  --code-bg:#1b2733;
+  --code-line:#2c3a48;
+  --code-fg:#dfe4ea;
+  --code-dim:#7f8ea0;
+  --code-str:#a9cfa4;
+  --code-kw:#93b7de;
+  --code-num:#dcc08e;
+
+  --serif:"Noto Serif KR","Nanum Myeongjo","AppleMyungjo",serif;
+  --sans:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono","D2Coding",ui-monospace,SFMono-Regular,Consolas,monospace;
+
+  --text-w:42rem;
+  --wide-w:58rem;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--serif);font-size:17px;line-height:1.9;
+  word-break:keep-all;overflow-wrap:break-word;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+.wrap{display:grid;grid-template-columns:248px minmax(0,1fr);max-width:1320px;margin:0 auto}
+
+/* ── 목차 : 본문 옆 색인 ───────────────────────── */
+nav.toc{
+  position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;
+  padding:3rem 1.2rem 3rem 1.6rem;border-right:1px solid var(--rule);
+  font-family:var(--sans);font-size:13.5px;line-height:1.5;
+}
+nav.toc h2{
+  font-family:var(--sans);font-size:11.5px;font-weight:600;letter-spacing:.12em;
+  color:var(--ink-3);margin:0 0 1.1rem;padding-left:.75rem;
+  display:flex;justify-content:space-between;align-items:center;
+}
+nav.toc ol{list-style:none;margin:0;padding:0}
+nav.toc li{margin:0}
+nav.toc a{
+  display:flex;align-items:baseline;padding:.34rem .5rem .34rem .75rem;color:var(--ink-2);text-decoration:none;
+  border-left:2px solid transparent;transition:color .15s,border-color .15s;
+}
+nav.toc a:hover{color:var(--ink)}
+nav.toc a.active{color:var(--navy);border-left-color:var(--navy);font-weight:600}
+nav.toc a .n{flex:none;display:inline-block;width:3.3em;color:var(--ink-3);font-weight:400;font-variant-numeric:tabular-nums}
+nav.toc a.active .n{color:var(--navy)}
+nav.toc .sub a{padding-left:4.25em;font-size:12.6px;color:var(--ink-3)}
+nav.toc .gap{height:.9rem;margin:0 0 .6rem .75rem;border-bottom:1px solid var(--rule)}
+.toc-toggle{
+  display:none;background:none;border:0;padding:0;cursor:pointer;
+  font-family:var(--sans);font-size:12.5px;letter-spacing:0;color:var(--navy);
+  text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule-3);
+}
+
+main{padding:3.6rem 3.6rem 9rem;min-width:0}
+main > *{max-width:var(--wide-w)}
+
+/* ── 표지 ──────────────────────────────────────── */
+.cover{border-bottom:1px solid var(--rule-3);padding-bottom:3rem;margin-bottom:4.5rem}
+.cover .kicker{font-family:var(--sans);font-size:12.5px;letter-spacing:.06em;color:var(--ink-3);margin:0 0 1rem}
+.cover h1{
+  font-family:var(--serif);font-size:2.75rem;line-height:1.25;font-weight:700;
+  letter-spacing:-.02em;margin:0 0 1.2rem;color:var(--ink);
+}
+.cover .lede{font-size:1.08rem;line-height:1.9;color:var(--ink-2);max-width:var(--text-w);margin:0 0 1.8rem}
+.cover .meta{font-family:var(--sans);font-size:13px;color:var(--ink-3);display:flex;gap:0;flex-wrap:wrap}
+.cover .meta span + span::before{content:"·";margin:0 .7rem;color:var(--rule-3)}
+
+/* 대조표 — 학술서 대조 페이지처럼 */
+.facing{
+  display:grid;grid-template-columns:1fr 1fr;gap:0;
+  border-top:1.5px solid var(--ink-2);border-bottom:1.5px solid var(--ink-2);
+  margin:2.4rem 0 0;max-width:var(--wide-w);
+}
+.facing > div{padding:1.1rem 1.4rem 1.2rem 0}
+.facing > div + div{padding-left:1.4rem;border-left:1px solid var(--rule)}
+.facing h4{margin:0 0 .7rem;font-family:var(--sans);font-size:15px;font-weight:600;line-height:1.5}
+.facing dl{margin:0;font-family:var(--sans);font-size:13.5px;line-height:1.85}
+.facing dt{display:inline-block;min-width:3.4em;color:var(--ink-3)}
+.facing dd{display:inline;margin:0 0 0 .4em;color:var(--ink)}
+.facing dd::after{content:"";display:block}
+
+/* 상태 표기: 작은 사각점 + 글자 */
+.stamp{
+  display:inline-flex;align-items:center;gap:.35em;vertical-align:.08em;margin-left:.3em;
+  font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.02em;
+}
+.stamp::before{content:"";width:.5em;height:.5em;background:currentColor}
+.stamp.on{color:var(--st-on)}
+.stamp.off{color:var(--st-off)}
+
+/* ── 핵심 결론 Callout (남색 옅은 바탕) ───────────── */
+.verdict,
+#apx-c .box.tip{
+  background:var(--navy-bg);border:0;border-left:3px solid var(--navy);border-radius:0;
+  padding:1.1rem 1.4rem;
+}
+.verdict{margin:2rem 0 0;font-size:16px;line-height:1.85;max-width:var(--text-w);color:var(--ink)}
+.verdict strong{color:var(--navy)}
+
+/* ── 장 머리 ───────────────────────────────────── */
+section.ch{margin:0 0 6rem;scroll-margin-top:1.5rem}
+section.ch > .chead{
+  border-bottom:1px solid var(--rule);padding:0 0 1.6rem;margin-bottom:2.2rem;max-width:var(--wide-w);
+}
+section.ch > .chead .cno{
+  font-family:var(--sans);font-size:12px;font-weight:500;color:var(--ink-3);letter-spacing:.14em;
+}
+section.ch > .chead h2{
+  font-family:var(--serif);font-size:2.2rem;line-height:1.35;font-weight:700;
+  letter-spacing:-.015em;margin:.45rem 0 .8rem;color:var(--ink);
+}
+section.ch > .chead p{margin:0;color:var(--ink-2);font-size:17px;line-height:1.85;max-width:var(--text-w)}
+
+/* ── 본문 계층 ─────────────────────────────────── */
+h3{
+  font-family:var(--sans);font-size:1.28rem;font-weight:600;line-height:1.5;
+  margin:3.4rem 0 1rem;letter-spacing:-.01em;color:var(--ink);max-width:var(--text-w);
+}
+h3 .hn{color:var(--navy);font-weight:600;margin-right:.55em;font-variant-numeric:tabular-nums}
+h4{font-family:var(--sans);font-size:1.05rem;font-weight:600;margin:2.2rem 0 .6rem;color:var(--ink);max-width:var(--text-w)}
+p{margin:0 0 1.15rem;max-width:var(--text-w)}
+ul,ol{max-width:var(--text-w);padding-left:1.4rem;margin:0 0 1.3rem}
+li{margin:0 0 .45rem}
+li::marker{color:var(--ink-3)}
+a{color:var(--navy);text-decoration:underline;text-decoration-color:var(--rule-3);text-underline-offset:3px;text-decoration-thickness:1px}
+a:hover{text-decoration-color:var(--navy)}
+strong{font-weight:700;color:var(--ink)}
+em{font-style:normal;color:var(--navy)}
+code{
+  font-family:var(--mono);font-size:.84em;background:var(--paper-2);
+  padding:.08em .34em;border-radius:2px;color:var(--ink);word-break:break-all;
+}
+hr{border:0;border-top:1px solid var(--rule);margin:3rem 0}
+
+/* ── 코드 블록 ─────────────────────────────────── */
+.code{
+  margin:1.5rem 0 1.6rem;max-width:var(--wide-w);
+  background:var(--code-bg);border:1px solid var(--code-line);border-radius:3px;overflow:hidden;
+}
+.code .bar{
+  display:flex;justify-content:space-between;align-items:center;gap:1rem;
+  padding:.5rem 1.1rem;border-bottom:1px solid var(--code-line);
+  font-family:var(--mono);font-size:11.5px;color:var(--code-dim);letter-spacing:.01em;
+}
+.code .bar > span:first-child{color:#c9d2dc}
+.code .bar .tag{color:var(--code-dim);font-family:var(--sans);font-size:11.5px}
+.code .bar .tag.bad{color:#d39a8f}
+.code .bar > span.tag:first-child{color:#d39a8f;font-family:var(--mono)}
+.code pre{margin:0;padding:1.05rem 1.2rem 1.15rem;overflow-x:auto;tab-size:4}
+.code code{
+  background:none;padding:0;border-radius:0;color:var(--code-fg);word-break:normal;
+  font-family:var(--mono);font-size:13px;line-height:1.7;display:block;white-space:pre;
+}
+.code .c{color:var(--code-dim);font-style:normal}
+.code .k{color:var(--code-kw)}
+.code .s{color:var(--code-str)}
+.code .n{color:var(--code-num)}
+.code .hl{background:rgba(147,183,222,.10);box-shadow:inset 2px 0 0 #93b7de;display:block;margin:0 -1.2rem;padding:0 1.2rem}
+
+/* 결과 블록 — 코드 바로 아래 붙여 '코드 → 결과' 흐름 */
+.out{
+  margin:1.4rem 0 1.6rem;max-width:var(--wide-w);
+  border:1px solid var(--rule);border-left:2px solid var(--rule-3);
+  background:var(--paper-2);border-radius:0;
+  font-family:var(--mono);font-size:12.6px;line-height:1.7;word-break:normal;
+  padding:.9rem 1.2rem;overflow-x:auto;white-space:pre;color:var(--ink-2);
+}
+.code:has(+ .out){margin-bottom:0;border-radius:3px 3px 0 0}
+.code + .out{margin-top:0;border-top:0;border-radius:0 0 3px 3px}
+.out .lbl{font-family:var(--sans);font-style:normal;font-size:11.5px;font-weight:600;letter-spacing:.04em;color:var(--ink-3)}
+.out b{color:var(--ink);font-weight:600}
+
+/* ── 참고·주의 Callout : 배경 없이 1px 괘선 ─────── */
+.box{
+  margin:1.6rem 0;padding:.15rem 0 .15rem 1.2rem;max-width:var(--text-w);
+  border:0;border-left:1px solid var(--rule-3);border-radius:0;background:none;
+  font-size:16px;line-height:1.85;color:var(--ink-2);
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  display:flex;align-items:center;gap:.5em;
+  font-family:var(--sans);font-weight:600;font-size:13px;letter-spacing:.01em;
+  color:var(--ink);margin-bottom:.4rem;
+}
+.box .bt::before{content:"";flex:none;width:.45em;height:.45em;background:var(--ink-3)}
+.box.warn .bt::before{background:var(--st-off)}
+.box.tip .bt::before{background:var(--navy)}
+.box strong{color:var(--ink)}
+.box .code,.box .out{max-width:100%}
+.box .code{margin:.9rem 0}
+#apx-c .box.tip{color:var(--ink);margin:1.1rem 0}
+#apx-c .box.tip .bt{color:var(--navy)}
+#apx-c .box.tip .bt::before{display:none}
+
+/* ── 표 : 학술서 스타일 ────────────────────────── */
+table{
+  border-collapse:collapse;width:100%;max-width:var(--wide-w);margin:1.6rem 0 1.9rem;
+  font-family:var(--sans);font-size:14px;line-height:1.65;
+  border-top:1.5px solid var(--ink-2);border-bottom:1.5px solid var(--ink-2);
+}
+th,td{border:0;border-bottom:1px solid var(--rule-2);padding:.62rem .8rem;text-align:left;vertical-align:top}
+th:first-child,td:first-child{padding-left:.2rem}
+th{background:none;font-weight:600;font-size:13px;color:var(--ink);border-bottom:1px solid var(--rule-3);letter-spacing:.01em}
+tbody tr:last-child td{border-bottom:0}
+td strong{font-weight:600}
+td code{font-size:12.4px}
+td[colspan]{font-size:12.5px;letter-spacing:.04em;padding-top:.5rem;padding-bottom:.5rem}
+.tnum{font-variant-numeric:tabular-nums;text-align:right}
+
+/* ── 그림 ──────────────────────────────────────── */
+main{counter-reset:fig}
+figure{
+  margin:2.2rem 0 2.4rem;padding:1.5rem 0 0;max-width:var(--wide-w);
+  border-top:1px solid var(--rule);counter-increment:fig;
+}
+figure svg{display:block;width:100%;height:auto;max-width:760px;margin:0 auto}
+figcaption{
+  font-family:var(--sans);font-size:13px;line-height:1.7;color:var(--ink-3);
+  margin:1rem auto 0;max-width:760px;text-align:left;
+}
+figcaption::before{content:"그림 " counter(fig) ".";font-weight:600;color:var(--ink);margin-right:.5em}
+.dim{fill:var(--ink-3)}
+
+/* 단계 목록 — 원 없이 번호만 */
+ol.steps{list-style:none;padding:0;counter-reset:s}
+ol.steps > li{counter-increment:s;position:relative;padding-left:2.1rem;margin-bottom:1.05rem}
+ol.steps > li::before{
+  content:counter(s) ".";position:absolute;left:0;top:0;
+  font-family:var(--sans);font-size:15px;font-weight:600;color:var(--navy);font-variant-numeric:tabular-nums;
+}
+
+@media (max-width:1100px){
+  main{padding:3rem 2.4rem 7rem}
+}
+@media (max-width:940px){
+  body{font-size:16.5px}
+  .wrap{grid-template-columns:1fr}
+  nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule);padding:1.1rem 1.2rem}
+  nav.toc h2{margin:0;padding-left:0}
+  .toc-toggle{display:inline}
+  nav.toc ol{columns:2;column-gap:.8rem;margin-top:.9rem}
+  nav.toc.collapsed ol{display:none}
+  nav.toc li{break-inside:avoid}
+  nav.toc a{padding-left:.5rem}
+  nav.toc a .n{width:2.9em}
+  nav.toc .sub,nav.toc .gap{display:none}
+  main{padding:2.2rem 1.1rem 5rem}
+  .cover h1{font-size:2.05rem}
+  section.ch > .chead h2{font-size:1.75rem}
+  .facing{grid-template-columns:1fr}
+  .facing > div{padding:1rem 0}
+  .facing > div + div{padding-left:0;border-left:0;border-top:1px solid var(--rule)}
+  table{display:block;overflow-x:auto}
+}
+@media print{
+  nav.toc{display:none}
+  .wrap{grid-template-columns:1fr}
+  body{background:#fff}
+  section.ch{page-break-inside:auto}
+  .code,figure,table{page-break-inside:avoid}
+}
+
+/* ════════ 학습자료 스타일 보정 ════════ */
+/* 차가운 회색 지면 · 괘선 (따뜻한 베이지 제거) */
+:root{
+  --paper:#F5F6F4;
+  --paper-2:#EEF0ED;
+  --ink-3:#6e7378;
+  --rule:#D8DBD5;
+  --rule-2:#E4E7E3;
+  --rule-3:#AEB4AF;
+  --navy-bg:#EAEEF3;
+  --seal-bg:#EAEEF3;
+  --code-inline:#E8EBE8;
+  --plate:#FFFFFF;
+  --caution:#9a4a32;
+  --code-head:#22303e;
+  --code-accent:#5a84b3;
+  --serif:"Noto Serif KR","Noto Serif CJK KR","Source Han Serif K","Nanum Myeongjo",AppleMyungjo,Batang,"바탕",serif;
+}
+nav.toc{background:var(--paper)}
+nav.toc a:hover{color:var(--navy)}
+nav.toc h2{padding-bottom:.9rem;border-bottom:1px solid var(--rule-2)}
+code{background:var(--code-inline);color:#2b3440;word-break:normal;overflow-wrap:anywhere}
+.cover{border-bottom-color:var(--rule)}
+
+/* 코드 : 각진 모서리, 파일명 헤더 바탕, 왼쪽 3px 강철 청색 */
+.code{border-radius:0;border-left:3px solid var(--code-accent)}
+.code .bar{background:var(--code-head)}
+.code:has(+ .out){border-radius:0}
+.code + .out{border-radius:0}
+.out{background:#ECEEEB;border-radius:0}
+
+/* 콜아웃 3종 */
+.box .bt{font-size:16px;line-height:1.5;margin-bottom:.45rem}
+/* 참고 : 배경 없이 1px 괘선, 한 단계 낮게, 머리글 본문색 */
+.box .bt::before,.box.tip .bt::before{display:none}
+/* 주의 : 1px 적갈색 선 + 적갈색 머리글(작은 사각점), 본문은 본문색 */
+.box.warn{border-left-color:var(--caution);font-size:17px;color:var(--ink)}
+.box.warn .bt{color:var(--caution)}
+.box.warn .bt::before{display:block;width:6px;height:6px;background:var(--caution)}
+/* 핵심 : 남색 옅은 바탕 + 왼쪽 3px 남색 선 */
+.box.key,.verdict{background:var(--navy-bg);border-left:3px solid var(--navy);padding:1.1rem 1.4rem 1.15rem;font-size:17px;color:var(--ink)}
+.box.key .bt{color:var(--navy)}
+.verdict{font-size:16.5px}
+
+/* 그림 : 흰 판 + 1px 괘선, 캡션은 판 밖 아래 */
+figure{border-top:0;padding:0}
+.plate{background:var(--plate);border:1px solid var(--rule);padding:1.5rem 1.6rem}
+figcaption{margin:.75rem 0 0;max-width:var(--text-w);font-size:13.5px}
+
+@media (max-width:940px){
+  nav.toc h2{padding-bottom:0;border-bottom:0}
+  .plate{padding:.9rem}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav class="toc">
+  <h2>목차</h2>
+  <ol>
+    <li><a href="#ch1"><span class="n">1장</span>왜 단순 RAG는 깨지는가</a></li>
+    <li><a href="#ch2"><span class="n">2장</span>RAG 기초 다지기</a></li>
+    <li><a href="#ch3"><span class="n">3장</span>파싱과 청킹</a></li>
+    <li class="sub"><a href="#ch3-3">부칙 함정</a></li>
+    <li><a href="#ch4"><span class="n">4장</span>메타데이터와 시간축</a></li>
+    <li><a href="#ch5"><span class="n">5장</span>임베딩과 벡터DB</a></li>
+    <li><a href="#ch6"><span class="n">6장</span>하이브리드 검색</a></li>
+    <li><a href="#ch7"><span class="n">7장</span>필터·라우팅·시점조회</a></li>
+    <li><a href="#ch8"><span class="n">8장</span>리랭킹과 부모청크</a></li>
+    <li><a href="#ch9"><span class="n">9장</span>프롬프트와 생성</a></li>
+    <li><a href="#ch10"><span class="n">10장</span>평가</a></li>
+    <li><a href="#ch11"><span class="n">11장</span>운영과 성능</a></li>
+    <li><a href="#ch12"><span class="n">12장</span>완성 코드</a></li>
+    <li><a href="#ch13"><span class="n">13장</span>트러블슈팅</a></li>
+    <div class="gap"></div>
+    <li><a href="#apx-a"><span class="n">부록A</span>용어집</a></li>
+    <li><a href="#apx-b"><span class="n">부록B</span>체크리스트</a></li>
+    <li><a href="#apx-c"><span class="n">부록C</span>다음 단계</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<header class="cover">
+  <p class="kicker">실습 기반 학습 자료 · 금융 규정 도메인</p>
+  <h1>규정 RAG 실무 핸드북</h1>
+  <p class="lede">
+    PDF를 잘라 벡터DB에 넣고 검색해서 프롬프트에 붙이는 것까지는 누구나 합니다.
+    그 다음이 문제입니다. 폐지된 규정과 현행 규정이 똑같이 생겼을 때,
+    조문 번호를 잘못 인용했을 때, 답이 없는 질문에 억지로 답할 때
+    무엇을 어떻게 고치는지를 다룹니다.
+  </p>
+  <div class="meta">
+    <span>실습 문서 2종 · 청크 78개</span>
+    <span>임베딩 BAAI/bge-m3</span>
+    <span>LLM Qwen3-4B-Instruct (로컬)</span>
+  </div>
+
+  <div class="facing">
+    <div>
+      <h4>금융기관 여신운용세칙 <span class="stamp off">폐지</span></h4>
+      <dl>
+        <dt>발령</dt><dd>한국은행</dd>
+        <dt>시행</dt><dd>1991.04.06</dd>
+        <dt>구조</dt><dd>제N조 → ①항 (법령체)</dd>
+        <dt>제5조</dt><dd>대출보증은 총대출금의 10% 범위내</dd>
+      </dl>
+    </div>
+    <div>
+      <h4>내집마련 디딤돌 대출 업무처리기준 <span class="stamp on">시행</span></h4>
+      <dl>
+        <dt>발령</dt><dd>한국주택금융공사</dd>
+        <dt>시행</dt><dd>2026.07.14</dd>
+        <dt>구조</dt><dd>제N장 → N 섹션 (매뉴얼체)</dd>
+        <dt>제3장</dt><dd>담보주택 당 한도 2억원 이내</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="verdict">
+    두 문서에 "대출 한도는 얼마까지인가"를 물었을 때 실제 유사도는
+    현행 <strong>0.711</strong>, 폐지 <strong>0.667</strong>이었습니다.
+    차이는 0.044. 질문을 조금만 바꿔도 순위가 뒤집힙니다.
+    <strong>최신성 문제는 임베딩 모델로 풀 수 없습니다.</strong>
+    이 핸드북은 그 사실에서 출발합니다.
+  </div>
+</header>
+
+
+<!-- ══════════════════ 1장 ══════════════════ -->
+<section class="ch" id="ch1">
+  <div class="chead">
+    <div class="cno">제 1 장</div>
+    <h2>왜 단순 RAG는 깨지는가</h2>
+    <p>가장 기본적인 형태의 RAG가 실무에서 무너지는 다섯 지점을 먼저 짚습니다. 이 다섯 가지가 나머지 열두 개 장의 목차가 됩니다.</p>
+  </div>
+
+  <h3><span class="hn">1.1</span>우리가 지금까지 한 것</h3>
+  <p>
+    보통 처음 RAG를 배울 때 만드는 구조는 이렇습니다. 이것을 <strong>Naive RAG</strong>라고 부릅니다.
+  </p>
+
+  <figure>
+    <div class="plate"><svg viewBox="0 0 720 96" xmlns="http://www.w3.org/2000/svg" font-family="'IBM Plex Sans KR',sans-serif" font-size="12">
+      <defs>
+        <marker id="ar1" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6" fill="none" stroke="#6e7378" stroke-width="1.3"/>
+        </marker>
+      </defs>
+      <g fill="none" stroke="#D8DBD5" stroke-width="1.4">
+        <rect x="2" y="30" width="96" height="38" rx="4"/>
+        <rect x="128" y="30" width="96" height="38" rx="4"/>
+        <rect x="254" y="30" width="96" height="38" rx="4"/>
+        <rect x="380" y="30" width="96" height="38" rx="4"/>
+        <rect x="506" y="30" width="96" height="38" rx="4"/>
+        <rect x="632" y="30" width="86" height="38" rx="4"/>
+      </g>
+      <g fill="#26292d" text-anchor="middle">
+        <text x="50" y="54">PDF 읽기</text>
+        <text x="176" y="54">500자 분할</text>
+        <text x="302" y="54">임베딩</text>
+        <text x="428" y="54">벡터DB 적재</text>
+        <text x="554" y="54">유사도 top-k</text>
+        <text x="675" y="54">LLM 답변</text>
+      </g>
+      <g stroke="#6e7378" stroke-width="1.3" marker-end="url(#ar1)">
+        <line x1="100" y1="49" x2="124" y2="49"/>
+        <line x1="226" y1="49" x2="250" y2="49"/>
+        <line x1="352" y1="49" x2="376" y2="49"/>
+        <line x1="478" y1="49" x2="502" y2="49"/>
+        <line x1="604" y1="49" x2="628" y2="49"/>
+      </g>
+      <text x="360" y="16" text-anchor="middle" fill="#6e7378" font-size="11">Naive RAG — 각 단계가 한 줄씩</text>
+      <text x="360" y="88" text-anchor="middle" fill="#9a4a3c" font-size="11">문서가 늘고 조건이 붙기 시작하면 4·5번째 칸에서 무너진다</text>
+    </svg></div>
+    <figcaption>Naive RAG 파이프라인. 학습용으로는 충분하지만 운영에 올리면 검색 실패가 빈발합니다.</figcaption>
+  </figure>
+
+  <h3><span class="hn">1.2</span>다섯 개의 고장 지점</h3>
+
+  <table>
+    <thead><tr><th style="width:15%">고장</th><th style="width:45%">구체적 증상</th><th style="width:40%">해결 위치</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>의미 절단</strong></td>
+        <td>500자에서 잘려 "다만, 다음의 경우는 제외한다"가 다음 청크로 넘어감. 단서 조항이 사라진 채 답변됨</td>
+        <td>구조 인식 청킹 (<a href="#ch3">3장</a>)</td>
+      </tr>
+      <tr>
+        <td><strong>문맥 소실</strong></td>
+        <td>청크에 "이 경우 전항의 한도를 준용한다"만 남음. 전항이 무엇인지 알 수 없어 검색도 이해도 불가</td>
+        <td>위치 정보 주입 · 부모 청크 (<a href="#ch3">3장</a>, <a href="#ch8">8장</a>)</td>
+      </tr>
+      <tr>
+        <td><strong>최신성</strong></td>
+        <td>개정 전·후 조문이 동시에 top-k에 들어옴. 문장이 90% 같아 벡터 공간에서 분리 불가</td>
+        <td>메타데이터 필터 (<a href="#ch4">4장</a>, <a href="#ch7">7장</a>)</td>
+      </tr>
+      <tr>
+        <td><strong>어휘 불일치</strong></td>
+        <td>"제15조", "LTV 70%", "BIS비율" 같은 고유명사·숫자를 벡터가 놓침</td>
+        <td>BM25 하이브리드 (<a href="#ch6">6장</a>)</td>
+      </tr>
+      <tr>
+        <td><strong>고정 top-k</strong></td>
+        <td>관련 문서가 0개인데 억지로 4개를 채워 넣어 LLM이 엮어서 답함</td>
+        <td>리랭커 + 임계값 (<a href="#ch8">8장</a>)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="box warn">
+    <span class="bt">가장 먼저 버려야 할 직감</span>
+    검색 결과가 나쁠 때 임베딩 모델을 더 큰 것으로 바꾸고 싶어집니다.
+    대부분의 경우 원인은 그 앞 단계, 즉 <strong>청킹과 메타데이터</strong>에 있습니다.
+    파싱에서 누락되거나 잘못 라벨링된 조항은 어떤 모델을 써도 찾을 수 없습니다.
+    이 핸드북의 <a href="#ch3-3">3.3절</a>에 실제 사례가 있습니다.
+  </div>
+
+  <h3><span class="hn">1.3</span>이 문서가 목표로 하는 구조</h3>
+  <p>
+    앞으로 만들 파이프라인은 이렇게 길어집니다. 지금 전부 이해할 필요는 없고,
+    각 장을 읽은 뒤 이 그림으로 돌아와서 자기 위치를 확인하면 됩니다.
+  </p>
+
+  <figure>
+    <div class="plate"><svg viewBox="0 0 720 380" xmlns="http://www.w3.org/2000/svg" font-family="'IBM Plex Sans KR',sans-serif" font-size="11.5">
+      <defs>
+        <marker id="ar2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6" fill="none" stroke="#6e7378" stroke-width="1.2"/>
+        </marker>
+      </defs>
+
+      <!-- 인덱싱 -->
+      <rect x="1" y="14" width="718" height="104" rx="5" fill="#EEF0ED" stroke="#D8DBD5"/>
+      <text x="14" y="32" fill="#6e7378" font-size="11" font-weight="700">인덱싱 — 문서가 들어올 때 한 번</text>
+      <g fill="none" stroke="#26292d" stroke-width="1.2">
+        <rect x="16" y="44" width="94" height="34" rx="3"/>
+        <rect x="132" y="44" width="94" height="34" rx="3"/>
+        <rect x="248" y="44" width="94" height="34" rx="3"/>
+        <rect x="364" y="44" width="112" height="34" rx="3"/>
+        <rect x="498" y="44" width="94" height="34" rx="3"/>
+        <rect x="614" y="44" width="90" height="34" rx="3"/>
+      </g>
+      <g fill="#26292d" text-anchor="middle">
+        <text x="63" y="65">원본 PDF</text>
+        <text x="179" y="65">구조 파싱</text>
+        <text x="295" y="65">계층 청킹</text>
+        <text x="420" y="65">메타데이터 부착</text>
+        <text x="545" y="65">임베딩</text>
+        <text x="659" y="65">색인 2종</text>
+      </g>
+      <g stroke="#6e7378" stroke-width="1.2" marker-end="url(#ar2)">
+        <line x1="112" y1="61" x2="128" y2="61"/><line x1="228" y1="61" x2="244" y2="61"/>
+        <line x1="344" y1="61" x2="360" y2="61"/><line x1="478" y1="61" x2="494" y2="61"/>
+        <line x1="594" y1="61" x2="610" y2="61"/>
+      </g>
+      <text x="420" y="94" text-anchor="middle" fill="#9a4a3c" font-size="10.5">시행일 · 조항번호 · 부서 · 권한</text>
+      <text x="659" y="94" text-anchor="middle" fill="#6e7378" font-size="10.5">벡터 + BM25</text>
+
+      <!-- 검색 -->
+      <rect x="1" y="132" width="718" height="128" rx="5" fill="#EEF0ED" stroke="#D8DBD5"/>
+      <text x="14" y="150" fill="#6e7378" font-size="11" font-weight="700">검색 — 질문이 들어올 때마다</text>
+      <g fill="none" stroke="#26292d" stroke-width="1.2">
+        <rect x="16" y="162" width="84" height="34" rx="3"/>
+        <rect x="122" y="162" width="94" height="34" rx="3"/>
+        <rect x="238" y="162" width="104" height="34" rx="3"/>
+        <rect x="364" y="162" width="104" height="34" rx="3"/>
+        <rect x="490" y="162" width="94" height="34" rx="3"/>
+        <rect x="606" y="162" width="98" height="34" rx="3"/>
+      </g>
+      <g fill="#26292d" text-anchor="middle">
+        <text x="58" y="183">질의</text>
+        <text x="169" y="183">라우팅</text>
+        <text x="290" y="183">메타 필터</text>
+        <text x="416" y="183">하이브리드</text>
+        <text x="537" y="183">RRF 융합</text>
+        <text x="655" y="183">리랭커</text>
+      </g>
+      <g stroke="#6e7378" stroke-width="1.2" marker-end="url(#ar2)">
+        <line x1="102" y1="179" x2="118" y2="179"/><line x1="218" y1="179" x2="234" y2="179"/>
+        <line x1="344" y1="179" x2="360" y2="179"/><line x1="470" y1="179" x2="486" y2="179"/>
+        <line x1="586" y1="179" x2="602" y2="179"/>
+      </g>
+      <g fill="#6e7378" font-size="10.5" text-anchor="middle">
+        <text x="169" y="212">현행 / 시점 / 이력</text>
+        <text x="290" y="212">폐지본 차단</text>
+        <text x="416" y="212">벡터 + BM25</text>
+        <text x="655" y="212">임계값 미달 폐기</text>
+      </g>
+      <g fill="none" stroke="#26292d" stroke-width="1.2">
+        <rect x="238" y="222" width="228" height="28" rx="3"/>
+      </g>
+      <text x="352" y="240" text-anchor="middle" fill="#26292d">부모 청크 확장 → 컨텍스트 조립</text>
+      <path d="M655,196 L655,236 L470,236" fill="none" stroke="#6e7378" stroke-width="1.2" marker-end="url(#ar2)"/>
+
+      <!-- 생성 -->
+      <rect x="1" y="274" width="718" height="60" rx="5" fill="#EEF0ED" stroke="#D8DBD5"/>
+      <text x="14" y="292" fill="#6e7378" font-size="11" font-weight="700">생성</text>
+      <g fill="none" stroke="#26292d" stroke-width="1.2">
+        <rect x="150" y="300" width="150" height="26" rx="3"/>
+        <rect x="330" y="300" width="90" height="26" rx="3"/>
+        <rect x="450" y="300" width="130" height="26" rx="3"/>
+      </g>
+      <g fill="#26292d" text-anchor="middle">
+        <text x="225" y="317">인용 강제 프롬프트</text>
+        <text x="375" y="317">LLM</text>
+        <text x="515" y="317">근거 검증</text>
+      </g>
+      <g stroke="#6e7378" stroke-width="1.2" marker-end="url(#ar2)">
+        <line x1="302" y1="313" x2="326" y2="313"/><line x1="422" y1="313" x2="446" y2="313"/>
+      </g>
+
+      <!-- 평가 루프 -->
+      <path d="M40,334 L40,360 L680,360 L680,334" fill="none" stroke="#9a4a3c" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ar2)"/>
+      <rect x="290" y="348" width="140" height="24" rx="3" fill="#f7efec" stroke="#9a4a3c" stroke-width="1.2"/>
+      <text x="360" y="364" text-anchor="middle" fill="#9a4a3c">평가 · 회귀 테스트</text>
+    </svg></div>
+    <figcaption>완성형 파이프라인. 붉은 점선이 평가 루프이며, 이것이 없으면 나머지를 고쳐도 좋아졌는지 알 수 없습니다.</figcaption>
+  </figure>
+</section>
+
+
+<!-- ══════════════════ 2장 ══════════════════ -->
+<section class="ch" id="ch2">
+  <div class="chead">
+    <div class="cno">제 2 장</div>
+    <h2>RAG 기초 다지기</h2>
+    <p>이미 아는 내용이면 3장으로 건너뛰어도 됩니다. 다만 "왜 파인튜닝이 아니라 RAG인가"와 "청크·임베딩·유사도"의 정확한 의미는 뒤에서 계속 쓰이므로 한 번 정리하고 갑니다.</p>
+  </div>
+
+  <h3><span class="hn">2.1</span>RAG가 하는 일</h3>
+  <p>
+    LLM은 학습 시점 이후의 정보나 사내 문서를 모릅니다. 모르는 걸 물으면 그럴듯하게 지어냅니다.
+    RAG(Retrieval-Augmented Generation)는 이 문제를 아주 단순하게 해결합니다.
+    <strong>답하기 전에 관련 문서를 찾아서 프롬프트에 붙여준다</strong>는 것입니다.
+  </p>
+  <p>
+    비유하자면 시험을 오픈북으로 바꾸는 것입니다. 학생(LLM)의 머리를 다시 만드는 게 아니라,
+    문제를 풀 때 필요한 페이지를 찾아서 책상 위에 펼쳐 놓아 줍니다.
+    그래서 RAG의 성능은 <strong>LLM이 얼마나 똑똑한가</strong>보다
+    <strong>올바른 페이지를 펼쳐 줬는가</strong>에 훨씬 크게 좌우됩니다.
+    이 핸드북의 거의 전부가 "올바른 페이지를 펼치는 법"인 이유입니다.
+  </p>
+
+  <h4>파인튜닝과의 비교</h4>
+  <table>
+    <thead><tr><th style="width:18%"></th><th style="width:41%">RAG</th><th style="width:41%">파인튜닝</th></tr></thead>
+    <tbody>
+      <tr><td>바꾸는 것</td><td>모델에 주는 입력</td><td>모델의 가중치</td></tr>
+      <tr><td>지식 갱신</td><td>문서만 교체하면 즉시 반영</td><td>재학습 필요 (수 시간~일)</td></tr>
+      <tr><td>출처 제시</td><td>가능 — 어느 조문에서 왔는지 추적됨</td><td>불가능</td></tr>
+      <tr><td>잘하는 일</td><td>사실 기반 질의응답, 규정 조회</td><td>말투·형식·특정 태스크 숙달</td></tr>
+      <tr><td>규정 도메인</td><td><strong>적합</strong> — 개정이 잦고 출처가 필수</td><td>부적합 — 개정마다 재학습 불가</td></tr>
+    </tbody>
+  </table>
+  <p>
+    은행 규정처럼 <strong>자주 바뀌고, 출처를 반드시 밝혀야 하고, 틀리면 책임 문제가 생기는</strong> 영역은
+    RAG가 정답에 가깝습니다. 말투를 다듬는 정도의 파인튜닝은 나중에 얹을 수 있습니다.
+  </p>
+
+  <h3><span class="hn">2.2</span>핵심 용어 네 가지</h3>
+
+  <h4>청크(chunk)</h4>
+  <p>
+    문서를 검색 가능한 단위로 자른 조각입니다. 너무 크면 관련 없는 내용이 섞여 검색 정밀도가 떨어지고,
+    너무 작으면 문맥이 끊겨 이해가 안 됩니다. 규정 문서에서는 <strong>"제15조 제2항" 같은 법적 단위</strong>가
+    자연스러운 청크 크기입니다. 3장에서 자세히 다룹니다.
+  </p>
+
+  <h4>임베딩(embedding)</h4>
+  <p>
+    텍스트를 숫자 배열(벡터)로 바꾸는 것입니다. 예를 들어 bge-m3는 문장 하나를 1024개의 숫자로 바꿉니다.
+    핵심은 <strong>의미가 비슷한 문장은 비슷한 숫자 배열이 된다</strong>는 것입니다.
+    그래서 "대출 한도가 얼마야"와 "여신 최대 금액은"이 서로 가까운 위치에 놓입니다.
+  </p>
+
+  <h4>코사인 유사도(cosine similarity)</h4>
+  <p>
+    두 벡터가 이루는 각도로 유사성을 재는 방법입니다. 값은 −1에서 1 사이이고, 1에 가까울수록 비슷합니다.
+    벡터 길이(크기)를 무시하고 <strong>방향만</strong> 보기 때문에, 문장 길이가 달라도 공정하게 비교됩니다.
+  </p>
+
+  <figure>
+    <div class="plate"><svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" font-family="'IBM Plex Sans KR',sans-serif" font-size="11.5">
+      <!-- 좌: 개념 -->
+      <text x="12" y="20" fill="#6e7378" font-size="11" font-weight="700">벡터 공간에서의 의미</text>
+      <line x1="40" y1="220" x2="330" y2="220" stroke="#D8DBD5" stroke-width="1.2"/>
+      <line x1="40" y1="220" x2="40" y2="42" stroke="#D8DBD5" stroke-width="1.2"/>
+      <g stroke="#26292d" stroke-width="1.6" fill="none">
+        <line x1="40" y1="220" x2="210" y2="80"/>
+        <line x1="40" y1="220" x2="232" y2="98"/>
+        <line x1="40" y1="220" x2="290" y2="196"/>
+      </g>
+      <g fill="#26292d">
+        <circle cx="210" cy="80" r="3.4"/><circle cx="232" cy="98" r="3.4"/><circle cx="290" cy="196" r="3.4"/>
+      </g>
+      <text x="216" y="72" fill="#26292d">"대출 한도가 얼마야"</text>
+      <text x="238" y="112" fill="#26292d">"여신 최대 금액은"</text>
+      <text x="240" y="212" fill="#6e7378">"점심 뭐 먹지"</text>
+      <path d="M96,182 A72,72 0 0,1 108,170" fill="none" stroke="#2f6b4f" stroke-width="1.6"/>
+      <text x="112" y="180" fill="#2f6b4f" font-size="10.5">작은 각도 = 높은 유사도</text>
+
+      <!-- 우: 수식 -->
+      <rect x="378" y="42" width="330" height="178" rx="5" fill="#EEF0ED" stroke="#D8DBD5"/>
+      <text x="398" y="70" fill="#26292d" font-size="12.5" font-weight="700">코사인 유사도</text>
+      <text x="398" y="98" fill="#26292d" font-family="'IBM Plex Mono',monospace" font-size="12">sim(A,B) = (A · B) / (|A| × |B|)</text>
+      <text x="398" y="126" fill="#6e7378" font-size="11">정규화(normalize)해 두면 |A|=|B|=1 이므로</text>
+      <text x="398" y="146" fill="#26292d" font-family="'IBM Plex Mono',monospace" font-size="12">sim(A,B) = A · B  (내적만 계산)</text>
+      <line x1="398" y1="160" x2="688" y2="160" stroke="#D8DBD5"/>
+      <text x="398" y="180" fill="#6e7378" font-size="11">Chroma는 거리(distance)를 반환하므로</text>
+      <text x="398" y="200" fill="#9a4a3c" font-family="'IBM Plex Mono',monospace" font-size="12">유사도 = 1 − distance</text>
+    </svg></div>
+    <figcaption>임베딩이 정규화되어 있으면 코사인 유사도는 단순 내적이 됩니다. 그래서 <code>normalize_embeddings=True</code>와 <code>hnsw:space="cosine"</code>을 짝으로 맞춥니다.</figcaption>
+  </figure>
+
+  <h4>벡터 데이터베이스</h4>
+  <p>
+    수만~수억 개의 벡터 중에서 질의 벡터와 가까운 것을 빠르게 찾아 주는 저장소입니다.
+    전부 하나씩 비교하면 느리기 때문에 <strong>HNSW</strong> 같은 근사 최근접 탐색(ANN) 알고리즘을 씁니다.
+    "근사"이므로 아주 드물게 진짜 1등을 놓칠 수 있지만, 속도 이득이 압도적이라 표준으로 쓰입니다.
+    이 실습에서는 설치가 간단한 <strong>Chroma</strong>를 씁니다.
+  </p>
+
+  <div class="box info">
+    <span class="bt">벡터DB는 필수가 아닙니다</span>
+    청크가 수천 개 수준이면 numpy 배열에 전부 넣고 내적 한 번 계산하는 게 더 빠르고 단순합니다.
+    벡터DB를 쓰는 진짜 이유는 속도보다 <strong>메타데이터 필터링, 영속화, 증분 업데이트</strong>입니다.
+    이 핸드북에서 Chroma를 쓰는 이유도 <code>where</code> 필터 때문입니다.
+  </div>
+
+  <h3><span class="hn">2.3</span>실습 환경</h3>
+  <table>
+    <thead><tr><th style="width:22%">구성 요소</th><th style="width:33%">선택</th><th style="width:45%">이유</th></tr></thead>
+    <tbody>
+      <tr><td>임베딩</td><td><code>BAAI/bge-m3</code></td><td>한국어 포함 100개 이상 언어 지원, 1024차원, 최대 8192토큰. 한국어 규정 문서에 무난</td></tr>
+      <tr><td>벡터DB</td><td><code>chromadb</code></td><td>pip 하나로 설치, 로컬 파일로 영속화, <code>where</code> 필터 지원</td></tr>
+      <tr><td>키워드 검색</td><td><code>rank_bm25</code></td><td>의존성 없이 순수 파이썬. 조항번호·비율 검색에 필수</td></tr>
+      <tr><td>LLM</td><td><code>Qwen3-4B-Instruct</code></td><td>로컬 구동 가능한 크기에서 한국어 지시 수행이 준수</td></tr>
+      <tr><td>PDF</td><td><code>pdfplumber</code></td><td>레이아웃 인식 텍스트 추출. 한글 PDF에서 안정적</td></tr>
+    </tbody>
+  </table>
+
+  <div class="code">
+    <div class="bar"><span>설치</span><span class="tag">터미널 또는 노트북 첫 셀</span></div>
+<pre><code><span class="c"># 노트북에서 실행할 때는 현재 커널의 파이썬을 명시하는 게 안전하다</span>
+<span class="k">import</span> sys
+!{sys.executable} -m pip install pdfplumber chromadb sentence-transformers \
+    rank_bm25 transformers torch accelerate</code></pre>
+  </div>
+
+  <div class="box warn">
+    <span class="bt">노트북에서 흔한 함정</span>
+    <code>!pip install</code>은 노트북 커널이 아니라 시스템 기본 파이썬에 설치될 수 있습니다.
+    Anaconda base에 깔렸는데 커널은 가상환경이면 계속 <code>ModuleNotFoundError</code>가 납니다.
+    위처럼 <code>{sys.executable}</code>을 써야 커널과 같은 환경에 설치됩니다.
+  </div>
+</section>
+
+
+<!-- ══════════════════ 3장 ══════════════════ -->
+<section class="ch" id="ch3">
+  <div class="chead">
+    <div class="cno">제 3 장</div>
+    <h2>파싱과 청킹 — 여기서 진 승부는 뒤집히지 않는다</h2>
+    <p>검색 품질의 절반 이상이 이 단계에서 결정됩니다. 파싱에서 놓치거나 잘못 라벨링한 조항은 어떤 임베딩 모델, 어떤 리랭커를 써도 복구되지 않습니다.</p>
+  </div>
+
+  <h3><span class="hn">3.1</span>고정 분할이 실패하는 이유</h3>
+  <p>
+    규정 문서는 자연스러운 줄글이 아니라 <strong>구조화된 트리</strong>입니다.
+    장 → 절 → 조 → 항 → 호로 내려가고, 각 노드가 독립된 법적 의미를 가집니다.
+    이걸 문자 수로 자르는 건 JSON 파일을 500바이트씩 자르는 것과 같습니다.
+  </p>
+
+  <figure>
+    <div class="plate"><svg viewBox="0 0 720 268" xmlns="http://www.w3.org/2000/svg" font-family="'IBM Plex Sans KR',sans-serif" font-size="11.5">
+      <!-- 왼쪽: 고정 분할 -->
+      <text x="10" y="18" fill="#9a4a3c" font-size="11.5" font-weight="700">고정 500자 분할</text>
+      <rect x="10" y="30" width="322" height="96" rx="3" fill="#f7efec" stroke="#9a4a3c" stroke-width="1.2"/>
+      <text x="24" y="52" fill="#26292d">제5조(대출보증) ① 금융기관의 대출보증은</text>
+      <text x="24" y="70" fill="#26292d">총대출금의 10% 범위내에서 취급하여야 한다.</text>
+      <text x="24" y="88" fill="#26292d">② 제1항의 대출보증은 대출담보로 제공되는</text>
+      <text x="24" y="106" fill="#26292d">대내지급보증으로서 다음 각호의 지급보증을</text>
+      <line x1="10" y1="118" x2="332" y2="118" stroke="#9a4a3c" stroke-width="2" stroke-dasharray="5 3"/>
+      <rect x="10" y="132" width="322" height="52" rx="3" fill="#f7efec" stroke="#9a4a3c" stroke-width="1.2"/>
+      <text x="24" y="154" fill="#26292d">제외하며, 총대출금은 국내 원화 및 외화</text>
+      <text x="24" y="172" fill="#26292d">대출금과 내국수입 유산스 잔액을 합산한다.</text>
+      <text x="171" y="206" text-anchor="middle" fill="#9a4a3c" font-size="11">"제외하며"가 앞 문맥과 분리됨</text>
+      <text x="171" y="224" text-anchor="middle" fill="#9a4a3c" font-size="11">→ 무엇을 제외하는지 알 수 없는 청크</text>
+      <text x="171" y="248" text-anchor="middle" fill="#6e7378" font-size="11">두 청크 모두 출처를 특정할 수 없다</text>
+
+      <!-- 오른쪽: 구조 분할 -->
+      <text x="392" y="18" fill="#2f6b4f" font-size="11.5" font-weight="700">조·항 단위 분할</text>
+      <rect x="392" y="30" width="318" height="60" rx="3" fill="#eef3ef" stroke="#2f6b4f" stroke-width="1.2"/>
+      <text x="406" y="50" fill="#2f6b4f" font-size="10.5" font-weight="700">제5조(대출보증) 제1항</text>
+      <text x="406" y="70" fill="#26292d">금융기관의 대출보증은 총대출금의 10%</text>
+      <text x="406" y="84" fill="#26292d">범위내에서 취급하여야 한다.</text>
+
+      <rect x="392" y="100" width="318" height="84" rx="3" fill="#eef3ef" stroke="#2f6b4f" stroke-width="1.2"/>
+      <text x="406" y="120" fill="#2f6b4f" font-size="10.5" font-weight="700">제5조(대출보증) 제2항</text>
+      <text x="406" y="140" fill="#26292d">제1항의 대출보증은 대출담보로 제공되는</text>
+      <text x="406" y="154" fill="#26292d">대내지급보증으로서 다음 각호의 지급보증을</text>
+      <text x="406" y="168" fill="#26292d">제외하며, 총대출금은 …</text>
+      <text x="551" y="206" text-anchor="middle" fill="#2f6b4f" font-size="11">각 청크가 완결된 하나의 규범</text>
+      <text x="551" y="224" text-anchor="middle" fill="#2f6b4f" font-size="11">→ "제5조 제2항에 따르면" 인용 가능</text>
+      <text x="551" y="248" text-anchor="middle" fill="#6e7378" font-size="11">길이는 들쭉날쭉해도 상관없다</text>
+    </svg></div>
+    <figcaption>오른쪽에서 청크 길이가 제각각인 것은 문제가 아닙니다. 의미 단위가 보존되는 쪽이 언제나 이깁니다.</figcaption>
+  </figure>
+
+  <h3><span class="hn">3.2</span>청킹 전략 비교</h3>
+  <table>
+    <thead><tr><th style="width:17%">전략</th><th style="width:30%">방식</th><th style="width:26%">장점</th><th style="width:27%">한계</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>고정 길이</td>
+        <td>N자마다 자름, 보통 overlap 10~20%</td>
+        <td>구현 3줄, 어떤 문서에도 적용</td>
+        <td>의미 절단. 출처 특정 불가</td>
+      </tr>
+      <tr>
+        <td>재귀 분할</td>
+        <td>문단 → 문장 → 단어 순으로 구분자를 낮춰가며 자름 (LangChain 기본)</td>
+        <td>고정보다 훨씬 자연스러움</td>
+        <td>조항 번호를 모름. 표를 망침</td>
+      </tr>
+      <tr>
+        <td><strong>구조 인식</strong></td>
+        <td>문서 문법(제N조, 제N장)을 정규식으로 파싱</td>
+        <td>정확한 인용, 계층 메타데이터 확보</td>
+        <td>문서 유형마다 파서를 만들어야 함</td>
+      </tr>
+      <tr>
+        <td>시맨틱</td>
+        <td>인접 문장 임베딩 유사도가 급락하는 지점에서 자름</td>
+        <td>구조가 없는 줄글에 효과적</td>
+        <td>비용 높음. 규정에는 과잉</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    규정·약관·매뉴얼처럼 <strong>번호 체계가 있는 문서는 무조건 구조 인식</strong>입니다.
+    "문서 유형마다 파서를 만들어야 한다"는 단점은 실제로는 큰 부담이 아닙니다.
+    사내 문서는 대개 서너 가지 양식으로 수렴하고, 한 번 만든 파서는 계속 재사용됩니다.
+  </p>
+
+  <h4>법령체 파서</h4>
+  <p>실습의 1991년 세칙은 <code>제N조(제목) ①항</code> 구조입니다.</p>
+
+  <div class="code">
+    <div class="bar"><span>parser_law.py</span><span class="tag">제N조 → ①항</span></div>
+<pre><code><span class="k">import</span> re
+
+P_ARTICLE = re.compile(<span class="s">r"^제\s*(\d+)조(?:의\s*(\d+))?\s*\(([^)]+)\)\s*(.*)$"</span>)
+P_CLAUSE  = re.compile(<span class="s">r"^([①-⑳])\s*(.*)$"</span>)
+P_ADDENDA = re.compile(<span class="s">r"^부\s*칙\s*&lt;"</span>)          <span class="c"># ★ 3.3절 참고</span>
+CIRCLED   = <span class="s">"①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮"</span>
+
+<span class="k">def</span> parse_law(pages, header):
+    chunks, cur = [], <span class="k">None</span>
+    <span class="k">for</span> pno, text <span class="k">in</span> pages:
+        <span class="k">for</span> line <span class="k">in</span> clean_lines(text, header):
+
+            <span class="hl">            <span class="c"># ① 부칙 감지를 가장 먼저 — 이게 없으면 3.3절의 사고가 난다</span>
+            <span class="k">if</span> P_ADDENDA.match(line):
+                d = re.search(<span class="s">r"(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})"</span>, line)
+                label = <span class="s">f"부칙&lt;{d.group(1)}.{d.group(2)}.{d.group(3)}&gt;"</span> <span class="k">if</span> d <span class="k">else</span> <span class="s">"부칙"</span>
+                cur = {<span class="s">"article"</span>: label, <span class="s">"title"</span>: <span class="s">"부칙"</span>, <span class="s">"clause"</span>: <span class="s">""</span>,
+                       <span class="s">"text"</span>: <span class="s">""</span>, <span class="s">"page"</span>: pno, <span class="s">"is_addenda"</span>: <span class="k">True</span>}
+                chunks.append(cur); <span class="k">continue</span></span>
+
+            <span class="c"># ② 조</span>
+            m = P_ARTICLE.match(line)
+            <span class="k">if</span> m:
+                no = <span class="s">f"제{m.group(1)}조"</span> + (<span class="s">f"의{m.group(2)}"</span> <span class="k">if</span> m.group(<span class="n">2</span>) <span class="k">else</span> <span class="s">""</span>)
+                cur = {<span class="s">"article"</span>: no, <span class="s">"title"</span>: m.group(<span class="n">3</span>), <span class="s">"clause"</span>: <span class="s">"제1항"</span>,
+                       <span class="s">"text"</span>: m.group(<span class="n">4</span>), <span class="s">"page"</span>: pno, <span class="s">"is_addenda"</span>: <span class="k">False</span>}
+                chunks.append(cur); <span class="k">continue</span>
+
+            <span class="c"># ③ 항 — 직전 조의 제목을 물려받는다</span>
+            m = P_CLAUSE.match(line)
+            <span class="k">if</span> m <span class="k">and</span> cur:
+                idx = CIRCLED.index(m.group(<span class="n">1</span>)) + <span class="n">1</span>
+                cur = {**cur, <span class="s">"clause"</span>: <span class="s">f"제{idx}항"</span>, <span class="s">"text"</span>: m.group(<span class="n">2</span>), <span class="s">"page"</span>: pno}
+                chunks.append(cur); <span class="k">continue</span>
+
+            <span class="c"># ④ 그 외의 줄은 직전 청크에 이어 붙인다 (줄바꿈 복원)</span>
+            <span class="k">if</span> cur:
+                cur[<span class="s">"text"</span>] += <span class="s">" "</span> + line
+
+    <span class="k">return</span> [c <span class="k">for</span> c <span class="k">in</span> chunks <span class="k">if</span> c[<span class="s">"text"</span>].strip()]</code></pre>
+  </div>
+
+  <div class="box info">
+    <span class="bt">④번 분기가 하는 일</span>
+    PDF에서 추출한 텍스트는 원본의 시각적 줄바꿈이 그대로 들어옵니다.
+    한 문장이 서너 줄로 쪼개져 있죠. ④번이 이를 직전 청크에 붙여 문장을 복원합니다.
+    <strong>이 분기 때문에 새로운 구조(부칙, 별표, 표 제목)를 인식하지 못하면
+    그 내용이 통째로 엉뚱한 조항에 흡수됩니다.</strong> 바로 다음 절의 주제입니다.
+  </div>
+
+  <h4>매뉴얼체 파서</h4>
+  <p>디딤돌 업무처리기준은 <code>제N장</code> 아래 <code>1 대출한도</code> 같은 섹션이 오는 구조입니다.</p>
+
+  <div class="code">
+    <div class="bar"><span>parser_manual.py</span><span class="tag">제N장 → N 섹션</span></div>
+<pre><code>P_CHAPTER = re.compile(<span class="s">r"^제\s*(\d+)장\s+(\S.*)$"</span>)
+P_SECTION = re.compile(<span class="s">r"^(\d{1,2})\s+([가-힣A-Za-z(].{1,35})$"</span>)
+
+<span class="k">def</span> looks_like_section(line):
+    <span class="c"># '5 우대금리'는 섹션 제목, '3인 이상인 가구'는 본문.</span>
+    <span class="c"># 짧고, 서술어로 끝나지 않고, 불릿이 없어야 섹션으로 본다.</span>
+    m = P_SECTION.match(line)
+    <span class="k">if</span> <span class="k">not</span> m:
+        <span class="k">return</span> <span class="k">None</span>
+    title = m.group(<span class="n">2</span>).strip()
+    <span class="k">if</span> title.endswith((<span class="s">"다"</span>, <span class="s">"다."</span>, <span class="s">"함"</span>, <span class="s">"음"</span>, <span class="s">")"</span>)) <span class="k">or</span> <span class="s">"▪"</span> <span class="k">in</span> line:
+        <span class="k">return</span> <span class="k">None</span>
+    <span class="k">return</span> <span class="s">f"{m.group(1)}. {title}"</span>
+
+<span class="k">def</span> parse_manual(pages, header, skip_pages=<span class="n">3</span>):
+    chunks, chapter, cur = [], <span class="s">""</span>, <span class="k">None</span>
+    <span class="k">for</span> pno, text <span class="k">in</span> pages:
+        <span class="k">if</span> pno &lt;= skip_pages:              <span class="c"># 표지 · 목차 건너뛰기</span>
+            <span class="k">continue</span>
+        <span class="k">for</span> line <span class="k">in</span> clean_lines(text, header):
+            m = P_CHAPTER.match(line)
+            <span class="k">if</span> m:
+                chapter = <span class="s">f"제{m.group(1)}장 {m.group(2).strip()}"</span>
+                cur = <span class="k">None</span>; <span class="k">continue</span>
+            sec = looks_like_section(line)
+            <span class="k">if</span> sec:
+                cur = {<span class="s">"article"</span>: chapter <span class="k">or</span> <span class="s">"(장 미상)"</span>, <span class="s">"title"</span>: sec,
+                       <span class="s">"clause"</span>: <span class="s">""</span>, <span class="s">"text"</span>: <span class="s">""</span>, <span class="s">"page"</span>: pno}
+                chunks.append(cur); <span class="k">continue</span>
+            <span class="k">if</span> cur:
+                cur[<span class="s">"text"</span>] += <span class="s">" "</span> + line
+    <span class="k">return</span> [c <span class="k">for</span> c <span class="k">in</span> chunks <span class="k">if</span> len(c[<span class="s">"text"</span>].strip()) &gt; <span class="n">20</span>]</code></pre>
+  </div>
+
+  <p>
+    <code>looks_like_section</code>의 휴리스틱은 완벽하지 않습니다.
+    실제 실행에서 표 안의 숫자 한 줄이 섹션 제목으로 오인됐고, 반대로
+    <code>7. 지연배상금</code> 같은 진짜 섹션 몇 개는 앞 청크에 흡수됐습니다.
+    <strong>정규식 파서는 원래 이렇게 시작해서 계속 다듬는 것</strong>이고,
+    다듬을 지점을 찾는 방법이 바로 다음에 설명할 "청크 눈으로 보기"입니다.
+  </p>
+
+  <h4>노이즈 제거</h4>
+  <div class="code">
+    <div class="bar"><span>clean.py</span><span class="tag">머리말, 페이지번호, 목차 점선</span></div>
+<pre><code>NOISE = [
+    re.compile(<span class="s">r"^-\s*\d+\s*-$"</span>),     <span class="c"># "- 12 -"</span>
+    re.compile(<span class="s">r"^\d{1,3}$"</span>),          <span class="c"># 단독 페이지 번호</span>
+    re.compile(<span class="s">r"·{5,}"</span>),               <span class="c"># 목차 점선</span>
+]
+
+<span class="k">def</span> norm(s):
+    <span class="k">return</span> re.sub(<span class="s">r"\s+"</span>, <span class="s">""</span>, s)          <span class="c"># ★ 공백 무시 비교용</span>
+
+<span class="k">def</span> clean_lines(text, header):
+    out = []
+    <span class="k">for</span> raw <span class="k">in</span> text.split(<span class="s">"\n"</span>):
+        line = re.sub(<span class="s">r"-\s*\d+\s*-\s*$"</span>, <span class="s">""</span>, raw).strip()
+        <span class="k">if</span> <span class="k">not</span> line <span class="k">or</span> norm(line) == norm(header):   <span class="c"># ★</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> any(p.search(line) <span class="k">for</span> p <span class="k">in</span> NOISE):
+            <span class="k">continue</span>
+        out.append(line)
+    <span class="k">return</span> out</code></pre>
+  </div>
+
+  <div class="box warn">
+    <span class="bt">공백 하나 때문에 머리말이 안 지워진다</span>
+    실습에서 PDF 머리말은 <code>금융기관 여신운용 세칙</code>(공백 포함)인데
+    설정의 문서명은 <code>금융기관 여신운용세칙</code>(공백 없음)이었습니다.
+    단순 <code>==</code> 비교가 실패해 머리말이 모든 페이지에서 살아남았고,
+    일부 청크 본문 한가운데에 끼어들었습니다.
+    <code>norm()</code>으로 공백을 없애고 비교하면 해결됩니다.
+  </div>
+
+  <h3 id="ch3-3"><span class="hn">3.3</span>사례 연구 — 부칙이 "제9조 위임규정"으로 둔갑한 사건</h3>
+  <p>
+    실제 실습에서 발생한 일입니다. 1991년 세칙 청크 35개 중 <strong>12개(34%)가
+    전부 <code>제9조 &gt; 위임규정</code></strong>으로 라벨링됐습니다.
+    실제 내용은 1982년부터 1991년까지의 부칙(개정 이력)이었습니다.
+  </p>
+
+  <div class="code">
+    <div class="bar"><span class="tag bad">실행 결과 — 잘못된 라벨</span><span>청크 점검 셀</span></div>
+<pre><code>BOK-CREDIT-1991#023 | p 4 | 제9조 &gt; 위임규정 &gt; 제1항
+BOK-CREDIT-1991#024 | p 4 | 제9조 &gt; 위임규정 &gt; 제1항
+BOK-CREDIT-1991#025 | p 4 | 제9조 &gt; 위임규정 &gt; 제2항
+BOK-CREDIT-1991#026 | p 4 | 제9조 &gt; 위임규정 &gt; 제3항
+    … (#034까지 동일 패턴)</code></pre>
+  </div>
+  <div class="out"><span class="lbl">#028의 실제 본문</span>
+(경과규정) 이 세칙 시행일 현재 대출보증잔액이 제4조 규정의 한도를
+초과한 금융기관은 1984.3.31까지 이를 한도 이내로 유지하여야 하며…
+
+   ↑ 이것은 <b>부칙 &lt;1983.11.3&gt; 제2항</b>이지 제9조가 아니다</div>
+
+  <h4>왜 이렇게 됐는가</h4>
+  <figure>
+    <div class="plate"><svg viewBox="0 0 720 216" xmlns="http://www.w3.org/2000/svg" font-family="'IBM Plex Sans KR',sans-serif" font-size="11.5">
+      <defs>
+        <marker id="ar3" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6" fill="none" stroke="#6e7378" stroke-width="1.2"/>
+        </marker>
+        <marker id="ar3r" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6" fill="none" stroke="#9a4a3c" stroke-width="1.2"/>
+        </marker>
+      </defs>
+      <text x="10" y="18" fill="#6e7378" font-size="11" font-weight="700">파서의 상태(cur)가 어떻게 오염되는가</text>
+
+      <!-- 입력 줄들 -->
+      <g font-family="'IBM Plex Mono',monospace" font-size="11">
+        <rect x="10" y="32" width="300" height="24" rx="3" fill="#EEF0ED" stroke="#D8DBD5"/>
+        <text x="22" y="48" fill="#26292d">제9조(위임규정) 이 세칙의 시행에…</text>
+        <rect x="10" y="62" width="300" height="24" rx="3" fill="#f7efec" stroke="#9a4a3c" stroke-width="1.3"/>
+        <text x="22" y="78" fill="#9a4a3c">부 칙 &lt;1983. 11. 3.&gt;</text>
+        <rect x="10" y="92" width="300" height="24" rx="3" fill="#EEF0ED" stroke="#D8DBD5"/>
+        <text x="22" y="108" fill="#26292d">① (시행일) 이 세칙은 1983.11.7부터…</text>
+        <rect x="10" y="122" width="300" height="24" rx="3" fill="#EEF0ED" stroke="#D8DBD5"/>
+        <text x="22" y="138" fill="#26292d">② (경과규정) 대출보증잔액이…</text>
+      </g>
+
+      <!-- 화살표 -->
+      <g stroke="#6e7378" stroke-width="1.2" marker-end="url(#ar3)">
+        <line x1="316" y1="44" x2="396" y2="44"/>
+        <line x1="316" y1="104" x2="396" y2="104"/>
+        <line x1="316" y1="134" x2="396" y2="134"/>
+      </g>
+      <line x1="316" y1="74" x2="396" y2="74" stroke="#9a4a3c" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ar3r)"/>
+
+      <!-- 상태 -->
+      <g font-family="'IBM Plex Mono',monospace" font-size="10.5">
+        <rect x="400" y="32" width="310" height="24" rx="3" fill="#eef3ef" stroke="#2f6b4f"/>
+        <text x="412" y="48" fill="#2f6b4f">cur = 제9조 위임규정        ← 정상</text>
+        <rect x="400" y="62" width="310" height="24" rx="3" fill="#f7efec" stroke="#9a4a3c"/>
+        <text x="412" y="78" fill="#9a4a3c">매칭 규칙 없음 → ④번 분기로 흡수</text>
+        <rect x="400" y="92" width="310" height="24" rx="3" fill="#f7efec" stroke="#9a4a3c"/>
+        <text x="412" y="108" fill="#9a4a3c">cur 유지 → "제9조 제1항"으로 기록</text>
+        <rect x="400" y="122" width="310" height="24" rx="3" fill="#f7efec" stroke="#9a4a3c"/>
+        <text x="412" y="138" fill="#9a4a3c">cur 유지 → "제9조 제2항"으로 기록</text>
+      </g>
+
+      <rect x="10" y="162" width="700" height="44" rx="4" fill="#f7efec" stroke="#9a4a3c" stroke-width="1.2"/>
+      <text x="26" y="181" fill="#9a4a3c" font-size="11.5" font-weight="700">근본 원인</text>
+      <text x="26" y="198" fill="#26292d" font-size="11.5">"부 칙" 라인을 인식하는 규칙이 없어, 파서 상태(cur)가 제9조를 물고 있는 채로 12개 청크를 만들었다.</text>
+    </svg></div>
+    <figcaption>상태를 들고 순차 처리하는 파서의 전형적인 실패 모드입니다. 새 구조를 인식 못 하면 그 내용이 직전 상태로 흡수됩니다.</figcaption>
+  </figure>
+
+  <div class="box warn">
+    <span class="bt">이것이 환각보다 위험한 이유</span>
+    LLM이 "제9조 제2항에 따르면 대출보증잔액은…"이라고 답합니다.
+    형식상 근거가 붙어 있어서 <strong>원문을 직접 대조하기 전에는 틀린 줄 모릅니다.</strong>
+    환각은 근거가 없어서 의심이라도 가지만, 이건 정확한 형식을 갖춘 오답입니다.
+    은행 업무에서 조문 번호를 잘못 인용하는 건 내용을 틀리는 것과 같은 무게입니다.
+  </div>
+
+  <h4>검색 결과 오염까지 이어진다</h4>
+  <p>
+    문제는 라벨만으로 끝나지 않았습니다. <code>#028</code> 청크에는
+    "대출보증잔액", "한도를 초과한" 같은 표현이 들어 있어서
+    <strong>"대출보증 한도" 질문에서 벡터·BM25 양쪽 모두 높은 점수를 받아 1위로 올라왔습니다.</strong>
+  </p>
+  <div class="out"><span class="lbl">Q: 1991년 5월 기준으로 대출보증 한도는 얼마였나요?</span>
+[mode=asof] 후보 35건 → 선택 4건
+  - [폐지] 제9조 &gt; 위임규정 &gt; 제2항      ← 1위 (실제로는 부칙, 노이즈)
+  - [폐지] 제5조 &gt; 대출보증 &gt; 제1항      ← <b>진짜 정답이 2위</b>
+  - [폐지] 제5조 &gt; 대출보증 &gt; 제2항
+  - [폐지] 제9조 &gt; 위임규정 &gt; 제2항      ← 또 노이즈
+
+  4건 중 2건이 잘못 라벨링된 청크로 채워졌다</div>
+
+  <p>
+    하나의 파싱 버그가 거의 모든 질의의 검색 결과를 오염시켰습니다.
+    이 상황에서 임베딩 모델을 더 큰 것으로 바꿔도 아무것도 나아지지 않습니다.
+  </p>
+
+  <h3><span class="hn">3.4</span>청크를 눈으로 보는 습관</h3>
+  <p>
+    위 버그는 <strong>청크 목록을 한 번 출력해 보는 것만으로</strong> 발견됩니다.
+    인덱싱 직후 반드시 다음 두 셀을 돌리세요. 이것이 이 핸드북에서 가장 실용적인 조언입니다.
+  </p>
+
+  <div class="code">
+    <div class="bar"><span>점검 ①</span><span class="tag">라벨 전수 확인</span></div>
+<pre><code><span class="k">for</span> c <span class="k">in</span> CHUNKS:
+    print(<span class="s">f"{c['id']} | p{c['meta']['page']:&gt;2} | {c['meta']['location']}"</span>)
+
+<span class="c"># 같은 location이 5개 이상 반복되면 파서가 구조를 놓쳤다는 신호</span>
+<span class="k">from</span> collections <span class="k">import</span> Counter
+<span class="k">for</span> loc, n <span class="k">in</span> Counter(c[<span class="s">"meta"</span>][<span class="s">"location"</span>] <span class="k">for</span> c <span class="k">in</span> CHUNKS).most_common(<span class="n">5</span>):
+    print(n, loc)</code></pre>
+  </div>
+
+  <div class="code">
+    <div class="bar"><span>점검 ②</span><span class="tag">본문 샘플링</span></div>
+<pre><code><span class="k">def</span> show(keyword, n=<span class="n">400</span>):
+    <span class="k">for</span> c <span class="k">in</span> CHUNKS:
+        <span class="k">if</span> keyword <span class="k">in</span> c[<span class="s">"meta"</span>][<span class="s">"location"</span>]:
+            print(<span class="s">"="</span> * <span class="n">70</span>)
+            print(c[<span class="s">"id"</span>], <span class="s">"|"</span>, c[<span class="s">"meta"</span>][<span class="s">"location"</span>])
+            print(c[<span class="s">"text"</span>][:n])
+
+show(<span class="s">"제9조"</span>)     <span class="c"># 라벨과 본문이 일치하는지 대조</span></code></pre>
+  </div>
+
+  <h3><span class="hn">3.5</span>임베딩 텍스트에 위치를 주입한다</h3>
+  <p>
+    청크를 임베딩할 때 본문만 넣으면 "70%"가 무엇의 70%인지 모델이 알 수 없습니다.
+    <strong>맨 앞에 문서명과 위치를 붙여서 임베딩</strong>하면 이 문제가 상당 부분 해소됩니다.
+    비용이 거의 들지 않는 데 비해 효과가 큰 기법입니다.
+  </p>
+
+  <div class="code">
+    <div class="bar"><span>build.py</span><span class="tag">위치 주입 + 메타데이터 조립</span></div>
+<pre><code><span class="k">def</span> build(doc):
+    pages = read_pages(<span class="s">f"{PDF_DIR}/{doc['file']}"</span>)
+    raw = (parse_law <span class="k">if</span> doc[<span class="s">"style"</span>] == <span class="s">"law"</span> <span class="k">else</span> parse_manual)(pages, doc[<span class="s">"title"</span>])
+    out = []
+    <span class="k">for</span> i, c <span class="k">in</span> enumerate(raw):
+        loc = <span class="s">" &gt; "</span>.join(x <span class="k">for</span> x <span class="k">in</span> (c[<span class="s">"article"</span>], c[<span class="s">"title"</span>], c[<span class="s">"clause"</span>]) <span class="k">if</span> x)
+        out.append({
+            <span class="s">"id"</span>: <span class="s">f"{doc['doc_id']}#{i:03d}"</span>,
+            <span class="hl">            <span class="c"># ★ 임베딩될 텍스트 = 위치 + 본문</span>
+            <span class="s">"text"</span>: <span class="s">f"[{doc['title']} / {loc}]\n{c['text'].strip()}"</span>,</span>
+            <span class="s">"meta"</span>: {...},   <span class="c"># 4장</span>
+        })
+    <span class="k">return</span> out</code></pre>
+  </div>
+
+  <div class="box info">
+    <span class="bt">더 나아가려면 — Contextual Retrieval</span>
+    "이 경우 전항을 준용한다" 같은 청크는 위치 주입만으로도 부족합니다.
+    임베딩 전에 LLM으로 <strong>맥락 한두 문장을 생성해 앞에 붙이는</strong> 기법이 있습니다.
+    <div class="code" style="margin-top:.7rem">
+      <div class="bar"><span>선택 사항</span><span class="tag">문서당 1회, 프롬프트 캐싱 권장</span></div>
+<pre><code>CTX = <span class="s">"""아래는 '{title}' 문서의 일부입니다.
+&lt;전체문맥&gt;{parent}&lt;/전체문맥&gt;
+&lt;청크&gt;{chunk}&lt;/청크&gt;
+이 청크가 무엇을 규정하는지 검색용 맥락을 2문장 이내로 쓰세요.
+내용을 반복하지 말고 생략된 주어·지시어를 복원하는 데 집중하세요."""</span>
+
+<span class="k">def</span> contextualize(chunk, parent, title, llm):
+    <span class="k">return</span> <span class="s">f"[맥락] {llm(CTX.format(...))}\n[본문] {chunk}"</span></code></pre>
+    </div>
+    전체에 적용하면 비용이 크니, <code>"전항"·"이 경우"·"동 규정"</code> 같은
+    지시어가 포함된 청크만 정규식으로 골라 적용하는 절충안을 권합니다.
+  </div>
+</section>
+
+
+<!-- ══════════════════ 4장 ══════════════════ -->
+<section class="ch" id="ch4">
+  <div class="chead">
+    <div class="cno">제 4 장</div>
+    <h2>메타데이터와 시간축 설계</h2>
+    <p>최신성 문제를 푸는 유일한 방법입니다. 노력 대비 효과가 이 핸드북에서 가장 큰 장이므로, 하나만 적용한다면 이것을 고르세요.</p>
+  </div>
+
+  <h3><span class="hn">4.1</span>왜 벡터로는 안 되는가</h3>
+  <p>
+    개정 전 조문과 개정 후 조문은 문장이 90% 이상 같습니다. 바뀐 것은 숫자 하나, 단서 하나뿐입니다.
+    임베딩 모델은 이 둘을 거의 같은 위치에 놓습니다. <strong>그게 모델이 제대로 작동한 결과</strong>입니다.
+    의미가 비슷하니까 비슷하다고 한 것이죠. 어느 쪽이 지금 유효한지는 문서 내용이 아니라
+    <strong>문서 바깥의 사실</strong>이므로, 텍스트를 아무리 잘 이해해도 알 수 없습니다.
+  </p>
+
+  <div class="out"><span class="lbl">실제 측정 — "대출 한도는 얼마까지 취급할 수 있나요?"</span>
+── 필터 없음 ──
+  sim=0.711 [현행] 내집마련 디딤돌 대출 | 1. 대출한도
+  sim=0.667 [폐지] 금융기관 여신운용세칙 | 제9조 &gt; 위임규정 &gt; 제2항   ← 2위
+  sim=0.618 [현행] 내집마련 디딤돌 대출 | 제9장 유한책임 &gt; 3. 대출요건
+  sim=0.617 [폐지] 금융기관 여신운용세칙 | 제5조 &gt; 대출보증 &gt; 제1항
+
+── is_current=True 필터 ──
+  sim=0.711 [현행] … 1. 대출한도
+  sim=0.618 [현행] … 3. 대출요건
+  sim=0.607 [현행] … 1. 주택가격 및 면적 기준
+  sim=0.605 [현행] … 2. 대출만기 및 거치기간
+
+1위(0.711)와 2위(0.667)의 차이는 <b>0.044</b>. 질문 표현만 바꿔도 뒤집힌다.</div>
+
+  <h3><span class="hn">4.2</span>메타데이터 스키마</h3>
+  <p>실무에서 쓰는 최소 스키마입니다. 항목마다 "무엇을 가능하게 하는가"가 분명해야 합니다.</p>
+
+  <table>
+    <thead><tr><th style="width:22%">필드</th><th style="width:16%">타입</th><th style="width:62%">역할</th></tr></thead>
+    <tbody>
+      <tr><td colspan="3" style="background:var(--paper-2);font-weight:700">식별</td></tr>
+      <tr><td><code>doc_id</code></td><td>str</td><td>문서 단위 식별자. 개정 시 버전 묶음의 키</td></tr>
+      <tr><td><code>doc_title</code> / <code>issuer</code></td><td>str</td><td>답변 인용 표기에 사용</td></tr>
+      <tr><td><code>version</code></td><td>str</td><td>v4.2 등. 같은 doc_id 내 세대 구분</td></tr>
+      <tr><td><code>parent_id</code></td><td>str</td><td>부모 청크(조 전체) 참조 → <a href="#ch8">8장</a> small-to-big</td></tr>
+      <tr><td colspan="3" style="background:var(--paper-2);font-weight:700">위치</td></tr>
+      <tr><td><code>location</code></td><td>str</td><td><code>제3장 &gt; 제2절 &gt; 제15조(대출한도) &gt; 제2항</code></td></tr>
+      <tr><td><code>page</code></td><td>int</td><td>원문 대조용. 감사 대응 시 필수</td></tr>
+      <tr><td><code>is_addenda</code></td><td>bool</td><td>부칙 여부. 본문 조항만 검색하고 싶을 때</td></tr>
+      <tr><td colspan="3" style="background:var(--seal-bg);font-weight:700;color:var(--seal)">시간 — 이 핸드북의 핵심</td></tr>
+      <tr><td><code>effective_from</code></td><td><strong>int</strong></td><td>시행일 <code>YYYYMMDD</code>. 예: <code>20260714</code></td></tr>
+      <tr><td><code>effective_to</code></td><td><strong>int</strong></td><td>실효일. 아직 유효하면 <code>99991231</code></td></tr>
+      <tr><td><code>is_current</code></td><td>bool</td><td>현행 여부. 가장 자주 쓰는 필터</td></tr>
+      <tr><td><code>status</code></td><td>str</td><td>시행 / 개정예정 / 폐지</td></tr>
+      <tr><td><code>superseded_by</code></td><td>str</td><td>이 조항을 대체한 청크 id. 이력 추적용</td></tr>
+      <tr><td colspan="3" style="background:var(--paper-2);font-weight:700">거버넌스</td></tr>
+      <tr><td><code>owner_dept</code></td><td>str</td><td>소관 부서. "담당부서로 문의하세요" 안내에 사용</td></tr>
+      <tr><td><code>confidential</code></td><td>str</td><td>공개 / 내부용 / 대외비 → 권한 필터</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box warn">
+    <span class="bt">날짜는 반드시 정수로</span>
+    Chroma의 <code>where</code> 필터는 <strong>스칼라(str / int / float / bool)</strong>만 받고,
+    문자열 부등호 비교를 지원하지 않습니다.
+    <code>"2026-07-14"</code>처럼 저장하면 <code>$lte</code> / <code>$gte</code>가 동작하지 않습니다.
+    <code>20260714</code>처럼 <strong>int(YYYYMMDD)</strong>로 넣으세요.
+    이 형식은 사전순과 크기순이 일치해서 비교가 자연스럽습니다.
+    <br><br>
+    같은 이유로 리스트·딕셔너리도 못 넣습니다. 태그 여러 개가 필요하면
+    <code>"tag_여신": True</code>처럼 평탄화하거나 구분자로 이어붙인 문자열을 쓰세요.
+  </div>
+
+  <h3><span class="hn">4.3</span>문서 카탈로그</h3>
+  <p>
+    문서별 메타데이터는 코드에 흩어 놓지 말고 한곳에 모읍니다.
+    실무에서는 DB 테이블이나 YAML로 관리하고, 규정 담당 부서가 직접 수정하게 만듭니다.
+  </p>
+
+  <div class="code">
+    <div class="bar"><span>catalog.py</span><span class="tag">실습 설정</span></div>
+<pre><code>DOCS = [
+    {
+        <span class="s">"doc_id"</span>: <span class="s">"BOK-CREDIT-1991"</span>,
+        <span class="s">"file"</span>:   <span class="s">"금융기관_여신운용세칙_19910404.pdf"</span>,
+        <span class="s">"title"</span>:  <span class="s">"금융기관 여신운용세칙"</span>,
+        <span class="s">"issuer"</span>: <span class="s">"한국은행"</span>,
+        <span class="s">"style"</span>:  <span class="s">"law"</span>,               <span class="c"># 제N조 / ①항</span>
+        <span class="s">"effective_from"</span>: <span class="n">19910406</span>,  <span class="c"># 부칙&lt;1991.4.4&gt; "1991.4.6부터 시행"</span>
+        <span class="s">"effective_to"</span>:   <span class="n">19971231</span>,  <span class="c"># (학습용 가정) 이후 폐지</span>
+        <span class="s">"is_current"</span>: <span class="k">False</span>,
+        <span class="s">"status"</span>: <span class="s">"폐지"</span>,
+    },
+    {
+        <span class="s">"doc_id"</span>: <span class="s">"HF-DIDIMDOL-2026"</span>,
+        <span class="s">"file"</span>:   <span class="s">"내집마련_디딤돌_대출_업무처리기준.pdf"</span>,
+        <span class="s">"title"</span>:  <span class="s">"내집마련 디딤돌 대출 업무처리기준"</span>,
+        <span class="s">"issuer"</span>: <span class="s">"한국주택금융공사"</span>,
+        <span class="s">"style"</span>:  <span class="s">"manual"</span>,            <span class="c"># 제N장 / N 섹션</span>
+        <span class="s">"effective_from"</span>: <span class="n">20260714</span>,  <span class="c"># 최종 개정일</span>
+        <span class="s">"effective_to"</span>:   <span class="n">99991231</span>,  <span class="c"># 아직 유효 → 무한대</span>
+        <span class="s">"is_current"</span>: <span class="k">True</span>,
+        <span class="s">"status"</span>: <span class="s">"시행"</span>,
+    },
+]</code></pre>
+  </div>
+
+  <h3><span class="hn">4.4</span>시간축 — 세 가지 조회 모드</h3>
+  <p>
+    규정 질의는 시간 관점에서 세 종류로 나뉩니다.
+    이 구분을 설계에 반영하지 않으면 어느 한쪽이 반드시 틀립니다.
+  </p>
+
+  <figure>
+    <div class="plate"><svg viewBox="0 0 720 258" xmlns="http://www.w3.org/2000/svg" font-family="'IBM Plex Sans KR',sans-serif" font-size="11.5">
+      <!-- 조회선을 먼저 그려 박스 뒤로 보낸다 -->
+      <line x1="210" y1="52" x2="210" y2="196" stroke="#6e7378" stroke-width="1.1" stroke-dasharray="4 4"/>
+      <line x1="640" y1="52" x2="640" y2="196" stroke="#6e7378" stroke-width="1.1" stroke-dasharray="4 4"/>
+
+      <!-- 축 -->
+      <line x1="60" y1="196" x2="686" y2="196" stroke="#26292d" stroke-width="1.4"/>
+      <g stroke="#26292d" stroke-width="1.2">
+        <line x1="120" y1="192" x2="120" y2="200"/>
+        <line x1="300" y1="192" x2="300" y2="200"/>
+        <line x1="470" y1="192" x2="470" y2="200"/>
+        <line x1="640" y1="192" x2="640" y2="200"/>
+      </g>
+      <g fill="#6e7378" font-size="10.5" text-anchor="middle">
+        <text x="120" y="214">1991.04.06</text>
+        <text x="300" y="214">1997.12.31</text>
+        <text x="470" y="214">2026.07.14</text>
+        <text x="640" y="214">오늘</text>
+      </g>
+
+      <!-- 문서 A -->
+      <rect x="120" y="86" width="180" height="26" rx="3" fill="#f7efec" stroke="#9a4a3c" stroke-width="1.3"/>
+      <text x="210" y="104" text-anchor="middle" fill="#9a4a3c" font-size="11">여신운용세칙 (폐지)</text>
+      <text x="56" y="78" text-anchor="start" fill="#6e7378" font-size="10">from=19910406 / to=19971231</text>
+
+      <!-- 문서 B -->
+      <rect x="470" y="126" width="216" height="26" rx="3" fill="#eef3ef" stroke="#2f6b4f" stroke-width="1.3"/>
+      <text x="578" y="144" text-anchor="middle" fill="#2f6b4f" font-size="11">디딤돌 업무처리기준 (현행)</text>
+      <text x="448" y="118" text-anchor="start" fill="#6e7378" font-size="10">from=20260714 / to=99991231</text>
+
+      <!-- 조회 지점 표시 -->
+      <circle cx="210" cy="196" r="4.5" fill="#9a4a3c"/>
+      <text x="210" y="44" text-anchor="middle" fill="#9a4a3c" font-size="11" font-weight="700">as-of 1993.05.01 조회</text>
+      <circle cx="640" cy="196" r="4.5" fill="#2f6b4f"/>
+      <text x="640" y="44" text-anchor="middle" fill="#2f6b4f" font-size="11" font-weight="700">현행 조회</text>
+
+      <!-- 설명 -->
+      <rect x="60" y="230" width="626" height="24" rx="3" fill="#EEF0ED" stroke="#D8DBD5"/>
+      <text x="373" y="246" text-anchor="middle" fill="#26292d" font-size="11">구버전을 <tspan font-weight="700">삭제하지 않고</tspan> effective_to만 닫아 보관한다 — 감사·분쟁 대응에 반드시 필요하다</text>
+    </svg></div>
+    <figcaption>같은 질문이라도 기준 시점이 다르면 정답이 다릅니다. 두 답 모두 맞습니다.</figcaption>
+  </figure>
+
+  <table>
+    <thead><tr><th style="width:14%">모드</th><th style="width:30%">질문 예시</th><th style="width:34%">필터</th><th style="width:22%">쓰이는 곳</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>current</strong><br><span style="color:var(--ink-3);font-size:12.5px">기본값</span></td>
+        <td>"대출한도 산정 기준이 어떻게 되나요?"</td>
+        <td><code>{"is_current": True}</code></td>
+        <td>일상 업무 조회, 창구 응대</td>
+      </tr>
+      <tr>
+        <td><strong>as-of</strong></td>
+        <td>"2023년 5월 체결 건에 적용되는 기준은?"</td>
+        <td><code>from ≤ D ≤ to</code></td>
+        <td>여신 분쟁, 감사 대응, 소송</td>
+      </tr>
+      <tr>
+        <td><strong>all</strong></td>
+        <td>"이 조항 언제 어떻게 바뀌었나요?"</td>
+        <td>없음 (전 버전 수집 후 시간순 정렬)</td>
+        <td>규정 개정 이력 파악</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="box key">
+    <span class="bt">as-of 조회가 실무에서 가장 중요합니다</span>
+    여신 심사 분쟁이나 감사에서 물어보는 건 "지금 유효한 규정"이 아니라
+    <strong>"그 거래 시점에 유효했던 규정"</strong>입니다.
+    그래서 개정 시 구버전을 <strong>절대 삭제하지 않고</strong> <code>effective_to</code>만 닫습니다.
+    삭제해 버리면 3년 뒤 감사에서 답할 수 없습니다.
+  </div>
+
+  <h3><span class="hn">4.5</span>하드 필터와 소프트 부스트</h3>
+  <p>
+    모든 문서에 하드 필터를 걸면 안 됩니다. 문서 성격에 따라 두 방식을 나눠 씁니다.
+  </p>
+  <table>
+    <thead><tr><th style="width:16%">방식</th><th style="width:38%">대상</th><th style="width:46%">동작</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>하드 필터</strong></td>
+        <td>규정, 세칙, 약관, 상품 설명서<br><span style="color:var(--ink-3);font-size:12.5px">효력이 명확한 문서</span></td>
+        <td>조건 불일치 시 후보에서 <strong>완전 제외</strong>. 폐지본이 답변에 섞일 여지를 원천 차단</td>
+      </tr>
+      <tr>
+        <td><strong>소프트 부스트</strong></td>
+        <td>사내 위키, 회의록, FAQ, 업무 노하우<br><span style="color:var(--ink-3);font-size:12.5px">낡아도 참고는 되는 문서</span></td>
+        <td>최신일수록 점수 가산. 오래된 것도 후보에는 남음</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="code">
+    <div class="bar"><span>recency.py</span><span class="tag">소프트 부스트 — 시간 감쇠</span></div>
+<pre><code><span class="k">from</span> datetime <span class="k">import</span> date
+
+<span class="k">def</span> recency_decay(updated_yyyymmdd, half_life_days=<span class="n">365</span>):
+    <span class="c"># 반감기 방식: 1년 지나면 가중치 0.5배, 2년이면 0.25배</span>
+    d = date(updated_yyyymmdd//<span class="n">10000</span>, updated_yyyymmdd//<span class="n">100</span>%<span class="n">100</span>, updated_yyyymmdd%<span class="n">100</span>)
+    age = (date.today() - d).days
+    <span class="k">return</span> <span class="n">0.5</span> ** (age / half_life_days)
+
+final_score = <span class="n">0.8</span> * rerank_score + <span class="n">0.2</span> * recency_decay(meta[<span class="s">"updated_at"</span>])</code></pre>
+  </div>
+
+  <h3><span class="hn">4.6</span>개정이 들어왔을 때</h3>
+  <p>
+    운영 단계에서 가장 자주 하게 될 작업입니다. 핵심은 <strong>덮어쓰기가 아니라 세대 추가</strong>입니다.
+  </p>
+
+  <div class="code">
+    <div class="bar"><span>amend.py</span><span class="tag">구버전은 닫고, 신버전을 추가</span></div>
+<pre><code><span class="k">def</span> upsert_amendment(coll, doc_id, article_no, new_chunks, effective_from):
+    <span class="s">"""개정 반영. 기존 청크를 삭제하지 않는다."""</span>
+    old = coll.get(where={<span class="s">"$and"</span>: [
+        {<span class="s">"doc_id"</span>: doc_id},
+        {<span class="s">"article_no"</span>: article_no},
+        {<span class="s">"is_current"</span>: <span class="k">True</span>},
+    ]})
+
+    <span class="k">for</span> oid, ometa <span class="k">in</span> zip(old[<span class="s">"ids"</span>], old[<span class="s">"metadatas"</span>]):
+        ometa.update({
+            <span class="s">"effective_to"</span>: effective_from - <span class="n">1</span>,   <span class="c"># 신규 시행 전일까지 유효</span>
+            <span class="s">"is_current"</span>:   <span class="k">False</span>,
+            <span class="s">"status"</span>:       <span class="s">"개정전"</span>,
+            <span class="s">"superseded_by"</span>: new_chunks[<span class="n">0</span>][<span class="s">"id"</span>],
+        })
+        coll.update(ids=[oid], metadatas=[ometa])
+
+    coll.add(ids=[c[<span class="s">"id"</span>] <span class="k">for</span> c <span class="k">in</span> new_chunks],
+             documents=[c[<span class="s">"text"</span>] <span class="k">for</span> c <span class="k">in</span> new_chunks],
+             metadatas=[c[<span class="s">"meta"</span>] <span class="k">for</span> c <span class="k">in</span> new_chunks],
+             embeddings=[c[<span class="s">"vec"</span>] <span class="k">for</span> c <span class="k">in</span> new_chunks])</code></pre>
+  </div>
+
+  <div class="box info">
+    <span class="bt">시행일과 공포일은 다릅니다</span>
+    규정에는 보통 "공포한 날부터 시행한다" 또는 "공포 후 3개월이 경과한 날부터 시행한다" 같은 부칙이 붙습니다.
+    <code>effective_from</code>에는 <strong>공포일이 아니라 시행일</strong>을 넣어야 합니다.
+    실습 문서에서도 개정일은 1991.4.4인데 시행일은 1991.4.6입니다.
+    이 이틀이 as-of 조회에서는 정답을 가릅니다.
+  </div>
+</section>
+
+
+<!-- ══════════════════ 5장 ══════════════════ -->
+<section class="ch" id="ch5">
+  <div class="chead">
+    <div class="cno">제 5 장</div>
+    <h2>임베딩과 벡터DB</h2>
+    <p>모델 선택 기준, 정규화를 맞추는 이유, Chroma 필터 문법을 정리합니다. 이 장은 분량이 짧습니다. 실무에서 손댈 일이 가장 적은 구간이기 때문입니다.</p>
+  </div>
+
+  <h3><span class="hn">5.1</span>임베딩 모델 고르는 기준</h3>
+  <table>
+    <thead><tr><th style="width:22%">기준</th><th style="width:78%">확인할 것</th></tr></thead>
+    <tbody>
+      <tr><td>한국어 지원</td><td>다국어 모델이라도 한국어 벤치마크 점수를 따로 확인. 영어 전용 모델은 한국어에서 무너짐</td></tr>
+      <tr><td>최대 입력 길이</td><td>조 단위 청크는 1000~2000토큰이 될 수 있음. 512토큰 모델이면 뒤가 잘림</td></tr>
+      <tr><td>차원 수</td><td>클수록 표현력이 좋지만 저장·계산 비용이 비례해 증가. 768~1024가 실용적</td></tr>
+      <tr><td>prefix 요구</td><td>일부 모델(bge-large-en, E5 계열)은 질의에 <code>"query: "</code> 접두어가 필요. 안 붙이면 성능이 떨어짐</td></tr>
+      <tr><td>라이선스</td><td>사내 도입 시 상업적 이용 가능 여부 확인</td></tr>
+    </tbody>
+  </table>
+
+  <p>
+    <code>BAAI/bge-m3</code>는 이 기준을 고르게 충족합니다.
+    100개 이상 언어, 1024차원, 최대 8192토큰, <strong>prefix 불필요</strong>, MIT 라이선스입니다.
+    한국어 규정 문서 실습에는 이 이상 고민할 필요가 없습니다.
+  </p>
+
+  <div class="box info">
+    <span class="bt">bge-m3의 이름에 담긴 M 세 개</span>
+    <strong>Multi-Lingual</strong>(다국어), <strong>Multi-Granularity</strong>(짧은 문장부터 긴 문서까지),
+    <strong>Multi-Functionality</strong>(dense·sparse·multi-vector 세 가지 검색을 한 모델로).
+    세 번째 기능을 쓰면 <a href="#ch6">6장</a>의 BM25를 모델이 대신할 수도 있지만,
+    학습 목적에서는 dense만 쓰고 BM25를 따로 붙이는 쪽이 각 요소의 역할을 이해하기에 좋습니다.
+  </div>
+
+  <h3><span class="hn">5.2</span>인코딩과 적재</h3>
+
+  <div class="code">
+    <div class="bar"><span>index.py</span><span class="tag">임베딩 → Chroma</span></div>
+<pre><code><span class="k">from</span> sentence_transformers <span class="k">import</span> SentenceTransformer
+<span class="k">import</span> chromadb
+
+EMB = SentenceTransformer(<span class="s">"BAAI/bge-m3"</span>)      <span class="c"># 최초 1회 약 2.2GB 다운로드</span>
+
+vectors = EMB.encode(
+    [c[<span class="s">"text"</span>] <span class="k">for</span> c <span class="k">in</span> CHUNKS],
+    batch_size=<span class="n">8</span>,
+    <span class="hl">    normalize_embeddings=<span class="k">True</span>,        <span class="c"># ★ 아래 hnsw:space와 짝</span></span>
+    show_progress_bar=<span class="k">True</span>,
+).tolist()
+
+client = chromadb.PersistentClient(path=<span class="s">"./chroma"</span>)
+<span class="k">if</span> <span class="s">"regulations"</span> <span class="k">in</span> [c.name <span class="k">for</span> c <span class="k">in</span> client.list_collections()]:
+    client.delete_collection(<span class="s">"regulations"</span>)         <span class="c"># 재실행 시 중복 방지</span>
+<span class="hl">COLL = client.create_collection(<span class="s">"regulations"</span>, metadata={<span class="s">"hnsw:space"</span>: <span class="s">"cosine"</span>})</span>
+
+COLL.add(ids=[c[<span class="s">"id"</span>] <span class="k">for</span> c <span class="k">in</span> CHUNKS],
+         documents=[c[<span class="s">"text"</span>] <span class="k">for</span> c <span class="k">in</span> CHUNKS],
+         metadatas=[c[<span class="s">"meta"</span>] <span class="k">for</span> c <span class="k">in</span> CHUNKS],
+         embeddings=vectors)
+
+<span class="c"># ★ 적재 직후 필터가 실제로 먹는지 반드시 확인 — 습관으로 들이세요</span>
+print(<span class="s">"현행:"</span>, len(COLL.get(where={<span class="s">"is_current"</span>: <span class="k">True</span>})[<span class="s">"ids"</span>]))
+print(<span class="s">"1991년 시점:"</span>, len(COLL.get(where={<span class="s">"$and"</span>: [
+    {<span class="s">"effective_from"</span>: {<span class="s">"$lte"</span>: <span class="n">19910601</span>}},
+    {<span class="s">"effective_to"</span>:   {<span class="s">"$gte"</span>: <span class="n">19910601</span>}}]})[<span class="s">"ids"</span>])</code></pre>
+  </div>
+  <div class="out"><span class="lbl">출력</span>
+Batches: 100%|██████████| 10/10 [00:04&lt;00:00,  2.18it/s]
+적재 완료: 78 건
+현행: 43
+1991년 시점: 35</div>
+
+  <div class="box warn">
+    <span class="bt">정규화와 거리 함수는 반드시 짝을 맞춘다</span>
+    <code>normalize_embeddings=True</code>로 길이를 1로 만들어 놓고
+    컬렉션은 기본값인 <code>l2</code>(유클리드 거리)로 두면, 값은 나오지만 순위가 미묘하게 틀어집니다.
+    <code>cosine</code>으로 명시하세요.<br><br>
+    또한 Chroma의 <code>query()</code>는 <strong>유사도가 아니라 거리</strong>를 반환합니다.
+    코사인 공간에서 <code>유사도 = 1 − distance</code>입니다. 그래프에 그릴 때 혼동하기 쉽습니다.
+  </div>
+
+  <h3><span class="hn">5.3</span>Chroma 필터 문법</h3>
+  <div class="code">
+    <div class="bar"><span>where 문법</span><span class="tag">자주 쓰는 형태</span></div>
+<pre><code><span class="c"># 단일 조건</span>
+{<span class="s">"is_current"</span>: <span class="k">True</span>}
+
+<span class="c"># 비교 — $eq $ne $gt $gte $lt $lte</span>
+{<span class="s">"effective_from"</span>: {<span class="s">"$lte"</span>: <span class="n">20230501</span>}}
+
+<span class="c"># 목록 포함 — $in $nin</span>
+{<span class="s">"doc_type"</span>: {<span class="s">"$in"</span>: [<span class="s">"규정"</span>, <span class="s">"세칙"</span>]}}
+
+<span class="c"># 복합 — $and $or (조건이 2개 이상이면 반드시 감싸야 한다)</span>
+{<span class="s">"$and"</span>: [
+    {<span class="s">"effective_from"</span>: {<span class="s">"$lte"</span>: <span class="n">20230501</span>}},
+    {<span class="s">"effective_to"</span>:   {<span class="s">"$gte"</span>: <span class="n">20230501</span>}},
+    {<span class="s">"confidential"</span>:   {<span class="s">"$ne"</span>: <span class="s">"대외비"</span>}},
+]}
+
+<span class="c"># 본문 문자열 검색은 where_document (메타데이터가 아님)</span>
+COLL.query(query_embeddings=qv, n_results=<span class="n">5</span>,
+           where={<span class="s">"is_current"</span>: <span class="k">True</span>},
+           where_document={<span class="s">"$contains"</span>: <span class="s">"LTV"</span>})</code></pre>
+  </div>
+
+  <div class="box key">
+    <span class="bt">권한 필터는 처음부터 넣으세요</span>
+    은행이라면 <code>confidential</code>, <code>owner_dept</code>를 처음부터 스키마에 포함시키고
+    모든 질의의 <code>where</code>에 강제로 병합하세요.
+    나중에 추가하려면 인덱스를 다시 만들어야 하고,
+    권한 없는 사용자에게 규정이 노출되는 건 검색 품질 문제와는 차원이 다른 사고입니다.
+    <div class="code" style="margin-top:.7rem">
+      <div class="bar"><span>권한 병합</span><span class="tag">모든 질의의 진입점에서</span></div>
+<pre><code><span class="k">def</span> with_acl(where, user):
+    acl = {<span class="s">"$and"</span>: [
+        {<span class="s">"confidential"</span>: {<span class="s">"$in"</span>: user.clearance_levels}},
+    ]}
+    <span class="k">if</span> where <span class="k">is</span> <span class="k">None</span>:
+        <span class="k">return</span> acl
+    <span class="k">return</span> {<span class="s">"$and"</span>: [where, acl]}</code></pre>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════ 6장 ══════════════════ -->
+<section class="ch" id="ch6">
+  <div class="chead">
+    <div class="cno">제 6 장</div>
+    <h2>하이브리드 검색 — 벡터만으로는 부족하다</h2>
+    <p>규정 도메인에서 키워드 검색은 보조가 아니라 주력에 가깝습니다. 왜 그런지, 그리고 두 결과를 어떻게 합치는지 다룹니다.</p>
+  </div>
+
+  <h3><span class="hn">6.1</span>Dense와 Sparse는 잘하는 게 다르다</h3>
+
+  <figure>
+    <div class="plate"><svg viewBox="0 0 720 246" xmlns="http://www.w3.org/2000/svg" font-family="'IBM Plex Sans KR',sans-serif" font-size="11.5">
+      <!-- Dense -->
+      <rect x="8" y="26" width="340" height="196" rx="5" fill="#EEF0ED" stroke="#D8DBD5"/>
+      <text x="28" y="50" fill="#26292d" font-size="13" font-weight="700">Dense (벡터)</text>
+      <text x="28" y="70" fill="#6e7378" font-size="11">문장의 의미를 숫자로 압축해 비교</text>
+      <line x1="28" y1="82" x2="328" y2="82" stroke="#D8DBD5"/>
+      <text x="28" y="102" fill="#2f6b4f" font-size="11.5" font-weight="700">강한 곳</text>
+      <text x="28" y="122" fill="#26292d">"한도가 얼마야" ↔ "최대 금액은"</text>
+      <text x="28" y="140" fill="#26292d">"집 살 때 빌리는 돈" ↔ "구입자금대출"</text>
+      <text x="28" y="164" fill="#9a4a3c" font-size="11.5" font-weight="700">약한 곳</text>
+      <text x="28" y="184" fill="#26292d">"제15조" → 다른 조항과 구분 못 함</text>
+      <text x="28" y="202" fill="#26292d">"70%" "3.2억원" → 숫자에 둔감</text>
+
+      <!-- Sparse -->
+      <rect x="372" y="26" width="340" height="196" rx="5" fill="#EEF0ED" stroke="#D8DBD5"/>
+      <text x="392" y="50" fill="#26292d" font-size="13" font-weight="700">Sparse (BM25)</text>
+      <text x="392" y="70" fill="#6e7378" font-size="11">단어 등장 빈도와 희소성으로 점수 계산</text>
+      <line x1="392" y1="82" x2="692" y2="82" stroke="#D8DBD5"/>
+      <text x="392" y="102" fill="#2f6b4f" font-size="11.5" font-weight="700">강한 곳</text>
+      <text x="392" y="122" fill="#26292d">"제15조" "LTV" "DTI" 정확 매칭</text>
+      <text x="392" y="140" fill="#26292d">"3.2억원" "0.7%p" 숫자·단위</text>
+      <text x="392" y="164" fill="#9a4a3c" font-size="11.5" font-weight="700">약한 곳</text>
+      <text x="392" y="184" fill="#26292d">"한도" ↔ "최대 금액" 동의어 못 잡음</text>
+      <text x="392" y="202" fill="#26292d">질문에 없는 단어로 된 답 못 찾음</text>
+
+      <text x="360" y="16" text-anchor="middle" fill="#6e7378" font-size="11">두 방식은 경쟁이 아니라 상호 보완이다</text>
+    </svg></div>
+    <figcaption>규정 문서는 고유명사·조항번호·비율이 밀집해 있어 BM25의 비중이 일반 문서보다 훨씬 큽니다.</figcaption>
+  </figure>
+
+  <h3><span class="hn">6.2</span>BM25가 점수를 매기는 방식</h3>
+  <p>
+    BM25는 세 가지를 봅니다. 수식을 외울 필요는 없고 직관만 알면 됩니다.
+  </p>
+  <ol class="steps">
+    <li><strong>TF (단어 빈도)</strong> — 문서에 그 단어가 많이 나올수록 점수가 올라갑니다.
+      다만 <em>포화</em>가 있어서, 10번 나온 게 5번 나온 것의 두 배 점수가 되지는 않습니다.</li>
+    <li><strong>IDF (역문서 빈도)</strong> — 전체 문서 중 그 단어를 가진 문서가 적을수록 점수가 큽니다.
+      "금융기관"처럼 모든 청크에 있는 단어는 변별력이 없어 점수가 낮고,
+      "유산스"처럼 한 청크에만 있는 단어는 점수가 매우 큽니다.</li>
+    <li><strong>문서 길이 정규화</strong> — 긴 문서는 단어가 많아 유리하므로 길이로 나눠 보정합니다.</li>
+  </ol>
+
+  <h3><span class="hn">6.3</span>한국어 토크나이징</h3>
+  <p>
+    BM25는 단어 단위로 동작하는데, 한국어는 조사가 붙어서 <code>"대출보증은"</code>과 <code>"대출보증을"</code>이
+    다른 단어로 취급됩니다. 형태소 분석기를 쓰는 것이 정석입니다.
+  </p>
+
+  <div class="code">
+    <div class="bar"><span>tokenize.py</span><span class="tag">학습용 간이 버전</span></div>
+<pre><code><span class="k">def</span> tokenize(text):
+    <span class="c"># 한글 2자 이상 / 영문 2자 이상 / 숫자(%포함)만 추출</span>
+    toks = re.findall(<span class="s">r"[가-힣]{2,}|[A-Za-z]{2,}|\d+(?:\.\d+)?%?"</span>, text)
+    out = []
+    <span class="k">for</span> t <span class="k">in</span> toks:
+        out.append(t)
+        <span class="k">if</span> re.match(<span class="s">r"^[가-힣]{3,}$"</span>, t):
+            out.append(t[:<span class="n">2</span>])      <span class="c"># 조사 제거 대용: 앞 2글자도 함께 넣음</span>
+    <span class="k">return</span> out
+
+<span class="c"># tokenize("제5조 대출보증은 총대출금의 10% 범위내")</span>
+<span class="c"># → ['5', '대출보증은', '대출', '총대출금의', '총대', '10%', '범위내', '범위']</span></code></pre>
+  </div>
+
+  <div class="code">
+    <div class="bar"><span>tokenize.py</span><span class="tag">실무용 — kiwipiepy</span></div>
+<pre><code><span class="c"># pip install kiwipiepy</span>
+<span class="k">from</span> kiwipiepy <span class="k">import</span> Kiwi
+kiwi = Kiwi()
+
+<span class="k">def</span> tokenize(text):
+    <span class="c"># N*: 명사, V*: 동사/형용사, SL: 외국어, SN: 숫자</span>
+    <span class="k">return</span> [t.form <span class="k">for</span> t <span class="k">in</span> kiwi.tokenize(text)
+            <span class="k">if</span> t.tag.startswith((<span class="s">'N'</span>, <span class="s">'V'</span>, <span class="s">'SL'</span>, <span class="s">'SN'</span>))]
+
+<span class="c"># → ['제', '5', '조', '대출', '보증', '총', '대출금', '10', '범위', '내']</span>
+
+<span class="c"># 도메인 용어는 사용자 사전에 등록하면 분해되지 않는다</span>
+kiwi.add_user_word(<span class="s">"유산스"</span>, <span class="s">"NNG"</span>)
+kiwi.add_user_word(<span class="s">"디딤돌대출"</span>, <span class="s">"NNP"</span>)</code></pre>
+  </div>
+
+  <div class="box key">
+    <span class="bt">사용자 사전이 의외로 큰 차이를 만듭니다</span>
+    "유산스", "체증식", "이차보전", "기금e든든" 같은 금융 고유 용어는
+    형태소 분석기가 엉뚱하게 쪼갭니다. 사내 용어집을 그대로 사용자 사전에 등록하는 것만으로
+    BM25 정확도가 눈에 띄게 오릅니다. 규정 담당 부서에 용어집을 요청하세요.
+  </div>
+
+  <h3><span class="hn">6.4</span>RRF — 두 결과를 합치는 법</h3>
+  <p>
+    벡터 유사도는 0~1, BM25 점수는 0~30 같은 식으로 <strong>스케일이 완전히 다릅니다</strong>.
+    그냥 더하면 BM25가 지배하고, 정규화해서 더하면 분포에 따라 결과가 불안정합니다.
+    그래서 점수를 버리고 <strong>순위만 가지고 합치는</strong> RRF(Reciprocal Rank Fusion)를 씁니다.
+  </p>
+
+  <figure>
+    <div class="plate"><svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" font-family="'IBM Plex Sans KR',sans-serif" font-size="11.5">
+      <text x="10" y="18" fill="#6e7378" font-size="11" font-weight="700">RRF 계산 예시 (k=60)</text>
+      <!-- 공식 -->
+      <rect x="452" y="30" width="258" height="52" rx="4" fill="#EEF0ED" stroke="#D8DBD5"/>
+      <text x="581" y="52" text-anchor="middle" fill="#26292d" font-family="'IBM Plex Mono',monospace" font-size="12.5">score(d) = Σ 1 / (k + rank)</text>
+      <text x="581" y="70" text-anchor="middle" fill="#6e7378" font-size="10.5">k는 상위권 쏠림을 완화하는 상수</text>
+
+      <!-- Dense 순위 -->
+      <text x="18" y="46" fill="#26292d" font-size="12" font-weight="700">Dense 순위</text>
+      <g font-family="'IBM Plex Mono',monospace" font-size="11">
+        <text x="18" y="68" fill="#26292d">1. 청크A</text>
+        <text x="18" y="88" fill="#26292d">2. 청크B</text>
+        <text x="18" y="108" fill="#26292d">3. 청크C</text>
+      </g>
+      <!-- BM25 순위 -->
+      <text x="148" y="46" fill="#26292d" font-size="12" font-weight="700">BM25 순위</text>
+      <g font-family="'IBM Plex Mono',monospace" font-size="11">
+        <text x="148" y="68" fill="#26292d">1. 청크C</text>
+        <text x="148" y="88" fill="#26292d">2. 청크A</text>
+        <text x="148" y="108" fill="#26292d">3. 청크D</text>
+      </g>
+
+      <!-- 계산 -->
+      <line x1="10" y1="126" x2="440" y2="126" stroke="#D8DBD5"/>
+      <g font-family="'IBM Plex Mono',monospace" font-size="11">
+        <text x="18" y="148" fill="#26292d">A : 1/(60+1) + 1/(60+2) = 0.01639 + 0.01613 = <tspan fill="#2f6b4f" font-weight="700">0.03252</tspan></text>
+        <text x="18" y="170" fill="#26292d">C : 1/(60+3) + 1/(60+1) = 0.01587 + 0.01639 = <tspan fill="#2f6b4f" font-weight="700">0.03226</tspan></text>
+        <text x="18" y="192" fill="#26292d">B : 1/(60+2)                             = 0.01613</text>
+        <text x="18" y="214" fill="#26292d">D : 1/(60+3)                             = 0.01587</text>
+      </g>
+      <rect x="452" y="140" width="258" height="82" rx="4" fill="#eef3ef" stroke="#2f6b4f"/>
+      <text x="470" y="162" fill="#2f6b4f" font-size="12" font-weight="700">최종 순위</text>
+      <text x="470" y="184" fill="#26292d" font-family="'IBM Plex Mono',monospace" font-size="11">A → C → B → D</text>
+      <text x="470" y="206" fill="#6e7378" font-size="10.5">양쪽에 든 A·C가 자연스럽게 앞으로</text>
+    </svg></div>
+    <figcaption>양쪽 검색에 모두 등장한 문서가 위로 올라옵니다. 점수 스케일을 맞출 필요가 없다는 것이 RRF의 최대 장점입니다.</figcaption>
+  </figure>
+
+  <div class="code">
+    <div class="bar"><span>rrf.py</span><span class="tag">구현은 다섯 줄이면 끝</span></div>
+<pre><code><span class="k">def</span> rrf(rank_lists, k=<span class="n">60</span>, weights=<span class="k">None</span>):
+    weights = weights <span class="k">or</span> [<span class="n">1.0</span>] * len(rank_lists)
+    score = {}
+    <span class="k">for</span> w, ids <span class="k">in</span> zip(weights, rank_lists):
+        <span class="k">for</span> rank, _id <span class="k">in</span> enumerate(ids, <span class="n">1</span>):
+            score[_id] = score.get(_id, <span class="n">0</span>) + w * <span class="n">1</span> / (k + rank)
+    <span class="k">return</span> sorted(score, key=score.get, reverse=<span class="k">True</span>)
+
+<span class="c"># 규정 도메인이면 BM25 가중치를 조금 높여도 좋다</span>
+fused = rrf([dense_ids, bm25_ids], weights=[<span class="n">1.0</span>, <span class="n">1.2</span>])</code></pre>
+  </div>
+
+  <div class="box info">
+    <span class="bt">k 값의 의미</span>
+    <code>k=60</code>은 원 논문의 경험값입니다. k가 작으면 1위와 2위의 점수 차가 커져
+    <strong>한쪽 검색기의 1위가 결과를 지배</strong>합니다. k가 크면 순위 간 차이가 평탄해져
+    <strong>양쪽에 고루 등장하는 문서가 유리</strong>해집니다.
+    검색기 하나를 신뢰한다면 k를 낮추고, 둘 다 비슷하게 믿는다면 60 이상을 쓰세요.
+  </div>
+
+  <h3><span class="hn">6.5</span>전체 검색 함수</h3>
+  <div class="code">
+    <div class="bar"><span>search.py</span><span class="tag">필터 → 벡터 + BM25 → RRF</span></div>
+<pre><code><span class="k">from</span> rank_bm25 <span class="k">import</span> BM25Okapi
+
+_bm25_cache = {}          <span class="c"># 모드별 BM25 인덱스 캐시</span>
+
+<span class="k">def</span> get_bm25(key, docs):
+    <span class="k">if</span> key <span class="k">not</span> <span class="k">in</span> _bm25_cache:
+        _bm25_cache[key] = BM25Okapi([tokenize(d) <span class="k">for</span> d <span class="k">in</span> docs])
+    <span class="k">return</span> _bm25_cache[key]
+
+
+<span class="k">def</span> search(query, top_k=<span class="n">4</span>, pool=<span class="n">20</span>, verbose=<span class="k">True</span>):
+    mode, asof = route(query)              <span class="c"># 7장</span>
+    where = build_where(mode, asof)
+
+    <span class="hl">    <span class="c"># (a) 필터를 먼저 걸어 후보를 좁힌다</span>
+    <span class="c">#     검색 후에 거르면 top-k 자리를 폐지 문서가 차지해 버린다</span>
+    cand = COLL.get(where=where)</span>
+    <span class="k">if</span> <span class="k">not</span> cand[<span class="s">"ids"</span>]:
+        <span class="k">return</span> []
+
+    <span class="c"># (b) 벡터 검색</span>
+    qv = EMB.encode([query], normalize_embeddings=<span class="k">True</span>).tolist()
+    dense_ids = COLL.query(query_embeddings=qv,
+                           n_results=min(pool, len(cand[<span class="s">"ids"</span>])),
+                           where=where)[<span class="s">"ids"</span>][<span class="n">0</span>]
+
+    <span class="c"># (c) BM25 — 필터 통과분만 대상으로</span>
+    bm25 = get_bm25(<span class="s">f"{mode}:{asof}"</span>, cand[<span class="s">"documents"</span>])
+    sc = bm25.get_scores(tokenize(query))
+    order = sorted(range(len(sc)), key=<span class="k">lambda</span> i: -sc[i])[:pool]
+    bm25_ids = [cand[<span class="s">"ids"</span>][i] <span class="k">for</span> i <span class="k">in</span> order]
+
+    <span class="c"># (d) 융합</span>
+    fused = rrf([dense_ids, bm25_ids])[:top_k]
+    look = {i: (d, m) <span class="k">for</span> i, d, m <span class="k">in</span>
+            zip(cand[<span class="s">"ids"</span>], cand[<span class="s">"documents"</span>], cand[<span class="s">"metadatas"</span>])}
+    <span class="k">return</span> [{<span class="s">"id"</span>: i, <span class="s">"text"</span>: look[i][<span class="n">0</span>], <span class="s">"meta"</span>: look[i][<span class="n">1</span>]} <span class="k">for</span> i <span class="k">in</span> fused]</code></pre>
+  </div>
+
+  <div class="box warn">
+    <span class="bt">필터 순서가 성능과 정확도를 동시에 좌우합니다</span>
+    (a)에서 <code>COLL.get(where=...)</code>로 후보를 미리 확보하는 이유는 두 가지입니다.
+    첫째, BM25를 <strong>필터 통과분만</strong> 대상으로 만들어 폐지 문서가 키워드로 끌려오는 걸 막습니다.
+    둘째, 검색 후 후처리로 거르면 top-k가 이미 폐지 문서로 채워진 뒤라 남는 게 없습니다.
+    <br><br>
+    다만 <code>COLL.get()</code>은 매번 전체 후보를 메모리로 가져옵니다.
+    청크가 수만 개면 이 부분을 미리 한 번만 로드해 두고 재사용하도록 바꾸세요.
+  </div>
+</section>
+
+
+<!-- ══════════════════ 7장 ══════════════════ -->
+<section class="ch" id="ch7">
+  <div class="chead">
+    <div class="cno">제 7 장</div>
+    <h2>라우팅과 시점 조회</h2>
+    <p>질문을 읽고 어떤 필터를 걸지 결정하는 단계입니다. 같은 질문이라도 시점이 다르면 정답이 달라진다는 것을 코드로 구현합니다.</p>
+  </div>
+
+  <h3><span class="hn">7.1</span>규칙 기반 라우터</h3>
+  <p>
+    처음부터 LLM 분류기를 쓸 필요가 없습니다. 정규식 열 줄로 시작해서,
+    분류가 틀리는 사례가 쌓이면 그때 교체하세요.
+  </p>
+
+  <div class="code">
+    <div class="bar"><span>route.py</span><span class="tag">현행 / 시점 / 이력</span></div>
+<pre><code><span class="k">def</span> route(q):
+    <span class="c"># ① 이력·변경을 묻는 질문 → 전 버전 대상</span>
+    <span class="k">if</span> re.search(<span class="s">r"(옛날|과거|예전|이력|바뀌|변경|개정|폐지|연혁)"</span>, q):
+        <span class="k">return</span> <span class="s">"all"</span>, <span class="k">None</span>
+
+    <span class="c"># ② 연도가 등장하면 그 시점 기준 → as-of</span>
+    m = re.search(<span class="s">r"(19|20)\d{2}\s*년"</span>, q)
+    <span class="k">if</span> m:
+        year = int(re.sub(<span class="s">r"\D"</span>, <span class="s">""</span>, m.group()))
+        mo = re.search(<span class="s">r"년\s*(\d{1,2})\s*월"</span>, q)
+        day = re.search(<span class="s">r"월\s*(\d{1,2})\s*일"</span>, q)
+        <span class="k">return</span> <span class="s">"asof"</span>, (year * <span class="n">10000</span>
+                        + (int(mo.group(<span class="n">1</span>)) <span class="k">if</span> mo <span class="k">else</span> <span class="n">1</span>) * <span class="n">100</span>
+                        + (int(day.group(<span class="n">1</span>)) <span class="k">if</span> day <span class="k">else</span> <span class="n">1</span>))
+
+    <span class="c"># ③ 기본값 — 현행만</span>
+    <span class="k">return</span> <span class="s">"current"</span>, <span class="k">None</span>
+
+
+<span class="k">def</span> build_where(mode, asof):
+    <span class="k">if</span> mode == <span class="s">"current"</span>:
+        <span class="k">return</span> {<span class="s">"is_current"</span>: <span class="k">True</span>}
+    <span class="k">if</span> mode == <span class="s">"asof"</span>:
+        <span class="k">return</span> {<span class="s">"$and"</span>: [{<span class="s">"effective_from"</span>: {<span class="s">"$lte"</span>: asof}},
+                         {<span class="s">"effective_to"</span>:   {<span class="s">"$gte"</span>: asof}}]}
+    <span class="k">return</span> <span class="k">None</span>      <span class="c"># mode == "all"</span></code></pre>
+  </div>
+  <div class="out"><span class="lbl">라우팅 결과</span>
+디딤돌 대출 한도가 얼마인가요?
+   → mode=current, where={'is_current': True}
+
+1991년 5월 기준 대출보증 한도는?
+   → mode=asof,    where={'$and': [{'effective_from': {'$lte': 19910501}},
+                                   {'effective_to':   {'$gte': 19910501}}]}
+
+대출 규정이 예전에 어떻게 바뀌었나요?
+   → mode=all,     where=None</div>
+
+  <h3><span class="hn">7.2</span>핵심 실험 — 같은 주제, 다른 답</h3>
+  <p>
+    아래는 실제 실행 결과입니다. 두 번째와 세 번째 질문을 비교해 보세요.
+    <strong>내용은 사실상 같은 질문인데 필터 하나로 답이 갈리고, 둘 다 정답입니다.</strong>
+  </p>
+
+  <div class="out"><span class="lbl">① 현행 조회</span>
+Q: 디딤돌 대출 한도가 얼마인가요?
+[mode=current] 후보 43건 → 선택 4건
+  - [시행] 내집마련 디딤돌 대출 | 제3장 대출상품 구조 &gt; 1. 대출한도
+  - [시행] 내집마련 디딤돌 대출 | 제9장 유한책임 디딤돌대출 &gt; 3. 대출요건
+  - [시행] 내집마련 디딤돌 대출 | 제2장 채무자 요건 &gt; 1. 항목별 요건
+  - [시행] 내집마련 디딤돌 대출 | 제3장 대출상품 구조 &gt; 2. 대출만기 및 거치기간</div>
+
+  <div class="out"><span class="lbl">② 함정 — 답은 폐지 규정에만 있다</span>
+Q: 대출보증은 총대출금의 몇 % 이내로 취급해야 하나요?
+[mode=current] 후보 43건 → 선택 4건
+  - [시행] 내집마련 디딤돌 대출 | 제6장 LTV &gt; 4. 구입자금보증
+  - [시행] 내집마련 디딤돌 대출 | 제3장 대출상품 구조 &gt; 1. 대출한도
+  - [시행] 내집마련 디딤돌 대출 | 제2장 채무자 요건 &gt; 1. 항목별 요건
+  - [시행] 내집마련 디딤돌 대출 | 제9장 유한책임 디딤돌대출 &gt; 3. 대출요건
+
+  1991년 세칙 제5조에 "총대출금의 10% 범위내"가 <b>분명히 있지만</b>
+  is_current 필터에 걸려 검색되지 않았다 → 이것이 정상 동작이다</div>
+
+  <div class="out"><span class="lbl">③ 시점 조회 — 그때는 유효했다</span>
+Q: 1991년 5월 기준으로 대출보증 한도는 얼마였나요?
+[mode=asof] 후보 35건 → 선택 4건
+  - [폐지] 금융기관 여신운용세칙 | 제5조 &gt; 대출보증 &gt; 제1항  ← 총대출금의 10%
+  - [폐지] 금융기관 여신운용세칙 | 제5조 &gt; 대출보증 &gt; 제2항
+  …</div>
+
+  <div class="box info">
+    <span class="bt">②번이 왜 "정상"인가</span>
+    폐지된 규정을 현행인 것처럼 답하는 것보다
+    <strong>"제공된 규정에서 확인되지 않습니다"라고 답하는 편이 압도적으로 안전합니다.</strong>
+    RAG 시스템을 평가할 때 "답을 못 찾은 비율"만 보면 안 되고,
+    <strong>"틀린 답을 자신 있게 한 비율"</strong>을 함께 봐야 하는 이유입니다.
+    은행 업무에서 후자의 비용이 훨씬 큽니다.
+  </div>
+
+  <div class="box warn">
+    <span class="bt">다만 ②번 결과에는 아직 문제가 남아 있습니다</span>
+    폐지 규정은 차단했지만, <strong>답이 없는데도 무관한 4건을 뽑아 LLM에 넣었습니다.</strong>
+    4B급 모델은 그럴듯한 근거 4개가 눈앞에 있으면 억지로 엮어 답하는 경우가 흔합니다.
+    이 문제는 <a href="#ch8">8장</a>의 리랭커 임계값으로 해결합니다.
+  </div>
+
+  <h3><span class="hn">7.3</span>질의 재작성 — 한 걸음 더</h3>
+  <p>
+    사용자 질문은 검색에 최적화된 형태가 아닙니다. 특히 대화형에서 문제가 됩니다.
+  </p>
+  <table>
+    <thead><tr><th style="width:22%">기법</th><th style="width:38%">하는 일</th><th style="width:40%">예시</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>대화 이력 병합</td>
+        <td>지시어를 앞 대화로 복원</td>
+        <td>"그럼 신혼부부는?" → "신혼가구의 디딤돌 대출 한도는?"</td>
+      </tr>
+      <tr>
+        <td>다중 질의 생성</td>
+        <td>한 질문을 표현이 다른 3~5개로 늘려 각각 검색 후 RRF</td>
+        <td>"한도" / "최대 대출 금액" / "담보주택 당 한도"</td>
+      </tr>
+      <tr>
+        <td>HyDE</td>
+        <td>가상의 답변을 LLM으로 만들어 <em>그것을</em> 임베딩해 검색</td>
+        <td>질문-문서 간 어휘 격차를 줄임</td>
+      </tr>
+      <tr>
+        <td>용어 정규화</td>
+        <td>사내 약어를 사전으로 치환</td>
+        <td>"생초" → "생애최초 주택구입자"</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    이 중 <strong>대화 이력 병합과 용어 정규화는 거의 필수</strong>이고, 나머지는 선택입니다.
+    다중 질의는 검색 횟수가 배로 늘어 비용이 커지므로, 평가 지표로 효과를 확인한 뒤 도입하세요.
+  </p>
+</section>
+
+
+<!-- ══════════════════ 8장 ══════════════════ -->
+<section class="ch" id="ch8">
+  <div class="chead">
+    <div class="cno">제 8 장</div>
+    <h2>리랭킹과 부모 청크</h2>
+    <p>검색을 "빠르게 대충 많이"와 "느리지만 정확하게 조금" 두 단계로 나눕니다. 그리고 LLM에게는 검색한 것보다 넓은 범위를 건넵니다.</p>
+  </div>
+
+  <h3><span class="hn">8.1</span>Bi-encoder와 Cross-encoder</h3>
+  <p>
+    지금까지 쓴 임베딩 모델은 <strong>bi-encoder</strong>입니다.
+    질의와 문서를 <em>따로</em> 벡터로 만든 뒤 비교합니다.
+    문서 벡터를 미리 계산해 둘 수 있어 빠르지만, 질의와 문서가 서로를 "보지" 못합니다.
+  </p>
+  <p>
+    <strong>cross-encoder</strong>는 질의와 문서를 <em>붙여서</em> 한 번에 모델에 넣습니다.
+    단어 수준으로 교차 비교가 일어나 훨씬 정확하지만,
+    미리 계산해 둘 수 없어 매 질의마다 문서 수만큼 모델을 돌려야 합니다.
+  </p>
+
+  <figure>
+    <div class="plate"><svg viewBox="0 0 720 230" xmlns="http://www.w3.org/2000/svg" font-family="'IBM Plex Sans KR',sans-serif" font-size="11.5">
+      <defs>
+        <marker id="ar4" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6" fill="none" stroke="#6e7378" stroke-width="1.2"/>
+        </marker>
+      </defs>
+      <!-- Bi -->
+      <rect x="8" y="24" width="336" height="192" rx="5" fill="#EEF0ED" stroke="#D8DBD5"/>
+      <text x="28" y="48" fill="#26292d" font-size="13" font-weight="700">Bi-encoder — 1차 검색</text>
+      <g fill="none" stroke="#26292d" stroke-width="1.2">
+        <rect x="34" y="66" width="96" height="26" rx="3"/>
+        <rect x="222" y="66" width="96" height="26" rx="3"/>
+        <rect x="34" y="110" width="96" height="26" rx="3"/>
+        <rect x="222" y="110" width="96" height="26" rx="3"/>
+      </g>
+      <text x="82" y="84" text-anchor="middle" fill="#26292d">질의</text>
+      <text x="270" y="84" text-anchor="middle" fill="#26292d">벡터 A</text>
+      <text x="82" y="128" text-anchor="middle" fill="#26292d">문서</text>
+      <text x="270" y="128" text-anchor="middle" fill="#26292d">벡터 B</text>
+      <g stroke="#6e7378" stroke-width="1.2" marker-end="url(#ar4)">
+        <line x1="132" y1="79" x2="218" y2="79"/>
+        <line x1="132" y1="123" x2="218" y2="123"/>
+      </g>
+      <text x="176" y="72" text-anchor="middle" fill="#6e7378" font-size="10">인코딩</text>
+      <text x="176" y="116" text-anchor="middle" fill="#6e7378" font-size="10">미리 계산</text>
+      <text x="176" y="164" text-anchor="middle" fill="#2f6b4f" font-size="11.5">코사인 유사도 = A · B</text>
+      <text x="176" y="192" text-anchor="middle" fill="#6e7378" font-size="11">수만 건을 수 밀리초에 — 빠름</text>
+      <text x="176" y="208" text-anchor="middle" fill="#9a4a3c" font-size="11">질의와 문서가 서로를 못 봄 — 덜 정확</text>
+
+      <!-- Cross -->
+      <rect x="376" y="24" width="336" height="192" rx="5" fill="#EEF0ED" stroke="#D8DBD5"/>
+      <text x="396" y="48" fill="#26292d" font-size="13" font-weight="700">Cross-encoder — 재정렬</text>
+      <g fill="none" stroke="#26292d" stroke-width="1.2">
+        <rect x="402" y="72" width="150" height="50" rx="3"/>
+        <rect x="596" y="84" width="96" height="26" rx="3"/>
+      </g>
+      <text x="477" y="92" text-anchor="middle" fill="#26292d">질의 [SEP] 문서</text>
+      <text x="477" y="110" text-anchor="middle" fill="#6e7378" font-size="10">한 시퀀스로 함께 입력</text>
+      <text x="644" y="102" text-anchor="middle" fill="#26292d">관련도 점수</text>
+      <line x1="554" y1="97" x2="592" y2="97" stroke="#6e7378" stroke-width="1.2" marker-end="url(#ar4)"/>
+      <text x="544" y="164" text-anchor="middle" fill="#2f6b4f" font-size="11.5">단어 수준 교차 비교 — 정확</text>
+      <text x="544" y="192" text-anchor="middle" fill="#9a4a3c" font-size="11">문서마다 모델 1회 실행 — 느림</text>
+      <text x="544" y="208" text-anchor="middle" fill="#6e7378" font-size="11">그래서 상위 20~50건에만 적용</text>
+    </svg></div>
+    <figcaption>두 단계로 나누는 이유. 1차에서 넓게 건지고, 2차에서 정밀하게 고릅니다.</figcaption>
+  </figure>
+
+  <h3><span class="hn">8.2</span>임계값 — 억지로 채우지 않기</h3>
+  <p>
+    리랭커의 진짜 가치는 순서를 바꾸는 것보다 <strong>버리는 것</strong>에 있습니다.
+    점수가 기준에 못 미치면 반환하지 않습니다. 결과가 0건이면 LLM은 "확인되지 않습니다"라고 답하게 됩니다.
+  </p>
+
+  <div class="code">
+    <div class="bar"><span>rerank.py</span><span class="tag">환각 억제의 가장 싼 방법</span></div>
+<pre><code><span class="k">from</span> sentence_transformers <span class="k">import</span> CrossEncoder
+
+RERANKER = CrossEncoder(<span class="s">"BAAI/bge-reranker-v2-m3"</span>, max_length=<span class="n">512</span>)
+
+<span class="k">def</span> rerank(query, hits, top_n=<span class="n">4</span>, threshold=<span class="n">0.3</span>):
+    <span class="k">if</span> <span class="k">not</span> hits:
+        <span class="k">return</span> []
+    scores = RERANKER.predict([(query, h[<span class="s">"text"</span>]) <span class="k">for</span> h <span class="k">in</span> hits])
+    ranked = sorted(zip(hits, scores), key=<span class="k">lambda</span> x: -x[<span class="n">1</span>])
+    <span class="hl">    <span class="c"># ★ 임계값 미달은 버린다. 0건이 반환될 수 있고, 그게 맞는 동작이다</span>
+    <span class="k">return</span> [h <span class="k">for</span> h, s <span class="k">in</span> ranked[:top_n] <span class="k">if</span> s &gt;= threshold]</span>
+
+
+<span class="c"># search()에서 pool을 20건으로 넓히고 마지막에 통과시킨다</span>
+<span class="k">def</span> search(query, top_k=<span class="n">4</span>, pool=<span class="n">20</span>):
+    ...
+    fused = rrf([dense_ids, bm25_ids])[:pool]     <span class="c"># 20건까지 확보</span>
+    hits  = [...]
+    <span class="k">return</span> rerank(query, hits, top_n=top_k)       <span class="c"># 정밀 선별</span></code></pre>
+  </div>
+
+  <div class="box info">
+    <span class="bt">임계값은 골든셋으로 정합니다</span>
+    0.3은 출발점일 뿐입니다. 골든셋(<a href="#ch10">10장</a>)의 질문들을 돌려
+    <strong>정답 청크의 점수 분포</strong>와 <strong>오답 청크의 점수 분포</strong>를 그려 보고,
+    두 분포가 갈리는 지점을 임계값으로 잡으세요.
+    답이 없어야 정상인 질문 몇 개를 골든셋에 일부러 넣어 두면 이 작업이 훨씬 쉬워집니다.
+  </div>
+
+  <h3><span class="hn">8.3</span>부모 청크 확장 (Small-to-Big)</h3>
+  <p>
+    검색은 작고 정밀한 단위(항)로 하고, LLM에게 넘길 때는 큰 단위(조 전체)로 확장합니다.
+    항 단위로만 넘기면 <strong>단서 조항이 통째로 빠집니다</strong>.
+  </p>
+
+  <figure>
+    <div class="plate"><svg viewBox="0 0 720 214" xmlns="http://www.w3.org/2000/svg" font-family="'IBM Plex Sans KR',sans-serif" font-size="11.5">
+      <defs>
+        <marker id="ar5" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6" fill="none" stroke="#6e7378" stroke-width="1.2"/>
+        </marker>
+      </defs>
+      <text x="10" y="18" fill="#6e7378" font-size="11" font-weight="700">검색은 좁게, 전달은 넓게</text>
+
+      <!-- 검색 단계 -->
+      <text x="14" y="44" fill="#26292d" font-size="12" font-weight="700">① 항 단위로 검색</text>
+      <g fill="none" stroke="#D8DBD5" stroke-width="1.2">
+        <rect x="14" y="56" width="196" height="24" rx="3"/>
+        <rect x="14" y="112" width="196" height="24" rx="3"/>
+        <rect x="14" y="140" width="196" height="24" rx="3"/>
+      </g>
+      <rect x="14" y="84" width="196" height="24" rx="3" fill="#eef3ef" stroke="#2f6b4f" stroke-width="1.4"/>
+      <g font-size="11">
+        <text x="26" y="72" fill="#6e7378">제15조 제1항</text>
+        <text x="26" y="100" fill="#2f6b4f" font-weight="700">제15조 제2항  ← 검색 적중</text>
+        <text x="26" y="128" fill="#6e7378">제15조 제3항 (단서)</text>
+        <text x="26" y="156" fill="#6e7378">제15조 제4항</text>
+      </g>
+
+      <line x1="222" y1="110" x2="268" y2="110" stroke="#6e7378" stroke-width="1.2" marker-end="url(#ar5)"/>
+      <text x="245" y="102" text-anchor="middle" fill="#6e7378" font-size="10">parent_id</text>
+
+      <!-- 확장 -->
+      <text x="282" y="44" fill="#26292d" font-size="12" font-weight="700">② 조 전체로 확장해 LLM에 전달</text>
+      <rect x="282" y="56" width="424" height="108" rx="4" fill="#eef3ef" stroke="#2f6b4f" stroke-width="1.4"/>
+      <g font-size="11">
+        <text x="296" y="76" fill="#26292d">제15조(대출한도의 산정) ① …</text>
+        <text x="296" y="96" fill="#26292d">② 한도는 담보주택 당 2억원 이내로 한다.</text>
+        <text x="296" y="116" fill="#9a4a3c" font-weight="700">③ 다만, 만 30세 이상 미혼 단독세대주는 1.5억원으로 한다.</text>
+        <text x="296" y="136" fill="#26292d">④ …</text>
+        <text x="296" y="156" fill="#6e7378" font-size="10.5">③항이 함께 들어가야 답이 틀리지 않는다</text>
+      </g>
+      <rect x="14" y="178" width="692" height="28" rx="4" fill="#f7efec" stroke="#9a4a3c" stroke-width="1.2"/>
+      <text x="360" y="196" text-anchor="middle" fill="#9a4a3c" font-size="11.5">②항만 넘기면 "2억원입니다"라고 답한다 — 단서를 놓친 답변은 실무에서 그냥 오답이다</text>
+    </svg></div>
+    <figcaption>규정 문서에서 단서 조항(다만, 단, 제외한다)은 본문만큼 중요합니다.</figcaption>
+  </figure>
+
+  <div class="code">
+    <div class="bar"><span>expand.py</span><span class="tag">parent_id로 조 전체 복원</span></div>
+<pre><code><span class="c"># 인덱싱 시 조 전체 텍스트를 별도 저장해 둔다 (벡터는 만들지 않아도 됨)</span>
+PARENT_STORE = {}      <span class="c"># {"BOK-CREDIT-1991#art05": "제5조 전문 …"}</span>
+
+<span class="k">def</span> expand_to_parent(hits):
+    seen, out = set(), []
+    <span class="k">for</span> h <span class="k">in</span> hits:
+        pid = h[<span class="s">"meta"</span>].get(<span class="s">"parent_id"</span>)
+        <span class="k">if</span> pid <span class="k">and</span> pid <span class="k">not</span> <span class="k">in</span> seen:
+            seen.add(pid)
+            out.append({**h, <span class="s">"text"</span>: PARENT_STORE[pid]})   <span class="c"># 본문만 교체</span>
+        <span class="k">elif</span> <span class="k">not</span> pid:
+            out.append(h)
+    <span class="k">return</span> out</code></pre>
+  </div>
+
+  <div class="box info">
+    <span class="bt">중복 제거가 덤으로 따라옵니다</span>
+    같은 조의 제1항·제2항이 동시에 검색됐다면 부모 확장 후에는 조 하나로 합쳐집니다.
+    top-k 자리를 아껴 더 다양한 조항을 담을 수 있게 됩니다.
+  </div>
+</section>
+
+
+<!-- ══════════════════ 9장 ══════════════════ -->
+<section class="ch" id="ch9">
+  <div class="chead">
+    <div class="cno">제 9 장</div>
+    <h2>프롬프트와 생성</h2>
+    <p>검색을 아무리 잘해도 마지막 단계에서 무너질 수 있습니다. 특히 근거 간 시행일이 충돌할 때 무엇을 하라고 지시할지 명시해야 합니다.</p>
+  </div>
+
+  <h3><span class="hn">9.1</span>시스템 프롬프트 다섯 조항</h3>
+
+  <div class="code">
+    <div class="bar"><span>prompt.py</span><span class="tag">규정 도메인 기본형</span></div>
+<pre><code>SYSTEM = <span class="s">"""당신은 금융 규정 안내 어시스턴트입니다. 아래 규칙을 반드시 지키세요.
+
+1. &lt;근거&gt;에 있는 내용만 사용하고, 없는 내용은 추론하지 마세요.
+2. 문장마다 [문서명 / 위치 / 시행일] 형식으로 출처를 표기하세요.
+3. 근거가 없으면 "제공된 규정에서 확인되지 않습니다"라고 답하고
+   소관부서 문의를 안내하세요.
+4. 근거의 시행일이 서로 다르면 임의로 고르지 말고,
+   가장 최신 것을 현행으로 제시한 뒤
+   "다만 {구시행일}~{구종료일} 기간 적용 건은 종전 기준이 적용됩니다"를 덧붙이세요.
+5. 금액·비율·기한은 원문 표기를 그대로 옮기고 반올림·환산하지 마세요."""</span></code></pre>
+  </div>
+
+  <table>
+    <thead><tr><th style="width:8%">조항</th><th style="width:30%">막으려는 실패</th><th style="width:62%">설명</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1</strong></td><td>일반 지식으로 보충</td><td>LLM은 "일반적으로 LTV는 70%죠"처럼 학습 지식을 섞습니다. 사내 규정과 다르면 그대로 오답</td></tr>
+      <tr><td><strong>2</strong></td><td>출처 없는 단정</td><td>인용을 강제하면 근거에 없는 문장을 쓰기 어려워집니다. 환각 억제 효과가 큽니다</td></tr>
+      <tr><td><strong>3</strong></td><td>억지 답변</td><td>"모른다"는 출구를 명시적으로 열어 줘야 합니다. 8장의 임계값과 함께 작동합니다</td></tr>
+      <tr><td><strong>4</strong></td><td>충돌 시 임의 선택</td><td>as-of·all 모드에서 개정 전후가 함께 들어오는 상황은 반드시 생깁니다</td></tr>
+      <tr><td><strong>5</strong></td><td>숫자 변형</td><td>"2.4억원"을 "약 2억 4천만원"으로 바꾸면 원문 대조가 어려워집니다</td></tr>
+    </tbody>
+  </table>
+
+  <h3><span class="hn">9.2</span>컨텍스트 조립 — 시행일을 텍스트로</h3>
+  <div class="box warn">
+    <span class="bt">메타데이터에만 있으면 LLM은 볼 수 없습니다</span>
+    <code>effective_from</code>을 파이썬 딕셔너리에 들고 있어도 모델에게는 아무 의미가 없습니다.
+    <strong>프롬프트 문자열에 직접 써 넣어야</strong> 4번 규칙을 수행할 수 있습니다.
+    당연해 보이지만 실무에서 가장 흔히 빠뜨리는 부분입니다.
+  </div>
+
+  <div class="code">
+    <div class="bar"><span>context.py</span><span class="tag">근거 블록 포맷</span></div>
+<pre><code><span class="k">def</span> fmt(d):
+    <span class="k">return</span> <span class="s">"현재"</span> <span class="k">if</span> d &gt;= <span class="n">99991231</span> <span class="k">else</span> <span class="s">f"{d//10000}.{d//100%100:02d}.{d%100:02d}"</span>
+
+<span class="k">def</span> build_context(hits):
+    blocks = []
+    <span class="k">for</span> i, h <span class="k">in</span> enumerate(hits, <span class="n">1</span>):
+        m = h[<span class="s">"meta"</span>]
+        blocks.append(
+            <span class="s">f"&lt;근거 {i}&gt;\n"</span>
+            <span class="s">f"문서: {m['doc_title']} ({m['issuer']}) / 상태: {m['status']}\n"</span>
+            <span class="s">f"위치: {m['location']} (p.{m['page']})\n"</span>
+            <span class="hl">            <span class="s">f"유효기간: {fmt(m['effective_from'])} ~ {fmt(m['effective_to'])}\n"</span></span>
+            <span class="s">f"내용: {h['text']}\n&lt;/근거&gt;"</span>)
+    <span class="k">return</span> <span class="s">"\n\n"</span>.join(blocks)</code></pre>
+  </div>
+
+  <div class="out"><span class="lbl">실제로 LLM이 받는 문자열</span>
+&lt;근거 1&gt;
+문서: 내집마련 디딤돌 대출 업무처리기준 (한국주택금융공사) / 상태: 시행
+위치: 제3장 대출상품 구조 &gt; 1. 대출한도 (p.14)
+유효기간: 2026.07.14 ~ 현재
+내용: [내집마련 디딤돌 대출 업무처리기준 / 제3장 … &gt; 1. 대출한도]
+▪ 담보주택 당 한도 : 2억원(생애최초 주택구입자 2.4억원, …
+&lt;/근거&gt;</div>
+
+  <h3><span class="hn">9.3</span>로컬 LLM 연결</h3>
+
+  <div class="code">
+    <div class="bar"><span>llm.py</span><span class="tag">방법 A — transformers</span></div>
+<pre><code><span class="k">from</span> transformers <span class="k">import</span> AutoTokenizer, AutoModelForCausalLM
+<span class="k">import</span> torch
+
+MODEL = <span class="s">"Qwen/Qwen3-4B-Instruct-2507"</span>
+tok = AutoTokenizer.from_pretrained(MODEL)
+mdl = AutoModelForCausalLM.from_pretrained(MODEL, torch_dtype=<span class="s">"auto"</span>, device_map=<span class="s">"auto"</span>)
+
+<span class="k">def</span> llm(system, user):
+    msgs = [{<span class="s">"role"</span>: <span class="s">"system"</span>, <span class="s">"content"</span>: system},
+            {<span class="s">"role"</span>: <span class="s">"user"</span>,   <span class="s">"content"</span>: user}]
+
+    <span class="hl">    <span class="c"># ① 템플릿 적용은 '텍스트'만 뽑는다 (tokenize=False)</span>
+    prompt = tok.apply_chat_template(msgs, tokenize=<span class="k">False</span>, add_generation_prompt=<span class="k">True</span>)
+
+    <span class="c"># ② 인코딩은 tok()으로 따로</span>
+    inputs = tok(prompt, return_tensors=<span class="s">"pt"</span>).to(mdl.device)</span>
+
+    <span class="k">with</span> torch.no_grad():
+        out = mdl.generate(**inputs, max_new_tokens=<span class="n">400</span>, do_sample=<span class="k">False</span>)
+
+    <span class="c"># ③ 입력 길이만큼 잘라서 디코딩</span>
+    <span class="k">return</span> tok.decode(out[<span class="n">0</span>][inputs[<span class="s">"input_ids"</span>].shape[-<span class="n">1</span>]:], skip_special_tokens=<span class="k">True</span>)</code></pre>
+  </div>
+
+  <div class="box warn">
+    <span class="bt">apply_chat_template의 반환형 함정</span>
+    최신 <code>transformers</code>에서 <code>apply_chat_template(..., return_tensors="pt")</code>는
+    텐서가 아니라 <strong><code>BatchEncoding</code>(딕셔너리형)</strong>을 반환합니다.
+    이걸 텐서로 알고 <code>ids.shape</code>이나 <code>generate(ids, ...)</code>를 호출하면
+    아래 오류가 납니다.
+    <div class="out" style="margin:.7rem 0 0;border-top:1px solid var(--rule)">KeyError: 'shape'
+  → AttributeError
+File transformers/generation/utils.py, in generate
+    batch_size = inputs_tensor.shape[0]</div>
+    <p style="margin-top:.7rem">
+    위 코드처럼 <code>tokenize=False</code>로 문자열만 뽑고 <code>tok()</code>으로 따로 인코딩한 뒤
+    <code>generate(**inputs)</code>로 언팩하면 해결됩니다.
+    </p>
+  </div>
+
+  <div class="code">
+    <div class="bar"><span>llm.py</span><span class="tag">방법 B — Ollama (권장)</span></div>
+<pre><code><span class="c"># 터미널: ollama pull qwen3:4b</span>
+<span class="k">import</span> requests
+
+<span class="k">def</span> llm(system, user):
+    r = requests.post(<span class="s">"http://localhost:11434/api/chat"</span>, json={
+        <span class="s">"model"</span>: <span class="s">"qwen3:4b"</span>, <span class="s">"stream"</span>: <span class="k">False</span>,
+        <span class="s">"options"</span>: {<span class="s">"temperature"</span>: <span class="n">0</span>, <span class="s">"num_predict"</span>: <span class="n">400</span>},
+        <span class="s">"messages"</span>: [{<span class="s">"role"</span>: <span class="s">"system"</span>, <span class="s">"content"</span>: system},
+                     {<span class="s">"role"</span>: <span class="s">"user"</span>,   <span class="s">"content"</span>: user}]})
+    <span class="k">return</span> r.json()[<span class="s">"message"</span>][<span class="s">"content"</span>]</code></pre>
+  </div>
+  <p>
+    학습 목적이라면 Ollama 쪽이 훨씬 속 편합니다.
+    llama.cpp 기반이라 GPU 메모리가 부족할 때의 부분 오프로드를 훨씬 효율적으로 처리하고,
+    양자화 모델이 기본 제공됩니다. 이유는 <a href="#ch11">11장</a>에서 설명합니다.
+  </p>
+
+  <h3><span class="hn">9.4</span>전체 질의응답 함수</h3>
+  <div class="code">
+    <div class="bar"><span>ask.py</span><span class="tag">검색 → 조립 → 생성</span></div>
+<pre><code><span class="k">def</span> ask(query, verbose=<span class="k">True</span>):
+    hits = search(query)
+    <span class="k">if</span> <span class="k">not</span> hits:
+        print(<span class="s">"제공된 규정에서 확인되지 않습니다. 소관부서로 문의하세요."</span>)
+        <span class="k">return</span>
+    <span class="k">if</span> verbose:
+        <span class="k">for</span> h <span class="k">in</span> hits:
+            m = h[<span class="s">"meta"</span>]
+            print(<span class="s">f"  - [{m['status']}] {m['doc_title']} | {m['location']}"</span>)
+    user = <span class="s">f"&lt;근거&gt;\n{build_context(hits)}\n&lt;/근거&gt;\n\n질문: {query}"</span>
+    print(<span class="s">"\n"</span> + llm(SYSTEM, user))</code></pre>
+  </div>
+
+  <div class="out"><span class="lbl">실제 답변 — ask("디딤돌 대출 한도가 얼마인가요?")</span>
+디딤돌 대출 한도는 담보주택 당 한도에 따라 달라지며, 다음과 같습니다:
+
+- 일반: 담보주택 당 <b>2억원</b> (생애최초 주택구입자 2.4억원,
+  신혼·다자녀·2자녀가구 3.2억원) 이내 (10만원 단위로 취급)
+- 만 30세 이상의 미혼 단독세대주는 <b>1.5억원</b>
+  (생애최초 주택구입자 2억원) 이내
+- 본 건 주택 관련 기금대출은 대출한도에서 차감
+
+[내집마련 디딤돌 대출 업무처리기준 / 제3장 대출상품 구조 &gt; 1. 대출한도 / p.14]
+유효기간: 2026.07.14 ~ 현재</div>
+  <p>
+    금액이 원문 표기 그대로 유지됐고, 단서 조항(만 30세 이상 미혼 단독세대주)이 누락되지 않았으며,
+    출처와 유효기간이 붙었습니다. 프롬프트 다섯 조항이 의도대로 작동한 결과입니다.
+  </p>
+
+  <h3><span class="hn">9.5</span>생성 후 검증 (선택)</h3>
+  <p>
+    더 엄격하게 가려면 답변을 그대로 내보내지 말고 한 번 더 확인합니다.
+  </p>
+  <ul>
+    <li><strong>인용 존재 검증</strong> — 답변에 등장한 조항 번호가 실제 근거에 있는 것인지 문자열로 대조. 없으면 재생성</li>
+    <li><strong>숫자 대조</strong> — 답변의 금액·비율을 정규식으로 뽑아 근거 텍스트에 그대로 존재하는지 확인</li>
+    <li><strong>LLM 심판</strong> — 별도 호출로 "이 답변의 각 문장이 근거에서 뒷받침되는가"를 판정 (10장의 Faithfulness)</li>
+  </ul>
+  <div class="code">
+    <div class="bar"><span>verify.py</span><span class="tag">숫자 대조 — 가장 싸고 효과적</span></div>
+<pre><code><span class="k">def</span> check_numbers(answer, hits):
+    src = <span class="s">" "</span>.join(h[<span class="s">"text"</span>] <span class="k">for</span> h <span class="k">in</span> hits)
+    nums = set(re.findall(<span class="s">r"\d+(?:\.\d+)?\s*(?:%p?|억원|만원|년|개월|일)"</span>, answer))
+    missing = [n <span class="k">for</span> n <span class="k">in</span> nums <span class="k">if</span> n.replace(<span class="s">" "</span>, <span class="s">""</span>) <span class="k">not</span> <span class="k">in</span> src.replace(<span class="s">" "</span>, <span class="s">""</span>)]
+    <span class="k">if</span> missing:
+        print(<span class="s">f"⚠ 근거에 없는 수치: {missing}"</span>)
+    <span class="k">return</span> <span class="k">not</span> missing</code></pre>
+  </div>
+</section>
+
+
+<!-- ══════════════════ 10장 ══════════════════ -->
+<section class="ch" id="ch10">
+  <div class="chead">
+    <div class="cno">제 10 장</div>
+    <h2>평가 — 이것이 없으면 개선인지 알 수 없다</h2>
+    <p>가장 자주 생략되고 가장 중요한 단계입니다. 리랭커를 넣었는데 점수가 안 오르면 그건 검색 문제가 아니라 청킹 문제라는 것을 알려 주는 게 평가 지표입니다.</p>
+  </div>
+
+  <h3><span class="hn">10.1</span>두 층으로 나눠서 잰다</h3>
+  <figure>
+    <div class="plate"><svg viewBox="0 0 720 176" xmlns="http://www.w3.org/2000/svg" font-family="'IBM Plex Sans KR',sans-serif" font-size="11.5">
+      <rect x="8" y="26" width="340" height="136" rx="5" fill="#EEF0ED" stroke="#D8DBD5"/>
+      <text x="28" y="50" fill="#26292d" font-size="13" font-weight="700">검색 층 (Retrieval)</text>
+      <text x="28" y="72" fill="#6e7378" font-size="11">"정답 청크를 가져왔는가"</text>
+      <g font-size="11.5">
+        <text x="28" y="98" fill="#26292d">Recall@k · Precision@k</text>
+        <text x="28" y="118" fill="#26292d">MRR (첫 정답의 순위)</text>
+        <text x="28" y="138" fill="#26292d">nDCG (순위 품질 종합)</text>
+      </g>
+      <text x="28" y="156" fill="#2f6b4f" font-size="10.5">자동 측정 · 빠름 · 매 커밋마다 돌릴 수 있음</text>
+
+      <rect x="372" y="26" width="340" height="136" rx="5" fill="#EEF0ED" stroke="#D8DBD5"/>
+      <text x="392" y="50" fill="#26292d" font-size="13" font-weight="700">생성 층 (Generation)</text>
+      <text x="392" y="72" fill="#6e7378" font-size="11">"가져온 근거로 제대로 답했는가"</text>
+      <g font-size="11.5">
+        <text x="392" y="98" fill="#26292d">Faithfulness (근거 충실도)</text>
+        <text x="392" y="118" fill="#26292d">Answer Relevancy (질문 적합도)</text>
+        <text x="392" y="138" fill="#26292d">Citation Accuracy (인용 정확도)</text>
+      </g>
+      <text x="392" y="156" fill="#9a4a3c" font-size="10.5">LLM 심판 필요 · 비용 발생 · 주 1회 정도</text>
+
+      <text x="360" y="16" text-anchor="middle" fill="#6e7378" font-size="11">검색 층이 낮으면 생성 층은 볼 필요도 없다 — 순서대로 고친다</text>
+    </svg></div>
+    <figcaption>검색 층부터 잡으세요. 정답 청크가 안 들어왔는데 프롬프트를 다듬는 건 시간 낭비입니다.</figcaption>
+  </figure>
+
+  <h3><span class="hn">10.2</span>지표 계산법</h3>
+  <table>
+    <thead><tr><th style="width:16%">지표</th><th style="width:40%">정의</th><th style="width:44%">해석</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Recall@k</strong></td>
+        <td>상위 k건 안에 들어온 정답 청크 비율</td>
+        <td>가장 먼저 봐야 할 지표. 여기가 낮으면 뒤는 의미 없음</td>
+      </tr>
+      <tr>
+        <td><strong>Precision@k</strong></td>
+        <td>상위 k건 중 정답인 비율</td>
+        <td>노이즈가 얼마나 섞였는지. 리랭커 효과를 볼 때 유용</td>
+      </tr>
+      <tr>
+        <td><strong>MRR</strong></td>
+        <td>첫 정답이 r번째면 1/r, 평균</td>
+        <td>1.0이면 항상 1위. 0.5면 평균 2위. 정답이 앞에 오는지 봄</td>
+      </tr>
+      <tr>
+        <td><strong>nDCG@k</strong></td>
+        <td>순위에 로그 할인을 적용한 누적 이득</td>
+        <td>정답이 여러 개이고 중요도가 다를 때 사용</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="code">
+    <div class="bar"><span>eval.py</span><span class="tag">골든셋 기반 회귀 테스트</span></div>
+<pre><code>GOLDEN = [
+    {<span class="s">"q"</span>: <span class="s">"디딤돌 대출 한도가 얼마인가요?"</span>,
+     <span class="s">"gold"</span>: [<span class="s">"HF-DIDIMDOL-2026#006"</span>]},
+    {<span class="s">"q"</span>: <span class="s">"생애최초 주택구입자의 최대 LTV는?"</span>,
+     <span class="s">"gold"</span>: [<span class="s">"HF-DIDIMDOL-2026#022"</span>]},
+    {<span class="s">"q"</span>: <span class="s">"다자녀가구 우대금리는 얼마인가요?"</span>,
+     <span class="s">"gold"</span>: [<span class="s">"HF-DIDIMDOL-2026#010"</span>]},
+    {<span class="s">"q"</span>: <span class="s">"1991년 5월 기준 대출보증 한도는?"</span>,
+     <span class="s">"gold"</span>: [<span class="s">"BOK-CREDIT-1991#008"</span>], <span class="s">"mode"</span>: <span class="s">"asof"</span>},
+    <span class="hl">    <span class="c"># ★ '답이 없어야 정상'인 질문도 반드시 넣는다</span>
+    {<span class="s">"q"</span>: <span class="s">"대출보증은 총대출금의 몇 % 이내인가요?"</span>, <span class="s">"gold"</span>: []},</span>
+    <span class="c"># … 최소 20문항까지 채우세요</span>
+]
+
+<span class="k">def</span> evaluate(k=<span class="n">4</span>):
+    rec, prec, mrr, abstain_ok = [], [], [], []
+    <span class="k">for</span> r <span class="k">in</span> GOLDEN:
+        got = [h[<span class="s">"id"</span>] <span class="k">for</span> h <span class="k">in</span> search(r[<span class="s">"q"</span>], top_k=k, verbose=<span class="k">False</span>)]
+        gold = set(r[<span class="s">"gold"</span>])
+
+        <span class="k">if</span> <span class="k">not</span> gold:                          <span class="c"># 정답이 없어야 하는 질문</span>
+            abstain_ok.append(<span class="n">1.0</span> <span class="k">if</span> <span class="k">not</span> got <span class="k">else</span> <span class="n">0.0</span>)
+            <span class="k">continue</span>
+
+        hit = set(got) & gold
+        rec.append(len(hit) / len(gold))
+        prec.append(len(hit) / max(len(got), <span class="n">1</span>))
+        mrr.append(next((<span class="n">1</span>/(i+<span class="n">1</span>) <span class="k">for</span> i, g <span class="k">in</span> enumerate(got) <span class="k">if</span> g <span class="k">in</span> gold), <span class="n">0</span>))
+
+    avg = <span class="k">lambda</span> xs: sum(xs)/len(xs) <span class="k">if</span> xs <span class="k">else</span> <span class="n">0</span>
+    print(<span class="s">f"Recall@{k}    = {avg(rec):.3f}"</span>)
+    print(<span class="s">f"Precision@{k} = {avg(prec):.3f}"</span>)
+    print(<span class="s">f"MRR          = {avg(mrr):.3f}"</span>)
+    print(<span class="s">f"올바른 기권율  = {avg(abstain_ok):.3f}"</span>)</code></pre>
+  </div>
+
+  <div class="box warn">
+    <span class="bt">1문항 Recall 1.00은 측정이 아니라 우연입니다</span>
+    실습에서 골든셋 1문항으로 <code>Recall@4 = 1.00</code>이 나왔습니다.
+    이 상태에서는 3장의 부칙 버그를 고쳐도 숫자가 <code>1.00 → 1.00</code>으로 그대로라
+    <strong>"개선 효과 없음"으로 오독</strong>하게 됩니다.
+    최소 20문항, 가능하면 현업 질문 50문항을 채우세요.
+  </div>
+
+  <h3><span class="hn">10.3</span>골든셋 만드는 법</h3>
+  <ol class="steps">
+    <li><strong>현업 질문을 모읍니다.</strong> 상상해서 쓰지 말고 실제 창구 문의, 사내 메신저 질문, 기존 FAQ에서 가져오세요. 표현의 거칠음까지 그대로 살리는 게 중요합니다.</li>
+    <li><strong>정답 청크 id를 사람이 지정합니다.</strong> 3장의 청크 목록 출력을 옆에 띄워 놓고 찾습니다. 정답이 여러 개면 모두 적습니다.</li>
+    <li><strong>답이 없어야 하는 질문을 20% 정도 섞습니다.</strong> 다른 규정 소관, 폐지된 내용, 아예 무관한 질문. 이게 없으면 임계값을 정할 수 없습니다.</li>
+    <li><strong>시점 질문을 넣습니다.</strong> as-of 모드가 깨지는 걸 잡아내려면 골든셋에 연도가 들어간 질문이 있어야 합니다.</li>
+    <li><strong>변경할 때마다 돌립니다.</strong> 청킹 규칙, 토크나이저, top-k, 임계값 — 뭘 건드리든 이 함수를 먼저 돌리고 숫자를 기록하세요.</li>
+  </ol>
+
+  <div class="box key">
+    <span class="bt">개선 실험을 기록으로 남기세요</span>
+    <div class="out" style="margin:.7rem 0 0;border-top:1px solid var(--rule)">변경                          Recall@4   MRR    기권율
+────────────────────────────────────────────────────
+기준선 (Naive)                 0.55     0.41    0.00
++ 구조 인식 청킹               0.72     0.58    0.00
++ 부칙 파서 수정               0.85     0.71    0.00
++ BM25 하이브리드              0.91     0.79    0.00
++ 리랭커 · 임계값 0.3          0.89     0.88    0.80
+                               ↑ 약간 하락    ↑ 크게 상승</div>
+    <p style="margin-top:.7rem">
+    리랭커에서 Recall이 살짝 떨어지고 MRR과 기권율이 크게 오르는 건 정상입니다.
+    <strong>재현율을 조금 내주고 정밀도와 안전성을 얻은 것</strong>이고,
+    규정 도메인에서는 이 교환이 대체로 남는 장사입니다.
+    이런 표가 있어야 그 판단을 근거 있게 할 수 있습니다.
+    </p>
+  </div>
+
+  <h3><span class="hn">10.4</span>생성 층 평가</h3>
+  <p>
+    검색 층이 안정되면 생성 층을 봅니다. <code>ragas</code> 같은 라이브러리로 자동화할 수 있지만,
+    원리는 단순해서 직접 구현해도 됩니다.
+  </p>
+  <table>
+    <thead><tr><th style="width:24%">지표</th><th style="width:76%">측정 방법</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Faithfulness</strong></td>
+        <td>답변을 개별 주장으로 쪼갠 뒤, 각 주장이 근거에서 도출되는지 LLM에게 예/아니오로 판정시킴. 예의 비율</td>
+      </tr>
+      <tr>
+        <td><strong>Answer Relevancy</strong></td>
+        <td>답변으로부터 역으로 질문을 생성시킨 뒤, 원래 질문과의 임베딩 유사도를 잼</td>
+      </tr>
+      <tr>
+        <td><strong>Citation Accuracy</strong></td>
+        <td>답변에 표기된 조항 번호가 실제 근거의 <code>location</code>과 일치하는 비율. 규정 도메인 전용 지표로 꼭 넣으세요</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    특히 세 번째가 중요합니다. 3장의 부칙 사건에서 보았듯,
+    <strong>내용은 맞는데 조항 번호가 틀린 답변</strong>은 일반적인 RAG 지표로는 잡히지 않습니다.
+  </p>
+</section>
+
+
+<!-- ══════════════════ 11장 ══════════════════ -->
+<section class="ch" id="ch11">
+  <div class="chead">
+    <div class="cno">제 11 장</div>
+    <h2>운영과 성능</h2>
+    <p>로컬 LLM이 갑자기 느려지는 이유, 재인덱싱 전략, 그리고 운영 단계에서 챙길 것들.</p>
+  </div>
+
+  <h3><span class="hn">11.1</span>느려지는 진짜 원인 — CPU 오프로드</h3>
+  <p>
+    모델 로딩 시 이런 메시지가 보이면 그게 원인입니다.
+  </p>
+  <div class="out"><span class="lbl">경고 메시지</span>
+Some parameters are on the meta device because they were offloaded to the cpu.</div>
+  <p>
+    <code>device_map="auto"</code>는 GPU 메모리가 부족하면 <strong>모델 일부를 알아서 CPU로 내립니다.</strong>
+    에러가 아니라 "잘 처리했다"는 뜻이라 놓치기 쉽습니다.
+    문제는 이 상태에서 토큰 하나 생성할 때마다
+    CPU에 있는 레이어 가중치를 GPU로 옮겼다 되돌리는 왕복이 발생한다는 것입니다.
+    순수 GPU 대비 수십 배 느려집니다.
+  </p>
+
+  <div class="code">
+    <div class="bar"><span>진단</span><span class="tag">먼저 이걸 확인하세요</span></div>
+<pre><code>print(mdl.hf_device_map)          <span class="c"># 'cpu' 또는 'disk'가 섞여 있으면 확정</span>
+print(torch.cuda.is_available())
+print(torch.cuda.get_device_properties(<span class="n">0</span>).total_memory / <span class="n">1e9</span>, <span class="s">"GB"</span>)</code></pre>
+  </div>
+
+  <h4>대응 (효과 순)</h4>
+  <div class="code">
+    <div class="bar"><span>① 4bit 양자화</span><span class="tag">4B 모델이 약 3GB로</span></div>
+<pre><code><span class="c"># pip install bitsandbytes</span>
+<span class="k">from</span> transformers <span class="k">import</span> BitsAndBytesConfig
+
+bnb = BitsAndBytesConfig(load_in_4bit=<span class="k">True</span>,
+                         bnb_4bit_compute_dtype=torch.float16,
+                         bnb_4bit_quant_type=<span class="s">"nf4"</span>)
+mdl = AutoModelForCausalLM.from_pretrained(
+    MODEL, quantization_config=bnb,
+    <span class="hl">    device_map={<span class="s">""</span>: <span class="n">0</span>})     <span class="c"># ★ GPU 0에 못 박아 오프로드를 원천 차단</span></span></code></pre>
+  </div>
+  <ul>
+    <li><strong>② Ollama로 전환</strong> — llama.cpp가 부분 오프로드를 훨씬 효율적으로 처리합니다. 학습 목적이면 이쪽이 가장 편합니다.</li>
+    <li><strong>③ <code>max_new_tokens</code> 축소</strong> — 600 → 300. 실제 답변이 200토큰 정도면 손해가 없습니다.</li>
+    <li><strong>④ 컨텍스트 축소</strong> — <code>top_k</code>를 4 → 2~3으로 줄이면 입력 토큰이 줄어 prefill 시간이 단축됩니다.</li>
+  </ul>
+
+  <div class="code">
+    <div class="bar"><span>측정</span><span class="tag">원인 분리</span></div>
+<pre><code><span class="k">import</span> time
+t = time.time(); llm(SYSTEM, <span class="s">"짧은 테스트."</span>);                      print(<span class="s">"짧은 입력"</span>, time.time()-t)
+t = time.time(); llm(SYSTEM, <span class="s">f"&lt;근거&gt;{build_context(hits)}&lt;/근거&gt; 질문:…"</span>); print(<span class="s">"긴 입력"</span>,  time.time()-t)
+
+<span class="c"># 차이가 크면 컨텍스트 길이 문제, 둘 다 느리면 오프로드 문제</span></code></pre>
+  </div>
+
+  <h3><span class="hn">11.2</span>검색 쪽 성능</h3>
+  <table>
+    <thead><tr><th style="width:26%">병목</th><th style="width:74%">대응</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>BM25 매번 재구축</td>
+        <td>모드별로 인덱스를 캐싱 (<a href="#ch6">6.5절</a> <code>_bm25_cache</code>). 청크가 만 개를 넘으면 필수</td>
+      </tr>
+      <tr>
+        <td><code>COLL.get()</code> 전량 로드</td>
+        <td>후보 집합을 프로세스 시작 시 한 번만 로드해 메모리에 유지. 개정 시에만 갱신</td>
+      </tr>
+      <tr>
+        <td>질의 임베딩</td>
+        <td>같은 질문이 반복되면 LRU 캐시. 사내 FAQ성 질문은 반복률이 높습니다</td>
+      </tr>
+      <tr>
+        <td>리랭커</td>
+        <td>후보를 20건 이하로 유지. 50건을 넘기면 체감될 만큼 느려집니다</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3><span class="hn">11.3</span>재인덱싱 전략</h3>
+  <table>
+    <thead><tr><th style="width:26%">상황</th><th style="width:74%">해야 할 일</th></tr></thead>
+    <tbody>
+      <tr><td>규정 1건 개정</td><td><a href="#ch4">4.6절</a>의 <code>upsert_amendment</code>. 해당 조항만 세대 추가. 전체 재인덱싱 불필요</td></tr>
+      <tr><td>파서 규칙 수정</td><td>해당 문서 전체 재파싱 + 재임베딩. <strong>골든셋을 수정 전/후로 돌려 비교</strong></td></tr>
+      <tr><td>임베딩 모델 교체</td><td>전체 재임베딩. 차원이 다르면 컬렉션 자체를 새로 만들어야 함</td></tr>
+      <tr><td>메타데이터 필드 추가</td><td><code>coll.update(ids=, metadatas=)</code>로 벡터 재계산 없이 갱신 가능</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box info">
+    <span class="bt">인덱스 버전 관리</span>
+    운영에서는 컬렉션 이름에 버전을 붙이고(<code>regulations_v3</code>),
+    새 인덱스를 만들어 골든셋을 통과시킨 뒤 별칭을 전환하세요.
+    재인덱싱 중에 서비스가 빈 결과를 반환하는 사고를 막을 수 있습니다.
+  </div>
+
+  <h3><span class="hn">11.4</span>운영 체크 포인트</h3>
+  <ul>
+    <li><strong>로깅</strong> — 질문, 라우팅 모드, 선택된 청크 id, 리랭커 점수, 최종 답변을 모두 남기세요. 나중에 골든셋이 됩니다.</li>
+    <li><strong>피드백 버튼</strong> — 답변 하단에 "도움이 됐나요"를 두고, 부정 피드백이 달린 질의를 주기적으로 검토해 골든셋에 추가합니다.</li>
+    <li><strong>면책 문구</strong> — "최종 판단은 소관부서 확인이 필요합니다"를 답변 말미에 자동 추가. 규정 도메인에서는 필수입니다.</li>
+    <li><strong>권한</strong> — 모든 질의 진입점에서 사용자 등급을 <code>where</code>에 병합 (<a href="#ch5">5.3절</a>).</li>
+    <li><strong>개정 알림 연동</strong> — 규정 시스템의 개정 이벤트를 받아 자동으로 재인덱싱 큐에 넣으면 운영 부담이 크게 줄어듭니다.</li>
+  </ul>
+</section>
+
+
+<!-- ══════════════════ 12장 ══════════════════ -->
+<section class="ch" id="ch12">
+  <div class="chead">
+    <div class="cno">제 12 장</div>
+    <h2>완성 코드</h2>
+    <p>앞 장들의 수정 사항을 모두 반영한 단일 스크립트입니다. 노트북 셀로 나눠 붙여도 되고 파일 하나로 돌려도 됩니다.</p>
+  </div>
+
+  <h3><span class="hn">12.1</span>실행 순서</h3>
+  <ol class="steps">
+    <li><strong>설정과 파싱</strong> — 청크 목록을 출력해 라벨을 눈으로 확인합니다. 같은 <code>location</code>이 5개 이상 반복되면 파서를 고칩니다.</li>
+    <li><strong>임베딩과 적재</strong> — 적재 직후 필터가 동작하는지 확인합니다.</li>
+    <li><strong>검색 테스트</strong> — LLM 없이 검색만 돌려 봅니다. 여기가 안 되면 LLM을 켤 필요가 없습니다.</li>
+    <li><strong>골든셋 평가</strong> — 기준선 숫자를 기록합니다.</li>
+    <li><strong>LLM 연결과 질의응답</strong></li>
+  </ol>
+
+  <div class="code">
+    <div class="bar"><span>rag.py</span><span class="tag">① 설정 · 파싱 · 청킹</span></div>
+<pre><code><span class="k">import</span> re, os
+<span class="k">import</span> pdfplumber
+
+PDF_DIR = <span class="s">"."</span>
+DB_PATH = <span class="s">"./chroma"</span>
+
+DOCS = [
+    {<span class="s">"doc_id"</span>: <span class="s">"BOK-CREDIT-1991"</span>, <span class="s">"file"</span>: <span class="s">"금융기관_여신운용세칙_19910404.pdf"</span>,
+     <span class="s">"title"</span>: <span class="s">"금융기관 여신운용세칙"</span>, <span class="s">"issuer"</span>: <span class="s">"한국은행"</span>, <span class="s">"style"</span>: <span class="s">"law"</span>,
+     <span class="s">"effective_from"</span>: <span class="n">19910406</span>, <span class="s">"effective_to"</span>: <span class="n">19971231</span>,
+     <span class="s">"is_current"</span>: <span class="k">False</span>, <span class="s">"status"</span>: <span class="s">"폐지"</span>},
+    {<span class="s">"doc_id"</span>: <span class="s">"HF-DIDIMDOL-2026"</span>, <span class="s">"file"</span>: <span class="s">"디딤돌_업무처리기준.pdf"</span>,
+     <span class="s">"title"</span>: <span class="s">"내집마련 디딤돌 대출 업무처리기준"</span>, <span class="s">"issuer"</span>: <span class="s">"한국주택금융공사"</span>,
+     <span class="s">"style"</span>: <span class="s">"manual"</span>,
+     <span class="s">"effective_from"</span>: <span class="n">20260714</span>, <span class="s">"effective_to"</span>: <span class="n">99991231</span>,
+     <span class="s">"is_current"</span>: <span class="k">True</span>, <span class="s">"status"</span>: <span class="s">"시행"</span>},
+]
+
+<span class="c"># ── 노이즈 제거 ──────────────────────────────────────────</span>
+NOISE = [re.compile(<span class="s">r"^-\s*\d+\s*-$"</span>), re.compile(<span class="s">r"^\d{1,3}$"</span>), re.compile(<span class="s">r"·{5,}"</span>)]
+norm = <span class="k">lambda</span> s: re.sub(<span class="s">r"\s+"</span>, <span class="s">""</span>, s)
+
+<span class="k">def</span> read_pages(path):
+    <span class="k">with</span> pdfplumber.open(path) <span class="k">as</span> pdf:
+        <span class="k">return</span> [(p.page_number, p.extract_text() <span class="k">or</span> <span class="s">""</span>) <span class="k">for</span> p <span class="k">in</span> pdf.pages]
+
+<span class="k">def</span> clean_lines(text, header):
+    out = []
+    <span class="k">for</span> raw <span class="k">in</span> text.split(<span class="s">"\n"</span>):
+        line = re.sub(<span class="s">r"-\s*\d+\s*-\s*$"</span>, <span class="s">""</span>, raw).strip()
+        <span class="k">if</span> <span class="k">not</span> line <span class="k">or</span> norm(line) == norm(header):
+            <span class="k">continue</span>
+        <span class="k">if</span> any(p.search(line) <span class="k">for</span> p <span class="k">in</span> NOISE):
+            <span class="k">continue</span>
+        out.append(line)
+    <span class="k">return</span> out
+
+<span class="c"># ── 법령체 파서 ──────────────────────────────────────────</span>
+P_ARTICLE = re.compile(<span class="s">r"^제\s*(\d+)조(?:의\s*(\d+))?\s*\(([^)]+)\)\s*(.*)$"</span>)
+P_CLAUSE  = re.compile(<span class="s">r"^([①-⑳])\s*(.*)$"</span>)
+P_ADDENDA = re.compile(<span class="s">r"^부\s*칙\s*&lt;"</span>)
+CIRCLED   = <span class="s">"①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮"</span>
+
+<span class="k">def</span> parse_law(pages, header):
+    chunks, cur = [], <span class="k">None</span>
+    <span class="k">for</span> pno, text <span class="k">in</span> pages:
+        <span class="k">for</span> line <span class="k">in</span> clean_lines(text, header):
+            <span class="k">if</span> P_ADDENDA.match(line):
+                d = re.search(<span class="s">r"(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})"</span>, line)
+                label = <span class="s">f"부칙&lt;{d.group(1)}.{d.group(2)}.{d.group(3)}&gt;"</span> <span class="k">if</span> d <span class="k">else</span> <span class="s">"부칙"</span>
+                cur = {<span class="s">"article"</span>: label, <span class="s">"title"</span>: <span class="s">"부칙"</span>, <span class="s">"clause"</span>: <span class="s">""</span>,
+                       <span class="s">"text"</span>: <span class="s">""</span>, <span class="s">"page"</span>: pno, <span class="s">"addenda"</span>: <span class="k">True</span>}
+                chunks.append(cur); <span class="k">continue</span>
+            m = P_ARTICLE.match(line)
+            <span class="k">if</span> m:
+                no = <span class="s">f"제{m.group(1)}조"</span> + (<span class="s">f"의{m.group(2)}"</span> <span class="k">if</span> m.group(<span class="n">2</span>) <span class="k">else</span> <span class="s">""</span>)
+                cur = {<span class="s">"article"</span>: no, <span class="s">"title"</span>: m.group(<span class="n">3</span>), <span class="s">"clause"</span>: <span class="s">"제1항"</span>,
+                       <span class="s">"text"</span>: m.group(<span class="n">4</span>), <span class="s">"page"</span>: pno, <span class="s">"addenda"</span>: <span class="k">False</span>}
+                chunks.append(cur); <span class="k">continue</span>
+            m = P_CLAUSE.match(line)
+            <span class="k">if</span> m <span class="k">and</span> cur:
+                idx = CIRCLED.index(m.group(<span class="n">1</span>)) + <span class="n">1</span>
+                cur = {**cur, <span class="s">"clause"</span>: <span class="s">f"제{idx}항"</span>, <span class="s">"text"</span>: m.group(<span class="n">2</span>), <span class="s">"page"</span>: pno}
+                chunks.append(cur); <span class="k">continue</span>
+            <span class="k">if</span> cur:
+                cur[<span class="s">"text"</span>] += <span class="s">" "</span> + line
+    <span class="k">return</span> [c <span class="k">for</span> c <span class="k">in</span> chunks <span class="k">if</span> c[<span class="s">"text"</span>].strip()]
+
+<span class="c"># ── 매뉴얼체 파서 ────────────────────────────────────────</span>
+P_CHAPTER = re.compile(<span class="s">r"^제\s*(\d+)장\s+(\S.*)$"</span>)
+P_SECTION = re.compile(<span class="s">r"^(\d{1,2})\s+([가-힣A-Za-z(].{1,35})$"</span>)
+
+<span class="k">def</span> looks_like_section(line):
+    m = P_SECTION.match(line)
+    <span class="k">if</span> <span class="k">not</span> m: <span class="k">return</span> <span class="k">None</span>
+    t = m.group(<span class="n">2</span>).strip()
+    <span class="k">if</span> t.endswith((<span class="s">"다"</span>, <span class="s">"다."</span>, <span class="s">"함"</span>, <span class="s">"음"</span>, <span class="s">")"</span>)) <span class="k">or</span> <span class="s">"▪"</span> <span class="k">in</span> line: <span class="k">return</span> <span class="k">None</span>
+    <span class="k">return</span> <span class="s">f"{m.group(1)}. {t}"</span>
+
+<span class="k">def</span> parse_manual(pages, header, skip_pages=<span class="n">3</span>):
+    chunks, chapter, cur = [], <span class="s">""</span>, <span class="k">None</span>
+    <span class="k">for</span> pno, text <span class="k">in</span> pages:
+        <span class="k">if</span> pno &lt;= skip_pages: <span class="k">continue</span>
+        <span class="k">for</span> line <span class="k">in</span> clean_lines(text, header):
+            m = P_CHAPTER.match(line)
+            <span class="k">if</span> m:
+                chapter = <span class="s">f"제{m.group(1)}장 {m.group(2).strip()}"</span>; cur = <span class="k">None</span>; <span class="k">continue</span>
+            sec = looks_like_section(line)
+            <span class="k">if</span> sec:
+                cur = {<span class="s">"article"</span>: chapter <span class="k">or</span> <span class="s">"(장 미상)"</span>, <span class="s">"title"</span>: sec, <span class="s">"clause"</span>: <span class="s">""</span>,
+                       <span class="s">"text"</span>: <span class="s">""</span>, <span class="s">"page"</span>: pno, <span class="s">"addenda"</span>: <span class="k">False</span>}
+                chunks.append(cur); <span class="k">continue</span>
+            <span class="k">if</span> cur: cur[<span class="s">"text"</span>] += <span class="s">" "</span> + line
+    <span class="k">return</span> [c <span class="k">for</span> c <span class="k">in</span> chunks <span class="k">if</span> len(c[<span class="s">"text"</span>].strip()) &gt; <span class="n">20</span>]
+
+<span class="c"># ── 청크 조립 ────────────────────────────────────────────</span>
+<span class="k">def</span> build(doc):
+    pages = read_pages(<span class="s">f"{PDF_DIR}/{doc['file']}"</span>)
+    raw = (parse_law <span class="k">if</span> doc[<span class="s">"style"</span>] == <span class="s">"law"</span> <span class="k">else</span> parse_manual)(pages, doc[<span class="s">"title"</span>])
+    out = []
+    <span class="k">for</span> i, c <span class="k">in</span> enumerate(raw):
+        loc = <span class="s">" &gt; "</span>.join(x <span class="k">for</span> x <span class="k">in</span> (c[<span class="s">"article"</span>], c[<span class="s">"title"</span>], c[<span class="s">"clause"</span>]) <span class="k">if</span> x)
+        out.append({
+            <span class="s">"id"</span>: <span class="s">f"{doc['doc_id']}#{i:03d}"</span>,
+            <span class="s">"text"</span>: <span class="s">f"[{doc['title']} / {loc}]\n{c['text'].strip()}"</span>,
+            <span class="s">"meta"</span>: {<span class="s">"doc_id"</span>: doc[<span class="s">"doc_id"</span>], <span class="s">"doc_title"</span>: doc[<span class="s">"title"</span>],
+                     <span class="s">"issuer"</span>: doc[<span class="s">"issuer"</span>], <span class="s">"location"</span>: loc, <span class="s">"page"</span>: c[<span class="s">"page"</span>],
+                     <span class="s">"is_addenda"</span>: c[<span class="s">"addenda"</span>],
+                     <span class="s">"effective_from"</span>: doc[<span class="s">"effective_from"</span>],
+                     <span class="s">"effective_to"</span>: doc[<span class="s">"effective_to"</span>],
+                     <span class="s">"is_current"</span>: doc[<span class="s">"is_current"</span>], <span class="s">"status"</span>: doc[<span class="s">"status"</span>]},
+        })
+    <span class="k">return</span> out
+
+CHUNKS = [c <span class="k">for</span> d <span class="k">in</span> DOCS <span class="k">for</span> c <span class="k">in</span> build(d)]
+print(<span class="s">f"총 {len(CHUNKS)}개 청크"</span>)
+
+<span class="c"># ★ 반드시 눈으로 확인</span>
+<span class="k">from</span> collections <span class="k">import</span> Counter
+<span class="k">for</span> loc, n <span class="k">in</span> Counter(c[<span class="s">"meta"</span>][<span class="s">"location"</span>] <span class="k">for</span> c <span class="k">in</span> CHUNKS).most_common(<span class="n">5</span>):
+    print(<span class="s">f"  {n:&gt;2}회  {loc}"</span>)</code></pre>
+  </div>
+
+  <div class="code">
+    <div class="bar"><span>rag.py</span><span class="tag">② 임베딩 · 적재</span></div>
+<pre><code><span class="k">from</span> sentence_transformers <span class="k">import</span> SentenceTransformer
+<span class="k">import</span> chromadb
+
+EMB = SentenceTransformer(<span class="s">"BAAI/bge-m3"</span>)
+
+vectors = EMB.encode([c[<span class="s">"text"</span>] <span class="k">for</span> c <span class="k">in</span> CHUNKS], batch_size=<span class="n">8</span>,
+                     normalize_embeddings=<span class="k">True</span>, show_progress_bar=<span class="k">True</span>).tolist()
+
+client = chromadb.PersistentClient(path=DB_PATH)
+<span class="k">if</span> <span class="s">"regulations"</span> <span class="k">in</span> [c.name <span class="k">for</span> c <span class="k">in</span> client.list_collections()]:
+    client.delete_collection(<span class="s">"regulations"</span>)
+COLL = client.create_collection(<span class="s">"regulations"</span>, metadata={<span class="s">"hnsw:space"</span>: <span class="s">"cosine"</span>})
+COLL.add(ids=[c[<span class="s">"id"</span>] <span class="k">for</span> c <span class="k">in</span> CHUNKS], documents=[c[<span class="s">"text"</span>] <span class="k">for</span> c <span class="k">in</span> CHUNKS],
+         metadatas=[c[<span class="s">"meta"</span>] <span class="k">for</span> c <span class="k">in</span> CHUNKS], embeddings=vectors)
+
+print(<span class="s">"현행:"</span>, len(COLL.get(where={<span class="s">"is_current"</span>: <span class="k">True</span>})[<span class="s">"ids"</span>]))</code></pre>
+  </div>
+
+  <div class="code">
+    <div class="bar"><span>rag.py</span><span class="tag">③ 라우팅 · 하이브리드 · 리랭킹</span></div>
+<pre><code><span class="k">from</span> rank_bm25 <span class="k">import</span> BM25Okapi
+<span class="k">from</span> sentence_transformers <span class="k">import</span> CrossEncoder
+
+RERANKER = CrossEncoder(<span class="s">"BAAI/bge-reranker-v2-m3"</span>, max_length=<span class="n">512</span>)
+_cache = {}
+
+<span class="k">def</span> route(q):
+    <span class="k">if</span> re.search(<span class="s">r"(옛날|과거|예전|이력|바뀌|변경|개정|폐지|연혁)"</span>, q):
+        <span class="k">return</span> <span class="s">"all"</span>, <span class="k">None</span>
+    m = re.search(<span class="s">r"(19|20)\d{2}\s*년"</span>, q)
+    <span class="k">if</span> m:
+        y = int(re.sub(<span class="s">r"\D"</span>, <span class="s">""</span>, m.group()))
+        mo = re.search(<span class="s">r"년\s*(\d{1,2})\s*월"</span>, q)
+        <span class="k">return</span> <span class="s">"asof"</span>, y*<span class="n">10000</span> + (int(mo.group(<span class="n">1</span>)) <span class="k">if</span> mo <span class="k">else</span> <span class="n">1</span>)*<span class="n">100</span> + <span class="n">1</span>
+    <span class="k">return</span> <span class="s">"current"</span>, <span class="k">None</span>
+
+<span class="k">def</span> build_where(mode, asof):
+    <span class="k">if</span> mode == <span class="s">"current"</span>: <span class="k">return</span> {<span class="s">"is_current"</span>: <span class="k">True</span>}
+    <span class="k">if</span> mode == <span class="s">"asof"</span>:
+        <span class="k">return</span> {<span class="s">"$and"</span>: [{<span class="s">"effective_from"</span>: {<span class="s">"$lte"</span>: asof}},
+                         {<span class="s">"effective_to"</span>: {<span class="s">"$gte"</span>: asof}}]}
+    <span class="k">return</span> <span class="k">None</span>
+
+<span class="k">def</span> tokenize(text):
+    toks = re.findall(<span class="s">r"[가-힣]{2,}|[A-Za-z]{2,}|\d+(?:\.\d+)?%?"</span>, text)
+    out = []
+    <span class="k">for</span> t <span class="k">in</span> toks:
+        out.append(t)
+        <span class="k">if</span> re.match(<span class="s">r"^[가-힣]{3,}$"</span>, t): out.append(t[:<span class="n">2</span>])
+    <span class="k">return</span> out
+
+<span class="k">def</span> rrf(lists, k=<span class="n">60</span>):
+    sc = {}
+    <span class="k">for</span> ids <span class="k">in</span> lists:
+        <span class="k">for</span> r, i <span class="k">in</span> enumerate(ids, <span class="n">1</span>): sc[i] = sc.get(i, <span class="n">0</span>) + <span class="n">1</span>/(k+r)
+    <span class="k">return</span> sorted(sc, key=sc.get, reverse=<span class="k">True</span>)
+
+<span class="k">def</span> search(query, top_k=<span class="n">4</span>, pool=<span class="n">20</span>, threshold=<span class="n">0.3</span>, verbose=<span class="k">True</span>):
+    mode, asof = route(query)
+    where = build_where(mode, asof)
+
+    key = <span class="s">f"{mode}:{asof}"</span>
+    <span class="k">if</span> key <span class="k">not</span> <span class="k">in</span> _cache:
+        cand = COLL.get(where=where)
+        _cache[key] = (cand, BM25Okapi([tokenize(d) <span class="k">for</span> d <span class="k">in</span> cand[<span class="s">"documents"</span>]]))
+    cand, bm25 = _cache[key]
+    <span class="k">if</span> <span class="k">not</span> cand[<span class="s">"ids"</span>]: <span class="k">return</span> []
+
+    qv = EMB.encode([query], normalize_embeddings=<span class="k">True</span>).tolist()
+    dense_ids = COLL.query(query_embeddings=qv,
+                           n_results=min(pool, len(cand[<span class="s">"ids"</span>])),
+                           where=where)[<span class="s">"ids"</span>][<span class="n">0</span>]
+
+    sc = bm25.get_scores(tokenize(query))
+    bm25_ids = [cand[<span class="s">"ids"</span>][i]
+                <span class="k">for</span> i <span class="k">in</span> sorted(range(len(sc)), key=<span class="k">lambda</span> i: -sc[i])[:pool]]
+
+    look = {i: (d, m) <span class="k">for</span> i, d, m <span class="k">in</span>
+            zip(cand[<span class="s">"ids"</span>], cand[<span class="s">"documents"</span>], cand[<span class="s">"metadatas"</span>])}
+    hits = [{<span class="s">"id"</span>: i, <span class="s">"text"</span>: look[i][<span class="n">0</span>], <span class="s">"meta"</span>: look[i][<span class="n">1</span>]}
+            <span class="k">for</span> i <span class="k">in</span> rrf([dense_ids, bm25_ids])[:pool]]
+
+    <span class="c"># 리랭킹 + 임계값</span>
+    scores = RERANKER.predict([(query, h[<span class="s">"text"</span>]) <span class="k">for</span> h <span class="k">in</span> hits])
+    ranked = sorted(zip(hits, scores), key=<span class="k">lambda</span> x: -x[<span class="n">1</span>])
+    final = [h <span class="k">for</span> h, s <span class="k">in</span> ranked[:top_k] <span class="k">if</span> s &gt;= threshold]
+
+    <span class="k">if</span> verbose:
+        print(<span class="s">f"[mode={mode}] 후보 {len(cand['ids'])} → 융합 {len(hits)} → 최종 {len(final)}"</span>)
+        <span class="k">for</span> h, s <span class="k">in</span> ranked[:top_k]:
+            mark = <span class="s">"✓"</span> <span class="k">if</span> s &gt;= threshold <span class="k">else</span> <span class="s">"✗"</span>
+            print(<span class="s">f"  {mark} {s:.3f} [{h['meta']['status']}] {h['meta']['location'][:50]}"</span>)
+    <span class="k">return</span> final</code></pre>
+  </div>
+
+  <div class="code">
+    <div class="bar"><span>rag.py</span><span class="tag">④ 생성</span></div>
+<pre><code>SYSTEM = <span class="s">"""당신은 금융 규정 안내 어시스턴트입니다. 아래 규칙을 반드시 지키세요.
+1. &lt;근거&gt;에 있는 내용만 사용하고, 없는 내용은 추론하지 마세요.
+2. 문장마다 [문서명 / 위치 / 시행일] 형식으로 출처를 표기하세요.
+3. 근거가 없으면 "제공된 규정에서 확인되지 않습니다"라고 답하세요.
+4. 근거의 시행일이 서로 다르면 가장 최신 것을 현행으로 제시하고,
+   이전 것은 적용 기간을 함께 안내하세요.
+5. 금액·비율·기한은 원문 표기를 그대로 옮기고 반올림하지 마세요."""</span>
+
+fmt = <span class="k">lambda</span> d: <span class="s">"현재"</span> <span class="k">if</span> d &gt;= <span class="n">99991231</span> <span class="k">else</span> <span class="s">f"{d//10000}.{d//100%100:02d}.{d%100:02d}"</span>
+
+<span class="k">def</span> build_context(hits):
+    <span class="k">return</span> <span class="s">"\n\n"</span>.join(
+        <span class="s">f"&lt;근거 {i}&gt;\n문서: {h['meta']['doc_title']} / 상태: {h['meta']['status']}\n"</span>
+        <span class="s">f"위치: {h['meta']['location']} (p.{h['meta']['page']})\n"</span>
+        <span class="s">f"유효기간: {fmt(h['meta']['effective_from'])} ~ {fmt(h['meta']['effective_to'])}\n"</span>
+        <span class="s">f"내용: {h['text']}\n&lt;/근거&gt;"</span>
+        <span class="k">for</span> i, h <span class="k">in</span> enumerate(hits, <span class="n">1</span>))
+
+<span class="k">def</span> ask(query):
+    hits = search(query)
+    <span class="k">if</span> <span class="k">not</span> hits:
+        print(<span class="s">"\n제공된 규정에서 확인되지 않습니다. 소관부서로 문의하세요."</span>); <span class="k">return</span>
+    print(<span class="s">"\n"</span> + llm(SYSTEM, <span class="s">f"&lt;근거&gt;\n{build_context(hits)}\n&lt;/근거&gt;\n\n질문: {query}"</span>))</code></pre>
+  </div>
+
+  <h3><span class="hn">12.2</span>반드시 돌려볼 질문</h3>
+  <div class="code">
+    <div class="bar"><span>테스트</span><span class="tag">네 가지 모드 확인</span></div>
+<pre><code>ask(<span class="s">"디딤돌 대출 한도가 얼마인가요?"</span>)                    <span class="c"># current — 정상 답변</span>
+ask(<span class="s">"생애최초 주택구입자의 최대 LTV는 몇 %인가요?"</span>)     <span class="c"># current — 80%(수도권 70%)</span>
+ask(<span class="s">"대출보증은 총대출금의 몇 % 이내인가요?"</span>)            <span class="c"># current — 확인 불가가 정답</span>
+ask(<span class="s">"1991년 5월 기준 대출보증 한도는 얼마였나요?"</span>)       <span class="c"># asof — 10%</span>
+ask(<span class="s">"대출 규정이 예전에 어떻게 바뀌었나요?"</span>)             <span class="c"># all — 두 문서 모두</span></code></pre>
+  </div>
+</section>
+
+
+<!-- ══════════════════ 13장 ══════════════════ -->
+<section class="ch" id="ch13">
+  <div class="chead">
+    <div class="cno">제 13 장</div>
+    <h2>트러블슈팅</h2>
+    <p>실제 실습에서 겪은 오류와 원인을 모았습니다. 증상으로 찾아보세요.</p>
+  </div>
+
+  <h3><span class="hn">13.1</span>오류 메시지</h3>
+  <table>
+    <thead><tr><th style="width:30%">증상</th><th style="width:30%">원인</th><th style="width:40%">해결</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>KeyError: 'shape'</code><br>→ <code>AttributeError</code><br><span style="color:var(--ink-3);font-size:12.5px">generate() 안에서</span></td>
+        <td><code>apply_chat_template(return_tensors="pt")</code>가 텐서가 아니라 <code>BatchEncoding</code>을 반환</td>
+        <td><code>tokenize=False</code>로 문자열만 뽑고 <code>tok()</code>으로 인코딩 → <code>generate(**inputs)</code> (<a href="#ch9">9.3절</a>)</td>
+      </tr>
+      <tr>
+        <td><code>ModuleNotFoundError</code><br><span style="color:var(--ink-3);font-size:12.5px">설치했는데도</span></td>
+        <td><code>!pip install</code>이 커널과 다른 파이썬에 설치됨</td>
+        <td><code>!{sys.executable} -m pip install …</code></td>
+      </tr>
+      <tr>
+        <td><code>Some parameters are on the meta device…</code></td>
+        <td>VRAM 부족으로 모델 일부가 CPU로 오프로드. 에러가 아니라 경고라 놓치기 쉬움</td>
+        <td>4bit 양자화 + <code>device_map={"": 0}</code>, 또는 Ollama (<a href="#ch11">11.1절</a>)</td>
+      </tr>
+      <tr>
+        <td><code>where</code> 필터가 무시됨</td>
+        <td>날짜를 문자열로 저장해 <code>$lte</code>가 동작하지 않음</td>
+        <td>int(YYYYMMDD)로 저장 후 재적재 (<a href="#ch4">4.2절</a>)</td>
+      </tr>
+      <tr>
+        <td>재실행 시 결과 중복</td>
+        <td>같은 컬렉션에 <code>add</code>를 반복</td>
+        <td>적재 전 <code>delete_collection</code> 또는 <code>upsert</code> 사용</td>
+      </tr>
+      <tr>
+        <td><code>IProgress not found</code></td>
+        <td>tqdm 진행바용 ipywidgets 미설치</td>
+        <td>동작에는 지장 없음. 거슬리면 <code>pip install ipywidgets</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3><span class="hn">13.2</span>동작은 하는데 결과가 이상할 때</h3>
+  <table>
+    <thead><tr><th style="width:30%">증상</th><th style="width:70%">확인 순서</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>분명히 있는 내용을 못 찾음</td>
+        <td>
+          ① 청크 목록에서 해당 조항이 <strong>존재하는지</strong> 확인 (파싱 누락)<br>
+          ② <code>location</code>이 맞게 붙었는지 확인 (부칙 사건 유형)<br>
+          ③ 필터가 너무 좁은지 확인 (<code>is_current</code>로 걸러졌는지)<br>
+          ④ 그래도 안 되면 그때 BM25·리랭커를 의심
+        </td>
+      </tr>
+      <tr>
+        <td>같은 <code>location</code>이 수십 개 반복</td>
+        <td>파서가 특정 구조를 인식하지 못해 직전 상태로 흡수하고 있음. 해당 페이지 원문을 열어 어떤 줄이 새 구조인지 찾고 규칙 추가</td>
+      </tr>
+      <tr>
+        <td>답변에 근거 없는 숫자가 등장</td>
+        <td>① 임계값을 올려 무관한 근거 차단 ② 프롬프트 1·5번 강화 ③ <code>check_numbers</code>로 사후 검증 (<a href="#ch9">9.5절</a>)</td>
+      </tr>
+      <tr>
+        <td>조항 번호가 틀림</td>
+        <td>거의 항상 파싱 문제. 해당 청크의 <code>location</code>과 본문을 대조하세요</td>
+      </tr>
+      <tr>
+        <td>단서 조항이 빠진 답변</td>
+        <td>부모 청크 확장 미적용 (<a href="#ch8">8.3절</a>) 또는 청크가 항 단위로 너무 잘게 쪼개짐</td>
+      </tr>
+      <tr>
+        <td>표가 깨져서 들어감</td>
+        <td><code>pdfplumber.extract_tables()</code>로 표를 따로 추출해 마크다운으로 변환한 뒤 별도 청크로 적재. 디딤돌 문서의 우대금리 표가 이 경우입니다</td>
+      </tr>
+      <tr>
+        <td>평가 점수가 안 움직임</td>
+        <td>골든셋이 너무 작거나 쉬움. 실패했던 실제 질문을 추가하세요</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3><span class="hn">13.3</span>PDF 추출 품질 점검</h3>
+  <div class="code">
+    <div class="bar"><span>진단</span><span class="tag">텍스트 레이어가 있는지부터</span></div>
+<pre><code><span class="c"># 터미널 (poppler-utils)</span>
+pdfinfo  document.pdf        <span class="c"># 페이지 수, 생성 도구</span>
+pdffonts document.pdf        <span class="c"># 비어 있으면 스캔본 → OCR 필요</span>
+pdftotext -layout document.pdf -   <span class="c"># 레이아웃 보존 추출</span>
+
+<span class="c"># 파이썬 — 표가 있는지</span>
+<span class="k">with</span> pdfplumber.open(path) <span class="k">as</span> pdf:
+    <span class="k">for</span> t <span class="k">in</span> pdf.pages[<span class="n">14</span>].extract_tables():
+        <span class="k">for</span> row <span class="k">in</span> t:
+            print(<span class="s">" | "</span>.join(str(c <span class="k">or</span> <span class="s">""</span>) <span class="k">for</span> c <span class="k">in</span> row))</code></pre>
+  </div>
+  <div class="box info">
+    <span class="bt">스캔본이면 접근이 완전히 달라집니다</span>
+    <code>pdffonts</code>가 비어 있으면 텍스트 레이어가 없는 이미지 PDF입니다.
+    <code>pdftotext</code>는 아무것도 반환하지 않습니다.
+    이 경우 OCR(tesseract 등)을 먼저 돌려야 하고, OCR 오류율 때문에
+    조항 번호 인식률이 떨어지므로 <strong>청킹 규칙을 더 관대하게</strong> 잡아야 합니다.
+  </div>
+</section>
+
+
+<!-- ══════════════════ 부록 ══════════════════ -->
+<section class="ch" id="apx-a">
+  <div class="chead">
+    <div class="cno">부 록 A</div>
+    <h2>용어집</h2>
+  </div>
+  <table>
+    <thead><tr><th style="width:24%">용어</th><th style="width:76%">뜻</th></tr></thead>
+    <tbody>
+      <tr><td><strong>청크 (chunk)</strong></td><td>문서를 검색 단위로 자른 조각. 규정에서는 조·항 단위가 자연스럽다</td></tr>
+      <tr><td><strong>임베딩 (embedding)</strong></td><td>텍스트를 고정 길이 숫자 배열로 변환한 것. 의미가 비슷하면 배열도 비슷해진다</td></tr>
+      <tr><td><strong>Dense 검색</strong></td><td>임베딩 벡터 간 유사도로 찾는 방식. 의미 기반</td></tr>
+      <tr><td><strong>Sparse 검색</strong></td><td>단어 출현 통계로 찾는 방식. BM25, TF-IDF 등. 키워드 기반</td></tr>
+      <tr><td><strong>BM25</strong></td><td>단어 빈도·희소성·문서 길이를 조합한 고전 랭킹 함수. 정확 매칭에 강하다</td></tr>
+      <tr><td><strong>하이브리드 검색</strong></td><td>Dense와 Sparse를 함께 쓰고 결과를 융합하는 방식</td></tr>
+      <tr><td><strong>RRF</strong></td><td>Reciprocal Rank Fusion. 점수 대신 순위의 역수를 더해 합치는 융합법</td></tr>
+      <tr><td><strong>Bi-encoder</strong></td><td>질의와 문서를 따로 인코딩. 빠르지만 덜 정확. 1차 검색용</td></tr>
+      <tr><td><strong>Cross-encoder</strong></td><td>질의와 문서를 붙여서 인코딩. 정확하지만 느림. 재정렬용</td></tr>
+      <tr><td><strong>리랭킹 (reranking)</strong></td><td>1차 검색 결과를 더 정확한 모델로 다시 정렬하고 걸러내는 단계</td></tr>
+      <tr><td><strong>ANN / HNSW</strong></td><td>근사 최근접 탐색. 전부 비교하지 않고 빠르게 가까운 벡터를 찾는 알고리즘</td></tr>
+      <tr><td><strong>as-of 조회</strong></td><td>특정 과거 시점 기준으로 유효했던 데이터를 조회하는 것</td></tr>
+      <tr><td><strong>Small-to-Big</strong></td><td>작은 단위로 검색하고 큰 단위(부모)로 확장해 LLM에 전달하는 기법</td></tr>
+      <tr><td><strong>Contextual Retrieval</strong></td><td>임베딩 전에 LLM으로 맥락 문장을 생성해 청크 앞에 붙이는 기법</td></tr>
+      <tr><td><strong>HyDE</strong></td><td>가상 답변을 생성해 그것으로 검색하는 질의 확장 기법</td></tr>
+      <tr><td><strong>Faithfulness</strong></td><td>답변이 제공된 근거에 얼마나 충실한지. 환각의 반대 지표</td></tr>
+      <tr><td><strong>골든셋 (golden set)</strong></td><td>질문과 정답 청크를 사람이 짝지어 둔 평가용 데이터</td></tr>
+      <tr><td><strong>양자화 (quantization)</strong></td><td>모델 가중치를 낮은 비트수로 표현해 메모리를 줄이는 기법. 4bit, 8bit 등</td></tr>
+      <tr><td><strong>오프로드 (offload)</strong></td><td>GPU 메모리가 부족할 때 모델 일부를 CPU나 디스크로 옮기는 것. 매우 느려진다</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="ch" id="apx-b">
+  <div class="chead">
+    <div class="cno">부 록 B</div>
+    <h2>도입 체크리스트</h2>
+    <p>사내에 규정 RAG를 올릴 때 순서대로 확인할 항목입니다.</p>
+  </div>
+
+  <h3><span class="hn">B.1</span>인덱싱</h3>
+  <ul>
+    <li>문서 유형별 파서가 있는가 (법령체 / 매뉴얼체 / 표 중심)</li>
+    <li>청크 목록을 전수 출력해 라벨을 확인했는가</li>
+    <li>같은 <code>location</code>이 비정상적으로 반복되지 않는가</li>
+    <li>부칙·별표·목차가 본문 조항과 구분되는가</li>
+    <li>시행일이 <strong>공포일이 아닌 실제 시행일</strong>로 들어갔는가</li>
+    <li>날짜가 int(YYYYMMDD)인가</li>
+    <li>권한 필드(<code>confidential</code>, <code>owner_dept</code>)가 처음부터 들어갔는가</li>
+    <li>임베딩 텍스트에 문서명·위치가 주입되었는가</li>
+  </ul>
+
+  <h3><span class="hn">B.2</span>검색</h3>
+  <ul>
+    <li>적재 직후 <code>where</code> 필터가 동작하는지 확인했는가</li>
+    <li>기본 모드가 <code>current</code>인가 (폐지본이 기본 노출되지 않는가)</li>
+    <li>as-of 조회가 동작하는가</li>
+    <li>BM25 토크나이저에 사내 용어가 등록되었는가</li>
+    <li>리랭커 임계값이 골든셋으로 정해졌는가</li>
+    <li>결과 0건을 정상적으로 반환하는가</li>
+    <li>모든 질의에 사용자 권한이 병합되는가</li>
+  </ul>
+
+  <h3><span class="hn">B.3</span>생성</h3>
+  <ul>
+    <li>프롬프트에 유효기간이 텍스트로 들어가는가</li>
+    <li>인용 형식이 강제되는가</li>
+    <li>근거 충돌 시 처리 규칙이 명시되었는가</li>
+    <li>"확인되지 않습니다" 출구가 열려 있는가</li>
+    <li>면책 문구가 자동 부착되는가</li>
+  </ul>
+
+  <h3><span class="hn">B.4</span>평가와 운영</h3>
+  <ul>
+    <li>골든셋이 20문항 이상인가</li>
+    <li>답이 없어야 정상인 질문이 포함되었는가</li>
+    <li>변경 전후 지표를 기록하고 있는가</li>
+    <li>인용 정확도(Citation Accuracy)를 따로 재고 있는가</li>
+    <li>질의·선택 청크·답변이 로깅되는가</li>
+    <li>개정 시 구버전이 삭제되지 않고 보존되는가</li>
+    <li>인덱스 버전 전환 절차가 있는가</li>
+  </ul>
+</section>
+
+<section class="ch" id="apx-c">
+  <div class="chead">
+    <div class="cno">부 록 C</div>
+    <h2>다음 단계</h2>
+  </div>
+
+  <h3><span class="hn">C.1</span>도입 우선순위</h3>
+  <p>지금 Naive RAG 상태라면 이 순서로 붙이는 것이 효율적입니다.</p>
+  <ol class="steps">
+    <li><strong>메타데이터 + 하드 필터</strong> — 노력 대비 효과가 압도적. 최신성 문제의 대부분이 여기서 해결됩니다.</li>
+    <li><strong>구조 인식 청킹</strong> — 조항 단위 분할. 인용 정확도가 함께 올라갑니다.</li>
+    <li><strong>골든셋 20문항</strong> — 이 시점에 만들어야 이후 개선을 측정할 수 있습니다.</li>
+    <li><strong>BM25 하이브리드</strong> — 조항번호·고유명사 검색 실패가 사라집니다.</li>
+    <li><strong>리랭커 + 임계값</strong> — 정밀도 향상과 환각 억제.</li>
+    <li><strong>부모 청크 확장</strong> — 단서 조항 누락 방지.</li>
+    <li><strong>Contextual Retrieval</strong> — 마지막 한 끗.</li>
+  </ol>
+
+  <h3><span class="hn">C.2</span>이 핸드북이 다루지 않은 것</h3>
+  <table>
+    <thead><tr><th style="width:28%">주제</th><th style="width:72%">언제 필요해지는가</th></tr></thead>
+    <tbody>
+      <tr><td>GraphRAG</td><td>조항 간 참조 관계("제3조의2에서 정한…")를 그래프로 만들어 따라가야 할 때. 규정 도메인에 잠재력이 크지만 구축 비용이 높다</td></tr>
+      <tr><td>다중 문서 추론</td><td>"규정과 세칙을 종합하면 어떻게 되나" 같은 질문. 여러 문서를 교차 참조해 답해야 할 때</td></tr>
+      <tr><td>Agentic RAG</td><td>LLM이 스스로 검색을 반복하며 답을 좁혀 가는 방식. 복잡한 다단계 질문에 유효하나 지연과 비용이 크다</td></tr>
+      <tr><td>표·수식 처리</td><td>디딤돌 문서의 우대금리표, LTV 산식처럼 구조가 중요한 요소. 표를 별도 청크로 마크다운 변환해 적재하는 것이 출발점</td></tr>
+      <tr><td>멀티모달</td><td>조직도, 흐름도 같은 이미지가 본문의 일부일 때</td></tr>
+      <tr><td>대화형 세션 관리</td><td>후속 질문 처리, 세션별 컨텍스트 유지</td></tr>
+    </tbody>
+  </table>
+
+  <h3><span class="hn">C.3</span>기억할 문장 세 개</h3>
+  <div class="box key">
+    <span class="bt">1</span>
+    최신성 문제는 임베딩 모델로 풀 수 없습니다. 개정 전후 조문은 벡터 공간에서 분리되지 않습니다.
+    문서 <em>바깥</em>의 사실인 시행일을 메타데이터로 들고 필터로 거르는 것이 유일한 해법입니다.
+  </div>
+  <div class="box key">
+    <span class="bt">2</span>
+    검색이 안 될 때 모델부터 바꾸지 마세요. 청크 목록을 먼저 출력해 보세요.
+    파싱에서 누락되거나 잘못 라벨링된 조항은 어떤 모델로도 찾을 수 없습니다.
+  </div>
+  <div class="box key">
+    <span class="bt">3</span>
+    "답을 못 찾은 비율"보다 "틀린 답을 자신 있게 한 비율"이 더 중요합니다.
+    규정 도메인에서는 기권이 오답보다 훨씬 싼 실패입니다.
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+(function(){
+  var nav=document.querySelector('nav.toc'); if(!nav) return;
+  var h=nav.querySelector('h2');
+  var btn=document.createElement('button');
+  btn.type='button'; btn.className='toc-toggle';
+  var mq=window.matchMedia('(max-width:940px)');
+  function setState(collapsed){
+    nav.classList.toggle('collapsed',collapsed);
+    btn.textContent=collapsed?'펼치기':'접기';
+    btn.setAttribute('aria-expanded',String(!collapsed));
+  }
+  btn.addEventListener('click',function(){setState(!nav.classList.contains('collapsed'));});
+  h.appendChild(btn);
+  setState(mq.matches);
+  if(mq.addEventListener) mq.addEventListener('change',function(e){setState(e.matches);});
+  nav.addEventListener('click',function(e){ if(e.target.closest('a') && mq.matches) setState(true); });
+
+  var links=[].slice.call(nav.querySelectorAll('a[href^="#"]'));
+  var targets=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1));});
+  function spy(){
+    var y=window.scrollY+window.innerHeight*0.25, cur=-1;
+    targets.forEach(function(t,i){ if(t && t.getBoundingClientRect().top+window.scrollY<=y) cur=i; });
+    links.forEach(function(a,i){a.classList.toggle('active',i===cur);});
+    if(cur>=0 && !mq.matches){
+      var a=links[cur], r=a.getBoundingClientRect(), nr=nav.getBoundingClientRect();
+      if(r.top<nr.top+40||r.bottom>nr.bottom-40) nav.scrollTop+=r.top-nr.top-nr.height/2;
+    }
+  }
+  var tk=false;
+  window.addEventListener('scroll',function(){ if(!tk){tk=true;requestAnimationFrame(function(){spy();tk=false;});} },{passive:true});
+  spy();
+})();
+</script>
+</body>
+</html>

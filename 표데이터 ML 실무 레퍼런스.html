@@ -1,0 +1,1785 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>표 데이터 머신러닝 실무 레퍼런스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;600;700&display=swap">
+<style>
+:root{
+  --paper:#F5F6F4;
+  --ink:#26292d;
+  --ink-2:#4b4f55;
+  --cap:#6e7378;
+  --rule:#D8DBD5;
+  --rule-row:#E4E7E3;
+  --rule-strong:#AEB4AF;
+  --navy:#1f3a5f;
+  --navy-wash:#EAEEF3;
+  --code-inline:#E8EBE8;
+  --plate:#FFFFFF;
+  --caution:#9a4a32;
+  --ochre:#9a7428;
+  --code-bg:#1b2733;
+  --code-head:#22303e;
+  --code-line:#2e3d4c;
+  --code-ink:#dce4ec;
+  --code-accent:#5a84b3;
+  --serif:"Noto Serif KR","Noto Serif CJK KR","Source Han Serif K",AppleMyungjo,Batang,"바탕",serif;
+  --sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --text:42rem;
+  --wide:58rem;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem;-webkit-text-size-adjust:100%}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--serif);font-size:17px;line-height:1.9;
+  word-break:keep-all;overflow-wrap:break-word;
+  font-variant-numeric:tabular-nums;
+  counter-reset:fig;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- layout ---------- */
+.shell{display:grid;grid-template-columns:252px minmax(0,1fr);max-width:1320px;margin:0 auto}
+main{padding:3.6rem 3.2rem 9rem;min-width:0}
+main > *{max-width:var(--text)}
+main > .tw, main > figure, main > pre, main > .filename,
+main > .chapter-head, main > .masthead{max-width:var(--wide)}
+
+/* ---------- table of contents ---------- */
+.toc{
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+  padding:2.8rem 1.4rem 3rem 1.6rem;border-right:1px solid var(--rule);
+  background:var(--paper);font-family:var(--sans);
+}
+.toc-brand{font-family:var(--serif);font-size:1rem;font-weight:700;line-height:1.5;color:var(--ink);margin-bottom:.3rem}
+.toc-sub{font-size:.78rem;color:var(--cap);line-height:1.55;margin-bottom:1.8rem;padding-bottom:1.2rem;border-bottom:1px solid var(--rule)}
+.toc a{display:block;padding:.3rem 0 .3rem .8rem;color:var(--ink-2);text-decoration:none;font-size:.84rem;line-height:1.5;border-left:2px solid transparent;transition:color .15s,border-color .15s}
+.toc a:hover{color:var(--navy)}
+.toc a.top{font-weight:600;color:var(--ink);margin-top:.85rem}
+.toc a.top:first-of-type{margin-top:0}
+.toc a.sub{padding-left:1.55rem;font-size:.79rem;color:var(--cap)}
+.toc a.sub:hover{color:var(--navy)}
+.toc a.active{color:var(--navy);border-left-color:var(--navy)}
+.toc-toggle{display:none}
+a:focus-visible,button:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+
+/* ---------- title page ---------- */
+.masthead{margin:0 0 4rem;padding:0 0 2rem;border-bottom:1px solid var(--rule);background:none}
+.masthead-top{padding:0;border:0}
+.masthead h1{font-family:var(--serif);font-size:2.6rem;font-weight:700;letter-spacing:-.02em;line-height:1.32;margin:0 0 1.2rem;color:var(--ink)}
+.masthead p{margin:0;max-width:var(--text);color:var(--ink-2);font-size:1.06rem;line-height:1.85}
+.masthead-grid{display:flex;flex-wrap:wrap;gap:.4rem 2.4rem;margin-top:1.8rem;padding-top:1rem;border-top:1px solid var(--rule-row);font-family:var(--sans)}
+.masthead-cell{display:flex;align-items:baseline;gap:.45rem}
+.masthead-cell b{font-size:1rem;font-weight:600;color:var(--navy)}
+.masthead-cell span{font-size:.82rem;color:var(--cap)}
+
+/* ---------- chapter heads ---------- */
+.chapter-head{margin:6rem 0 2.4rem;padding-bottom:1.5rem;border-bottom:1px solid var(--rule)}
+.masthead + .chapter-head{margin-top:0}
+h2{font-family:var(--serif);font-size:2.2rem;font-weight:700;letter-spacing:-.015em;line-height:1.35;margin:0;padding:0;border:0;color:var(--ink)}
+h2 .num{display:block;font-family:var(--sans);font-size:.8rem;font-weight:500;letter-spacing:.06em;color:var(--cap);margin:0 0 .7rem;line-height:1.4;background:none}
+h2 .num::before{content:"제 "}
+h2 .num::after{content:" 장"}
+.chapter-head .lede{margin:1.15rem 0 0;max-width:var(--text);font-size:1.06rem;line-height:1.85;color:var(--ink-2);border:0;padding:0}
+
+/* ---------- headings & body ---------- */
+h3{font-family:var(--sans);font-size:1.3rem;font-weight:600;letter-spacing:-.01em;line-height:1.45;margin:3.4rem 0 1rem;color:var(--ink)}
+h3 .sec-num{color:var(--navy);margin-right:.55rem}
+h4{font-family:var(--sans);font-size:1.06rem;font-weight:600;line-height:1.5;margin:2.3rem 0 .75rem;color:var(--ink)}
+p{margin:0 0 1.15rem}
+ul,ol{margin:0 0 1.2rem;padding-left:1.4rem}
+li{margin-bottom:.5rem}
+li::marker{color:var(--cap)}
+strong{font-weight:700;color:var(--ink)}
+em{font-style:normal;color:var(--navy)}
+u{text-decoration-color:var(--rule-strong);text-underline-offset:.22em}
+a{color:var(--navy);text-underline-offset:.18em}
+code{font-family:var(--mono);font-size:.84em;background:var(--code-inline);color:#2b3440;padding:.08em .34em;border-radius:2px;word-break:break-all}
+.lede{font-size:1.06rem;color:var(--ink-2)}
+
+/* ---------- tables (academic) ---------- */
+.tw{overflow-x:auto;margin:1.8rem 0 2.2rem;border:0}
+table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:.88rem;line-height:1.65;color:var(--ink);border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);background:transparent}
+th{text-align:left;font-weight:600;font-size:.82rem;color:var(--ink);padding:.6rem .85rem;border-bottom:1px solid var(--rule-strong);white-space:nowrap;background:transparent}
+td{padding:.6rem .85rem;border-top:1px solid var(--rule-row);vertical-align:top}
+tbody tr:first-child td{border-top:0}
+td:first-child{font-weight:500}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.yes,.no,.mid{font-weight:500;color:var(--ink)}
+.yes::before,.no::before,.mid::before{content:"";display:inline-block;width:7px;height:7px;margin-right:.5em;vertical-align:.08em}
+.yes::before{background:var(--navy)}
+.no::before{background:var(--caution)}
+.mid::before{background:var(--ochre)}
+
+/* ---------- callouts ---------- */
+.box{margin:2rem 0;padding:.15rem 0 .15rem 1.25rem;border-left:1px solid var(--rule-strong);background:none;font-size:16px;line-height:1.85;color:var(--ink-2)}
+.box strong{color:var(--ink)}
+.box p:last-child,.box ul:last-child,.box ol:last-child{margin-bottom:0}
+.box .bt{font-family:var(--sans);font-size:16px;font-weight:600;line-height:1.5;color:var(--ink);margin-bottom:.45rem}
+.box.key{background:var(--navy-wash);border-left:3px solid var(--navy);padding:1.1rem 1.35rem 1.15rem;font-size:17px;color:var(--ink)}
+.box.key .bt{color:var(--navy)}
+.box.warn{background:none;border-left:1px solid var(--caution);padding:.15rem 0 .15rem 1.25rem;font-size:17px;color:var(--ink)}
+.box.warn .bt{color:var(--caution)}
+.box.warn .bt::before{content:"";display:inline-block;width:6px;height:6px;background:var(--caution);margin-right:.5em;vertical-align:.18em}
+main > .box:has(.tw){max-width:var(--wide)}
+.box .tw{margin:.8rem 0 0}
+.quote-claim{margin:.7rem 0 0;padding:.85rem 1.05rem;background:var(--plate);border-left:2px solid var(--navy);font-family:var(--serif);color:var(--ink);line-height:1.85}
+
+/* ---------- code ---------- */
+.filename{
+  display:block;margin:1.8rem 0 0;padding:.45rem 1rem;
+  font-family:var(--mono);font-size:.75rem;letter-spacing:.01em;color:#b9c7d6;
+  background:var(--code-head);border:1px solid var(--code-line);border-bottom:0;border-left:3px solid var(--code-accent);
+}
+pre{
+  margin:1.4rem 0 1.9rem;padding:1.15rem 1.35rem;overflow-x:auto;
+  background:var(--code-bg);color:var(--code-ink);
+  border:1px solid var(--code-line);border-left:3px solid var(--code-accent);
+  font-family:var(--mono);font-size:.8rem;line-height:1.75;tab-size:4;
+  word-break:normal;white-space:pre;
+}
+.filename + pre{margin-top:0;border-top:1px solid var(--code-line)}
+pre code{background:none;padding:0;color:inherit;font-size:1em;word-break:normal;border-radius:0}
+pre .cm{color:#7f94a8}
+pre .kw{color:#93bbe6}
+pre .st{color:#d8c08a}
+pre .fn{color:#a9d5b2}
+pre .n{color:#e5ad90}
+pre.in-box{margin:.7rem 0 0}
+
+/* ---------- figures ---------- */
+figure{margin:2.2rem 0 2.6rem;padding:0;border:0;background:none;counter-increment:fig}
+.plate{background:var(--plate);border:1px solid var(--rule);padding:1.4rem 1.5rem}
+figure svg{display:block;width:100%;height:auto}
+figcaption{font-family:var(--sans);font-size:.84rem;line-height:1.7;color:var(--cap);margin-top:.75rem;max-width:var(--text)}
+figcaption::before{content:"그림 " counter(fig) ".";font-weight:600;color:var(--ink);margin-right:.45rem}
+
+/* ---------- misc ---------- */
+.rule{border:0;border-top:1px solid var(--rule);margin:3rem 0}
+.cite{font-family:var(--sans);font-size:.8rem;color:var(--cap);font-style:normal;line-height:1.7}
+.tag{display:inline-block;font-family:var(--sans);font-size:.75rem;font-weight:600;padding:0;border:0;margin-left:.4rem;vertical-align:.08em}
+.tag::before{content:"";display:inline-block;width:6px;height:6px;background:currentColor;margin-right:.4em;vertical-align:.15em}
+.tag.t-must{color:var(--caution)}
+.tag.t-good{color:var(--navy)}
+.tag.t-opt{color:var(--cap)}
+
+/* ---------- responsive ---------- */
+@media (max-width:960px){
+  .shell{grid-template-columns:1fr}
+  .toc{position:static;height:auto;overflow:visible;border-right:0;border-bottom:1px solid var(--rule);padding:1.3rem 1.1rem 1rem}
+  .toc-sub{margin-bottom:.6rem;padding-bottom:0;border-bottom:0}
+  .toc-toggle{display:inline-block;background:none;border:0;padding:.2rem 0;font-family:var(--sans);font-size:.85rem;font-weight:500;color:var(--navy);text-decoration:underline;text-underline-offset:.2em;cursor:pointer}
+  .toc-links{display:none;margin-top:.9rem;padding-top:.8rem;border-top:1px solid var(--rule-row)}
+  .toc.open .toc-links{display:block}
+  .toc a.sub{display:none}
+  main{padding:2.2rem 1rem 5rem}
+  .masthead h1{font-size:1.9rem}
+  .chapter-head{margin-top:4.2rem}
+  h2{font-size:1.7rem}
+  h3{font-size:1.18rem}
+  .plate{padding:.9rem}
+}
+@media print{
+  .toc{display:none}
+  .shell{display:block}
+  pre,figure,table{break-inside:avoid}
+}
+
+</style>
+</head>
+<body>
+<div class="shell">
+
+<nav class="toc">
+  <div class="toc-brand">표 데이터 머신러닝<br>실무 레퍼런스</div>
+  <div class="toc-sub">불균형 분류 · 증강 · 피처 · 설명</div>
+  <button class="toc-toggle" type="button" aria-expanded="false" aria-controls="toc-links">목차 펼치기</button>
+  <div class="toc-links" id="toc-links">
+
+  <a class="top" href="#s1">1. 전체 지도</a>
+  <a class="top" href="#s2">2. 모델 지형도</a>
+  <a class="sub" href="#s2-tree">트리 모델이 강한 이유</a>
+  <a class="sub" href="#s2-list">모델별 정리</a>
+  <a class="sub" href="#s2-new">TabPFN과 TabM</a>
+  <a class="top" href="#s3">3. 불균형 데이터</a>
+  <a class="sub" href="#s3-metric">평가 지표부터</a>
+  <a class="sub" href="#s3-thr">임계값 튜닝</a>
+  <a class="sub" href="#s3-method">대응 방법 비교</a>
+  <a class="top" href="#s4">4. 데이터 증강</a>
+  <a class="sub" href="#s4-smote">SMOTE와 노이즈</a>
+  <a class="sub" href="#s4-diff">확산 모델 논문</a>
+  <a class="sub" href="#s4-truth">증강은 효과가 있나</a>
+  <a class="top" href="#s5">5. 피처 엔지니어링</a>
+  <a class="sub" href="#s5-drop">공선성 제거</a>
+  <a class="sub" href="#s5-select">중요도 선택</a>
+  <a class="sub" href="#s5-auto">자동 생성</a>
+  <a class="top" href="#s6">6. XAI: SHAP과 LIME</a>
+  <a class="sub" href="#s6-shap">SHAP 원리</a>
+  <a class="sub" href="#s6-lime">LIME 원리</a>
+  <a class="sub" href="#s6-cmp">비교와 앙상블</a>
+  <a class="sub" href="#s6-ops">실무 운영</a>
+  <a class="top" href="#s7">7. 실전 코드</a>
+  <a class="top" href="#s8">8. 실수 체크리스트</a>
+  <a class="top" href="#s9">9. 용어 사전</a>
+  </div>
+</nav>
+
+<main>
+
+<header class="masthead">
+  <div class="masthead-top">
+    <h1>표 데이터 머신러닝<br>실무 레퍼런스</h1>
+    <p>사기 탐지처럼 양성이 1%도 안 되는 데이터를 다룰 때, 무엇이 실제로 효과가 있고 무엇이 착시인지. 모델 선택부터 증강, 피처 생성, 그리고 결과를 사람에게 설명하는 일까지.</p>
+  </div>
+  <div class="masthead-grid">
+    <div class="masthead-cell"><b>9</b><span>장</span></div>
+    <div class="masthead-cell"><b>13</b><span>실행 가능한 코드</span></div>
+    <div class="masthead-cell"><b>2026</b><span>최신 연구 반영</span></div>
+  </div>
+</header>
+
+
+<!-- ================= 1 ================= -->
+<header class="chapter-head">
+<h2 id="s1"><span class="num">1</span>전체 지도</h2>
+
+<p class="lede">표 데이터 분류 작업은 네 개의 결정으로 이루어집니다. 어떤 모델을 쓸 것인가, 불균형을 어떻게 다룰 것인가, 데이터와 피처를 어떻게 손볼 것인가, 그리고 결과를 어떻게 설명할 것인가. 이 문서는 그 네 가지를 순서대로 다룹니다.</p>
+</header>
+
+<figure>
+<div class="plate"><svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="표 데이터 분류 파이프라인 구조도">
+  <defs>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 z" fill="#4b4f55"/>
+    </marker>
+  </defs>
+  <rect x="1" y="1" width="718" height="298" fill="none"/>
+
+  <!-- row 1 -->
+  <rect x="20" y="24" width="120" height="52" fill="#FFFFFF" stroke="#26292d" stroke-width="1.5"/>
+  <text x="80" y="46" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="13" font-weight="700" fill="#26292d" text-anchor="middle">원본 데이터</text>
+  <text x="80" y="63" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#6e7378" text-anchor="middle">CSV</text>
+
+  <rect x="180" y="24" width="140" height="52" fill="#E6EBF2" stroke="#1f3a5f" stroke-width="1.5"/>
+  <text x="250" y="46" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="13" font-weight="700" fill="#16283f" text-anchor="middle">분할</text>
+  <text x="250" y="63" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#1f3a5f" text-anchor="middle">학습 / 검증 / 테스트</text>
+
+  <rect x="360" y="24" width="140" height="52" fill="#FFFFFF" stroke="#26292d" stroke-width="1.5"/>
+  <text x="430" y="46" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="13" font-weight="700" fill="#26292d" text-anchor="middle">전처리</text>
+  <text x="430" y="63" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#6e7378" text-anchor="middle">인코딩 · 스케일링</text>
+
+  <rect x="540" y="24" width="160" height="52" fill="#FFFFFF" stroke="#26292d" stroke-width="1.5"/>
+  <text x="620" y="46" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="13" font-weight="700" fill="#26292d" text-anchor="middle">피처 엔지니어링</text>
+  <text x="620" y="63" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#6e7378" text-anchor="middle">5장</text>
+
+  <line x1="140" y1="50" x2="176" y2="50" stroke="#4b4f55" stroke-width="1.3" marker-end="url(#ar)"/>
+  <line x1="320" y1="50" x2="356" y2="50" stroke="#4b4f55" stroke-width="1.3" marker-end="url(#ar)"/>
+  <line x1="500" y1="50" x2="536" y2="50" stroke="#4b4f55" stroke-width="1.3" marker-end="url(#ar)"/>
+
+  <!-- down -->
+  <path d="M620,76 L620,100 L100,100 L100,124" fill="none" stroke="#4b4f55" stroke-width="1.3" marker-end="url(#ar)"/>
+
+  <!-- row 2 -->
+  <rect x="20" y="126" width="160" height="52" fill="#FFFFFF" stroke="#26292d" stroke-width="1.5"/>
+  <text x="100" y="148" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="13" font-weight="700" fill="#26292d" text-anchor="middle">불균형 대응</text>
+  <text x="100" y="165" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#6e7378" text-anchor="middle">3장 · 4장</text>
+
+  <rect x="220" y="126" width="140" height="52" fill="#FFFFFF" stroke="#26292d" stroke-width="1.5"/>
+  <text x="290" y="148" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="13" font-weight="700" fill="#26292d" text-anchor="middle">모델 학습</text>
+  <text x="290" y="165" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#6e7378" text-anchor="middle">2장</text>
+
+  <rect x="400" y="126" width="160" height="52" fill="#F5F0E3" stroke="#B08A3E" stroke-width="2"/>
+  <text x="480" y="148" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="13" font-weight="700" fill="#7A5E1E" text-anchor="middle">임계값 결정</text>
+  <text x="480" y="165" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#7A5E1E" text-anchor="middle">검증셋에서만</text>
+
+  <line x1="180" y1="152" x2="216" y2="152" stroke="#4b4f55" stroke-width="1.3" marker-end="url(#ar)"/>
+  <line x1="360" y1="152" x2="396" y2="152" stroke="#4b4f55" stroke-width="1.3" marker-end="url(#ar)"/>
+
+  <path d="M480,178 L480,202 L100,202 L100,226" fill="none" stroke="#4b4f55" stroke-width="1.3" marker-end="url(#ar)"/>
+
+  <!-- row 3 -->
+  <rect x="20" y="228" width="160" height="52" fill="#E6EBF2" stroke="#1f3a5f" stroke-width="1.5"/>
+  <text x="100" y="250" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="13" font-weight="700" fill="#16283f" text-anchor="middle">테스트셋 평가</text>
+  <text x="100" y="267" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#1f3a5f" text-anchor="middle">단 한 번</text>
+
+  <rect x="220" y="228" width="180" height="52" fill="#FFFFFF" stroke="#26292d" stroke-width="1.5"/>
+  <text x="310" y="250" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="13" font-weight="700" fill="#26292d" text-anchor="middle">설명 · 해석</text>
+  <text x="310" y="267" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#6e7378" text-anchor="middle">SHAP · LIME · 6장</text>
+
+  <rect x="440" y="228" width="180" height="52" fill="#FFFFFF" stroke="#26292d" stroke-width="1.5"/>
+  <text x="530" y="250" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="13" font-weight="700" fill="#26292d" text-anchor="middle">운영 · 모니터링</text>
+  <text x="530" y="267" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#6e7378" text-anchor="middle">설명 드리프트</text>
+
+  <line x1="180" y1="254" x2="216" y2="254" stroke="#4b4f55" stroke-width="1.3" marker-end="url(#ar)"/>
+  <line x1="400" y1="254" x2="436" y2="254" stroke="#4b4f55" stroke-width="1.3" marker-end="url(#ar)"/>
+</svg></div>
+<figcaption>전체 흐름. 노란 칸(임계값 결정)이 가장 자주 생략되면서도 효과는 가장 큰 단계입니다. 3장에서 자세히 다룹니다.</figcaption>
+</figure>
+
+<h3>이 문서가 다루는 세 개의 예제 데이터</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th>데이터셋</th><th>규모</th><th>양성 비율</th><th>특징</th></tr></thead>
+<tbody>
+<tr><td>creditcard.csv</td><td class="n">284,807 × 30</td><td class="n">0.17%</td><td>V1~V28이 PCA 익명화 — 해석 불가</td></tr>
+<tr><td>credit_card_fraud_2026.csv</td><td class="n">20,000 × 26</td><td class="n">1.70%</td><td>피처명이 살아있음 — 해석 가능</td></tr>
+<tr><td>Customer_Churn.csv</td><td class="n">7,043 × 21</td><td class="n">26.5%</td><td>범주형 위주, 가벼운 불균형</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="box key">
+<div class="bt">두 사기 데이터의 차이가 중요한 이유</div>
+<p>같은 사기 탐지라도 <code>creditcard.csv</code>는 컬럼명이 <code>V14</code>, <code>V17</code>처럼 의미가 없습니다. 반면 <code>credit_card_fraud_2026.csv</code>는 <code>cvv_retry_count</code>, <code>ip_country_mismatch</code>처럼 읽을 수 있습니다. 이 차이가 <strong>자동 피처 생성(5장)</strong>과 <strong>XAI(6장)</strong>에서 완전히 다른 결론을 만듭니다. 익명화된 데이터에서는 LLM 기반 방법이 무력하고, SHAP 결과를 심사자에게 보여줄 수도 없습니다.</p>
+</div>
+
+
+<!-- ================= 2 ================= -->
+<header class="chapter-head">
+<h2 id="s2"><span class="num">2</span>모델 지형도</h2>
+</header>
+
+<h3 id="s2-tree">왜 표 데이터에서는 트리 모델이 강한가</h3>
+
+<p>이미지나 텍스트에서는 딥러닝이 압도적인데, 표 데이터에서는 아직도 XGBoost 같은 트리 부스팅이 기준선입니다. 이유는 데이터의 성질에 있습니다.</p>
+
+<div class="tw">
+<table>
+<thead><tr><th>성질</th><th>이미지 · 텍스트</th><th>표 데이터</th></tr></thead>
+<tbody>
+<tr><td>피처 간 관계</td><td>공간적·순차적 구조가 있음 (옆 픽셀은 비슷함)</td><td>구조 없음. 3번 컬럼과 4번 컬럼은 무관</td></tr>
+<tr><td>피처의 성질</td><td>모두 같은 종류 (픽셀값, 토큰)</td><td>제각각. 나이·금액·범주가 섞임</td></tr>
+<tr><td>분포</td><td>비교적 매끄러움</td><td>계단형, 치우침, 이상치 많음</td></tr>
+<tr><td>데이터 크기</td><td>수백만~수십억</td><td>보통 수천~수십만</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>트리는 <strong>"이 값이 500보다 큰가?"</strong>라는 계단형 분할을 쌓는 구조라, 위 성질에 정확히 들어맞습니다. 스케일링도 필요 없고(순서만 보므로), 이상치에도 강하고, 피처 간 순서가 뒤바뀌어도 상관없습니다. 반면 신경망은 매끄러운 함수를 학습하므로 계단형 관계를 표현하려면 훨씬 많은 데이터가 필요합니다.</p>
+
+<div class="box">
+<div class="bt">실무 판단 기준</div>
+<p>표 데이터 작업을 시작할 때는 <strong>LightGBM 또는 XGBoost를 기본값 그대로</strong> 먼저 돌려보세요. 이게 베이스라인입니다. 여기서 나온 점수를 이기지 못하는 복잡한 방법은 쓸 이유가 없습니다. 이 문서 전체가 사실상 "이 베이스라인을 이길 수 있는가"를 검증하는 과정입니다.</p>
+</div>
+
+<h3 id="s2-list">모델별 정리</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th>모델</th><th>계열</th><th>강점</th><th>주의점</th></tr></thead>
+<tbody>
+<tr><td>XGBoost</td><td>트리 부스팅</td><td>안정적, 튜닝 자료 풍부, 사실상 표준</td><td>기본값도 충분히 강함</td></tr>
+<tr><td>LightGBM</td><td>트리 부스팅</td><td>XGBoost보다 빠름, 대용량에 유리</td><td>작은 데이터에서 과적합 경향</td></tr>
+<tr><td>CatBoost</td><td>트리 부스팅</td><td>범주형을 원-핫 없이 직접 처리</td><td>학습이 셋 중 가장 느림</td></tr>
+<tr><td>RandomForest</td><td>트리 배깅</td><td>과적합에 강하고 튜닝이 거의 불필요</td><td>부스팅보다 대체로 약함</td></tr>
+<tr><td>QDA</td><td>확률 모델</td><td>매우 빠름, 클래스별 분포를 직접 모델링</td><td>가우시안 가정. 공선성에 취약</td></tr>
+<tr><td>Logistic Regression</td><td>선형</td><td>해석이 쉽고 확률 보정이 좋음</td><td>비선형 관계를 못 잡음</td></tr>
+<tr><td>MLP</td><td>신경망</td><td>비선형 표현력</td><td>스케일링 필수, 튜닝 민감</td></tr>
+<tr><td>TabPFN</td><td>사전학습 트랜스포머</td><td>소규모 데이터에서 튜닝 없이 강함</td><td>느림, 크기 제한</td></tr>
+<tr><td>TabM</td><td>신경망 앙상블</td><td>크기 제한 없음, 딥러닝 중 최상급</td><td>학습 필요</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>QDA를 쓸 때 반드시 알아야 할 것</h4>
+
+<p>QDA는 클래스별로 <strong>공분산 행렬의 역행렬</strong>을 계산합니다. 그런데 서로 강하게 상관된 피처가 있으면 이 행렬이 특이(singular)해져서 역행렬이 존재하지 않거나 수치적으로 불안정해집니다. 원-핫 인코딩으로 만든 더미 컬럼들이 특히 위험합니다.</p>
+
+<div class="box warn">
+<div class="bt">Customer_Churn에서 실제로 벌어지는 일</div>
+<p>이 데이터를 <code>pd.get_dummies</code>로 처리하면 <code>OnlineSecurity_No internet service</code>, <code>TechSupport_No internet service</code> 같은 컬럼 여섯 개가 <strong>완전히 동일한 값</strong>이 됩니다. 인터넷 서비스가 없는 고객은 이 여섯 항목이 전부 같은 상태이기 때문입니다. QDA에게는 치명적입니다.</p>
+<p>해결책은 두 가지입니다. 임시방편은 <code>reg_param</code>으로 정규화를 거는 것이고, 정공법은 5장의 공선성 제거로 원인을 없애는 것입니다.</p>
+</div>
+
+<pre><code><span class="cm"># 임시방편: 정규화로 행렬을 안정화</span>
+QuadraticDiscriminantAnalysis(reg_param=0.1)
+
+<span class="cm"># 정공법: 상관 높은 컬럼을 미리 제거 (5장 참조)</span></code></pre>
+
+<h3 id="s2-new">TabPFN과 TabM — 헷갈리기 쉬운 두 최신 모델</h3>
+
+<p>둘 다 "트리 모델을 딥러닝으로 이기자"는 목표는 같지만, 접근이 정반대입니다.</p>
+
+<figure>
+<div class="plate"><svg viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="TabPFN과 TabM의 구조 비교">
+  <!-- TabPFN -->
+  <text x="20" y="22" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="14" font-weight="800" fill="#1f3a5f">TabPFN — 미리 배워둔 뒤, 문제를 통째로 보여준다</text>
+
+  <rect x="20" y="36" width="150" height="46" fill="#E6EBF2" stroke="#1f3a5f" stroke-width="1.5"/>
+  <text x="95" y="55" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#16283f" text-anchor="middle">수백만 개</text>
+  <text x="95" y="71" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#16283f" text-anchor="middle">합성 데이터로 사전학습</text>
+
+  <line x1="170" y1="59" x2="206" y2="59" stroke="#4b4f55" stroke-width="1.3" marker-end="url(#ar)"/>
+
+  <rect x="210" y="36" width="150" height="46" fill="#FFFFFF" stroke="#26292d" stroke-width="1.5"/>
+  <text x="285" y="55" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#26292d" text-anchor="middle">내 데이터를</text>
+  <text x="285" y="71" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#26292d" text-anchor="middle">컨텍스트로 입력</text>
+
+  <line x1="360" y1="59" x2="396" y2="59" stroke="#4b4f55" stroke-width="1.3" marker-end="url(#ar)"/>
+
+  <rect x="400" y="36" width="150" height="46" fill="#FFFFFF" stroke="#26292d" stroke-width="1.5"/>
+  <text x="475" y="63" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#26292d" text-anchor="middle">바로 예측</text>
+
+  <text x="570" y="52" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#9a4a32" font-weight="700">가중치 갱신</text>
+  <text x="570" y="68" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#9a4a32" font-weight="700">전혀 없음</text>
+
+  <text x="20" y="106" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#6e7378">GPT가 프롬프트만 보고 문제를 푸는 것과 같은 원리 (in-context learning)</text>
+
+  <line x1="20" y1="124" x2="700" y2="124" stroke="#D8DBD5" stroke-width="1"/>
+
+  <!-- TabM -->
+  <text x="20" y="152" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="14" font-weight="800" fill="#9a4a32">TabM — 매번 처음부터 배운다</text>
+
+  <rect x="20" y="166" width="150" height="46" fill="#F4EAE5" stroke="#9a4a32" stroke-width="1.5"/>
+  <text x="95" y="185" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#9a4a32" text-anchor="middle">내 데이터로</text>
+  <text x="95" y="201" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#9a4a32" text-anchor="middle">직접 학습</text>
+
+  <line x1="170" y1="189" x2="206" y2="189" stroke="#4b4f55" stroke-width="1.3" marker-end="url(#ar)"/>
+
+  <rect x="210" y="166" width="180" height="46" fill="#FFFFFF" stroke="#26292d" stroke-width="1.5"/>
+  <text x="300" y="185" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#26292d" text-anchor="middle">하나의 백본 +</text>
+  <text x="300" y="201" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#26292d" text-anchor="middle">가벼운 파라미터 여러 벌</text>
+
+  <line x1="390" y1="189" x2="426" y2="189" stroke="#4b4f55" stroke-width="1.3" marker-end="url(#ar)"/>
+
+  <rect x="430" y="166" width="150" height="46" fill="#FFFFFF" stroke="#26292d" stroke-width="1.5"/>
+  <text x="505" y="193" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#26292d" text-anchor="middle">앙상블 효과</text>
+
+  <text x="20" y="236" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#6e7378">MLP를 여러 개 만드는 대신, 적은 파라미터로 앙상블 효과를 냄 (ICLR 2025)</text>
+</svg></div>
+<figcaption>TabPFN은 "표 데이터용 GPT", TabM은 "효율적인 신경망 앙상블"이라고 기억하면 쉽습니다.</figcaption>
+</figure>
+
+<div class="tw">
+<table>
+<thead><tr><th></th><th>TabPFN</th><th>TabM</th></tr></thead>
+<tbody>
+<tr><td>학습 방식</td><td>사전학습 완료. fit()해도 가중치 안 바뀜</td><td>데이터셋마다 처음부터 학습</td></tr>
+<tr><td>적합 규모</td><td>v2는 1만 행 내외, v3는 100만 행까지</td><td>제한 없음</td></tr>
+<tr><td>속도</td><td class="no">느림 (CPU에서 특히)</td><td class="yes">상대적으로 빠름</td></tr>
+<tr><td>튜닝</td><td class="yes">거의 불필요</td><td class="mid">어느 정도 필요</td></tr>
+<tr><td>불균형 데이터</td><td class="no">다수 클래스로 편향됨 → 임계값 보정 필수</td><td class="mid">일반 신경망과 비슷</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="box">
+<div class="bt">언제 어느 쪽을 쓰나</div>
+<p><strong>TabPFN</strong>: 데이터가 1만 행 이하이고 튜닝할 시간이 없을 때. 예제 중에서는 Heart Disease(9,000행)가 정확히 이 구간입니다.<br>
+<strong>TabM</strong>: 데이터가 크고, 딥러닝 계열을 비교군에 넣고 싶을 때.<br>
+<strong>둘 다 아님</strong>: 20만 행짜리 creditcard처럼 크고 극단적으로 불균형한 데이터. 이럴 땐 XGBoost가 낫습니다.</p>
+</div>
+
+<h4>TabPFN 버전 오류가 날 때</h4>
+
+<p><code>ModelVersion has no attribute 'V3'</code> 오류는 패키지가 구버전이라는 뜻입니다.</p>
+
+<pre><code>pip install --upgrade tabpfn   <span class="cm"># 0.3.0 이상 필요</span>
+pip install --upgrade torch    <span class="cm"># 2.5 이상 필요</span></code></pre>
+
+<p><code>force_all_finite was renamed to ensure_all_finite</code> 경고는 오류가 아니라 scikit-learn 버전 관련 알림이니 무시해도 됩니다.</p>
+
+
+<!-- ================= 3 ================= -->
+<header class="chapter-head">
+<h2 id="s3"><span class="num">3</span>불균형 데이터</h2>
+
+<p class="lede">사기 거래가 0.17%인 데이터에서 "전부 정상"이라고 찍기만 해도 정확도 99.83%가 나옵니다. 불균형 데이터의 모든 문제는 여기서 출발합니다. 그리고 대부분의 잘못된 결론도 여기서 나옵니다.</p>
+</header>
+
+<h3 id="s3-metric">먼저 평가 지표부터 — 여기가 가장 중요합니다</h3>
+
+<p>방법을 고르기 전에 <strong>무엇으로 잘했다고 판단할지</strong>부터 정해야 합니다. 지표를 잘못 고르면 그 뒤의 모든 실험이 무의미해집니다.</p>
+
+<h4>혼동행렬: 모든 지표의 출발점</h4>
+
+<figure>
+<div class="plate"><svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="혼동행렬과 주요 지표의 관계">
+  <text x="150" y="20" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#6e7378" text-anchor="middle">실제 정상</text>
+  <text x="290" y="20" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#6e7378" text-anchor="middle">실제 사기</text>
+
+  <text x="70" y="60" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#6e7378" text-anchor="end">정상 예측</text>
+  <text x="70" y="130" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#6e7378" text-anchor="end">사기 예측</text>
+
+  <rect x="80" y="30" width="140" height="60" fill="#E6EBF2" stroke="#1f3a5f" stroke-width="1.5"/>
+  <text x="150" y="55" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="12.5" font-weight="800" fill="#16283f" text-anchor="middle">TN</text>
+  <text x="150" y="74" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#1f3a5f" text-anchor="middle">맞게 통과</text>
+
+  <rect x="220" y="30" width="140" height="60" fill="#F4EAE5" stroke="#9a4a32" stroke-width="1.5"/>
+  <text x="290" y="55" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="12.5" font-weight="800" fill="#9a4a32" text-anchor="middle">FN</text>
+  <text x="290" y="74" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#9a4a32" text-anchor="middle">사기를 놓침</text>
+
+  <rect x="80" y="90" width="140" height="60" fill="#F5F0E3" stroke="#B08A3E" stroke-width="1.5"/>
+  <text x="150" y="115" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="12.5" font-weight="800" fill="#7A5E1E" text-anchor="middle">FP</text>
+  <text x="150" y="134" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#7A5E1E" text-anchor="middle">정상을 오탐</text>
+
+  <rect x="220" y="90" width="140" height="60" fill="#E6EBF2" stroke="#1f3a5f" stroke-width="1.5"/>
+  <text x="290" y="115" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="12.5" font-weight="800" fill="#16283f" text-anchor="middle">TP</text>
+  <text x="290" y="134" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#1f3a5f" text-anchor="middle">사기를 잡음</text>
+
+  <line x1="400" y1="30" x2="400" y2="220" stroke="#D8DBD5" stroke-width="1"/>
+
+  <text x="425" y="48" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="12.5" font-weight="800" fill="#26292d">정밀도 Precision = TP / (TP+FP)</text>
+  <text x="425" y="66" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#4b4f55">사기라고 한 것 중 진짜 비율</text>
+  <text x="425" y="82" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#6e7378">낮으면 → 심사자가 헛일을 함</text>
+
+  <text x="425" y="112" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="12.5" font-weight="800" fill="#26292d">재현율 Recall = TP / (TP+FN)</text>
+  <text x="425" y="130" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#4b4f55">진짜 사기 중 잡아낸 비율</text>
+  <text x="425" y="146" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#6e7378">낮으면 → 사기가 그냥 통과됨</text>
+
+  <text x="425" y="176" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="12.5" font-weight="800" fill="#26292d">F1 = 둘의 조화평균</text>
+  <text x="425" y="194" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#4b4f55">한쪽만 높으면 F1도 낮음</text>
+
+  <text x="80" y="190" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="12.5" font-weight="800" fill="#9a4a32">정확도 = (TP+TN) / 전체</text>
+  <text x="80" y="208" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#9a4a32">TN이 압도적이라 아무 의미 없음</text>
+  <text x="80" y="228" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#6e7378">→ 불균형 데이터에서는 보고하지 말 것</text>
+</svg></div>
+<figcaption>정밀도와 재현율은 트레이드오프 관계입니다. 사기를 더 많이 잡으려고 기준을 낮추면 오탐이 늘어납니다.</figcaption>
+</figure>
+
+<h4>ROC-AUC와 PR-AUC — 이 차이를 반드시 알아야 합니다</h4>
+
+<p>둘 다 임계값과 무관한 지표라 자주 혼용되는데, 불균형 데이터에서는 결과가 크게 갈립니다.</p>
+
+<div class="tw">
+<table>
+<thead><tr><th></th><th>ROC-AUC</th><th>PR-AUC (Average Precision)</th></tr></thead>
+<tbody>
+<tr><td>두 축</td><td>재현율 vs 위양성률(FPR)</td><td>정밀도 vs 재현율</td></tr>
+<tr><td>TN을 보는가</td><td class="no">봄 — FPR 분모에 TN이 들어감</td><td class="yes">안 봄 — 소수 클래스만 관심</td></tr>
+<tr><td>불균형에서</td><td class="no">낙관적으로 나옴</td><td class="yes">현실을 반영</td></tr>
+<tr><td>기준선(랜덤)</td><td class="n">항상 0.5</td><td class="n">양성 비율 (0.0017 등)</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="box warn">
+<div class="bt">ROC-AUC가 0.98인데 실무에서 쓸 수 없는 이유</div>
+<p>위양성률 <code>FPR = FP / (FP + TN)</code>에서 TN이 28만 건입니다. 오탐이 1,000건이나 나와도 FPR은 0.0035밖에 안 됩니다. 그래프상으로는 거의 완벽해 보이지만, 심사자는 매일 1,000건의 헛일을 하게 됩니다.</p>
+<p>PR-AUC는 정밀도를 보므로 <code>500 / (500 + 1000) = 0.33</code>처럼 이 문제가 그대로 드러납니다. <strong>불균형 데이터에서는 PR-AUC를 주 지표로 삼으세요.</strong></p>
+</div>
+
+<pre><code><span class="kw">from</span> sklearn.metrics <span class="kw">import</span> average_precision_score
+<span class="cm"># PR-AUC는 이 함수입니다. 이름이 달라 헷갈리기 쉽습니다.</span>
+pr_auc = average_precision_score(y_test, proba)</code></pre>
+
+<h3 id="s3-thr">임계값 튜닝 — 가장 저렴하고 가장 효과 큰 방법</h3>
+
+<p>모델의 <code>predict()</code>는 확률이 0.5를 넘으면 양성으로 판정합니다. 그런데 <strong>0.5는 아무런 근거가 없는 숫자</strong>입니다. 그냥 기본값일 뿐입니다.</p>
+
+<figure>
+<div class="plate"><svg viewBox="0 0 720 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="임계값 이동에 따른 예측 변화">
+  <line x1="60" y1="150" x2="660" y2="150" stroke="#26292d" stroke-width="1.5"/>
+  <text x="60" y="172" font-family="IBM Plex Mono,monospace" font-size="11" fill="#6e7378" text-anchor="middle">0.0</text>
+  <text x="660" y="172" font-family="IBM Plex Mono,monospace" font-size="11" fill="#6e7378" text-anchor="middle">1.0</text>
+  <text x="360" y="196" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" fill="#4b4f55" text-anchor="middle">모델이 출력한 사기 확률</text>
+
+  <!-- normal distribution blob -->
+  <path d="M60,150 Q130,60 200,150" fill="#E6EBF2" stroke="#1f3a5f" stroke-width="1.5"/>
+  <text x="130" y="120" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#16283f" text-anchor="middle">정상 거래</text>
+
+  <!-- fraud blob -->
+  <path d="M330,150 Q450,85 570,150" fill="#F4EAE5" stroke="#9a4a32" stroke-width="1.5"/>
+  <text x="450" y="118" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#9a4a32" text-anchor="middle">사기 거래</text>
+
+  <!-- 0.5 line -->
+  <line x1="360" y1="40" x2="360" y2="160" stroke="#6e7378" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="360" y="34" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#6e7378" text-anchor="middle">기본 0.5</text>
+
+  <!-- tuned line -->
+  <line x1="250" y1="40" x2="250" y2="160" stroke="#B08A3E" stroke-width="2.5"/>
+  <text x="250" y="34" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" font-weight="700" fill="#7A5E1E" text-anchor="middle">튜닝된 임계값</text>
+
+  <text x="80" y="218" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#4b4f55">임계값을 왼쪽으로 옮기면 → 사기를 더 많이 잡지만(재현율↑) 오탐도 늘어남(정밀도↓)</text>
+</svg></div>
+<figcaption>불균형 데이터에서 모델은 대체로 낮은 확률만 출력합니다. 0.5를 넘는 건이 아예 거의 없어서 아무것도 못 잡는 상황이 흔합니다.</figcaption>
+</figure>
+
+<div class="box key">
+<div class="bt">2026년 연구가 확인한 것</div>
+<p>11개 데이터셋에서 여러 불균형 대응법을 비교한 결과, <strong>단순한 임계값 조정이 모든 복잡한 방법을 이겼습니다.</strong> 균형 정확도 기준으로 보정 없음 0.710 → 임계값 조정 0.793이었고, 오버샘플링(0.621)과 생성모델 증강(0.691)은 <strong>아무것도 하지 않은 것보다 나빴습니다.</strong></p>
+<p>이론적으로도 최적 임계값은 소수 클래스의 비율과 같습니다. 사기가 1.7%면 임계값을 0.017 근처에 두는 것이 출발점입니다.</p>
+</div>
+
+<h4>구현 — 반드시 검증셋에서</h4>
+
+<pre><code><span class="kw">from</span> sklearn.metrics <span class="kw">import</span> precision_recall_curve
+
+<span class="kw">def</span> <span class="fn">best_threshold</span>(y_true, proba):
+    <span class="st">"""검증셋에서 F1을 최대화하는 임계값을 찾는다"""</span>
+    prec, rec, thr = precision_recall_curve(y_true, proba)
+    f1 = <span class="n">2</span> * prec * rec / (prec + rec + <span class="n">1e-9</span>)
+    <span class="kw">return</span> thr[np.argmax(f1[:-<span class="n">1</span>])]   <span class="cm"># thr은 prec/rec보다 길이가 1 짧음</span>
+
+<span class="cm"># 검증셋에서 임계값 결정</span>
+tau = best_threshold(y_val, model.predict_proba(X_val)[:, <span class="n">1</span>])
+
+<span class="cm"># 테스트셋에는 '적용만' — 절대 여기서 고르면 안 됨</span>
+pred = (model.predict_proba(X_test)[:, <span class="n">1</span>] &gt;= tau).astype(<span class="kw">int</span>)</code></pre>
+
+<div class="box warn">
+<div class="bt">가장 흔한 치명적 실수</div>
+<p>테스트셋에서 임계값을 고르면 <strong>정보 누출</strong>입니다. 테스트셋의 정답을 보고 최적값을 찾은 뒤 그 테스트셋으로 평가하면, 당연히 점수가 부풀려집니다. 실제 운영에서는 그 성능이 재현되지 않습니다.</p>
+<p>그래서 데이터를 <strong>학습 / 검증 / 테스트 셋으로 나눠야</strong> 합니다. 검증셋은 임계값 결정 전용입니다.</p>
+</div>
+
+<pre><code><span class="cm"># 올바른 3분할</span>
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=<span class="n">0.2</span>, random_state=<span class="n">42</span>, stratify=y)
+
+X_tr, X_val, y_tr, y_val = train_test_split(
+    X_train, y_train, test_size=<span class="n">0.2</span>, random_state=<span class="n">42</span>, stratify=y_train)
+
+<span class="cm"># stratify=y 는 필수. 없으면 검증셋에 사기가 0건일 수도 있음</span></code></pre>
+
+<h3 id="s3-method">대응 방법 비교</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th>방법</th><th>원리</th><th>비용</th><th>효과 (문헌 기준)</th></tr></thead>
+<tbody>
+<tr><td>임계값 튜닝</td><td>판정 기준선만 옮김</td><td class="yes">거의 없음</td><td class="yes">가장 크고 안정적</td></tr>
+<tr><td>scale_pos_weight</td><td>소수 클래스 오분류에 큰 벌점</td><td class="yes">없음</td><td class="yes">임계값 튜닝과 병행 시 좋음</td></tr>
+<tr><td>다운샘플링</td><td>다수 클래스를 줄임</td><td class="yes">오히려 감소</td><td class="mid">임계값 조정과 비슷</td></tr>
+<tr><td>SMOTE</td><td>소수 샘플 사이를 보간</td><td class="mid">중간</td><td class="no">강한 모델에서는 효과 없음</td></tr>
+<tr><td>생성모델 증강</td><td>확산모델로 합성</td><td class="no">매우 큼</td><td class="no">기본보다 나쁜 경우도</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>scale_pos_weight 사용법</h4>
+
+<pre><code>neg, pos = (y_train == <span class="n">0</span>).sum(), (y_train == <span class="n">1</span>).sum()
+weight = neg / pos      <span class="cm"># creditcard 기준 약 577</span>
+
+model = XGBClassifier(scale_pos_weight=weight, eval_metric=<span class="st">'logloss'</span>)</code></pre>
+
+<div class="box">
+<div class="bt">공식값을 그대로 쓰지 마세요</div>
+<p>577배 가중치를 그대로 넣으면 모델이 "일단 다 사기로 찍자"는 쪽으로 치우쳐 정밀도가 무너집니다. 공식값의 1/5~1/10 수준(또는 10~50 사이)부터 시작해 검증셋 PR-AUC로 조절하는 편이 낫습니다.</p>
+<p>또 하나: <code>scale_pos_weight</code>는 확률의 <strong>순위</strong>는 거의 바꾸지 않고 0.5 임계값에서의 판정만 바꿉니다. 그래서 PR-AUC는 잘 안 변하고 F1만 크게 변합니다. 임계값을 이미 튜닝하고 있다면 이 파라미터의 효과는 대부분 중복됩니다.</p>
+</div>
+
+<h4>다운샘플링</h4>
+
+<pre><code><span class="kw">def</span> <span class="fn">downsample</span>(X, y, ratio=<span class="n">1.0</span>):
+    <span class="st">"""다수 클래스를 줄여 소수:다수 = ratio 로 맞춤"""</span>
+    idx_min = np.where(y == <span class="n">1</span>)[<span class="n">0</span>]
+    idx_maj = np.where(y == <span class="n">0</span>)[<span class="n">0</span>]
+    n_keep = <span class="kw">min</span>(<span class="kw">len</span>(idx_maj), <span class="kw">int</span>(<span class="kw">len</span>(idx_min) / ratio))
+    idx_maj = np.random.choice(idx_maj, n_keep, replace=<span class="kw">False</span>)
+    idx = np.concatenate([idx_min, idx_maj])
+    <span class="kw">return</span> X[idx], y[idx]</code></pre>
+
+<p>다운샘플링은 성능이 임계값 조정과 비슷하면서 <strong>계산량이 크게 줄어듭니다.</strong> 특히 TabPFN처럼 데이터 크기에 제곱으로 느려지는 모델에서는 이 이점이 결정적입니다.</p>
+
+<div class="box key">
+<div class="bt">2026년의 새 관점: 리샘플링을 '컨텍스트 구성'으로 보기</div>
+<p>TabPFN 같은 in-context learning 모델에서는 리샘플링이 "학습 데이터 조작"이 아니라 <strong>"모델에게 무엇을 보여줄지 고르는 일"</strong>입니다. 20만 행에서 1만 행 컨텍스트를 무작위로 뽑으면 사기가 수십 건밖에 안 들어갑니다. 다수 클래스를 언더샘플링해 비율을 0.3 정도로 맞춰 컨텍스트를 구성하는 것이 표준 전략입니다.</p>
+</div>
+
+<h3><span class="sec-num">0.5</span>임계값이 만드는 착시 — 반드시 알아야 할 함정</h3>
+
+<p>73개 데이터셋을 다룬 대규모 실험에서 밝혀진 내용입니다.</p>
+
+<div class="tw">
+<table>
+<thead><tr><th>평가 방식</th><th>SMOTE가 XGBoost를 개선했나</th></tr></thead>
+<tbody>
+<tr><td>AUC / logloss로 평가</td><td class="no">아니오 — 개선 없음</td></tr>
+<tr><td>0.5 임계값에서 F1으로 평가</td><td class="yes">예 — 크게 개선된 것처럼 보임</td></tr>
+<tr><td>임계값 튜닝 후 F1으로 평가</td><td class="no">아니오 — 차이 사라짐</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>즉 <strong>"증강했더니 F1이 올랐다"는 결과의 상당수는 증강 효과가 아니라 임계값이 이동한 효과</strong>입니다. 증강을 하면 학습 데이터의 양성 비율이 올라가고, 모델이 출력하는 확률 전체가 위로 밀려서 0.5를 넘는 건이 많아지는 것뿐입니다.</p>
+
+<div class="box warn">
+<div class="bt">실험 설계 원칙</div>
+<p>어떤 방법을 비교하든 <strong>세 가지를 함께 보고</strong>하세요.</p>
+<ol>
+<li><strong>PR-AUC</strong> — 임계값과 무관한 진짜 성능</li>
+<li><strong>F1 @0.5</strong> — 기본 설정에서의 성능</li>
+<li><strong>F1 @튜닝된 임계값</strong> — 공정한 비교</li>
+</ol>
+<p>1번과 3번이 비슷한데 2번만 차이가 크다면, 그 방법의 효과는 임계값 이동뿐입니다.</p>
+</div>
+
+
+<!-- ================= 4 ================= -->
+<header class="chapter-head">
+<h2 id="s4"><span class="num">4</span>데이터 증강</h2>
+
+<p class="lede">소수 클래스가 394건뿐이라면, 가짜로 더 만들어내면 되지 않을까. 직관적인 발상이고 실제로 널리 쓰이지만, 최근 연구들은 이 발상에 회의적입니다. 무엇이 왜 그런지 정리합니다.</p>
+</header>
+
+<h3 id="s4-smote">SMOTE와 Feature-wise Noise</h3>
+
+<h4>SMOTE — 20년 된 고전</h4>
+
+<p>원리는 단순합니다. 소수 클래스 샘플 하나를 고르고, 그 이웃 중 하나를 고른 뒤, <strong>둘을 잇는 선분 위의 임의의 점</strong>을 새 샘플로 만듭니다.</p>
+
+<figure>
+<div class="plate"><svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SMOTE와 Feature-wise noise의 생성 방식 비교">
+  <text x="20" y="20" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="13" font-weight="800" fill="#26292d">SMOTE — 두 점 사이를 보간</text>
+
+  <circle cx="90" cy="80" r="6" fill="#9a4a32"/>
+  <circle cx="230" cy="120" r="6" fill="#9a4a32"/>
+  <line x1="90" y1="80" x2="230" y2="120" stroke="#9a4a32" stroke-width="1.2" stroke-dasharray="3 3"/>
+  <circle cx="140" cy="94" r="4.5" fill="none" stroke="#9a4a32" stroke-width="1.8"/>
+  <circle cx="180" cy="106" r="4.5" fill="none" stroke="#9a4a32" stroke-width="1.8"/>
+  <text x="160" y="152" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#4b4f55" text-anchor="middle">기존 샘플 사이에만 생성됨</text>
+  <text x="160" y="170" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#6e7378" text-anchor="middle">→ 분포 바깥으로는 못 나감</text>
+
+  <line x1="330" y1="30" x2="330" y2="180" stroke="#D8DBD5" stroke-width="1"/>
+
+  <text x="360" y="20" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="13" font-weight="800" fill="#26292d">Feature-wise Noise — 각 점 주변에 흩뿌림</text>
+
+  <circle cx="430" cy="80" r="6" fill="#1f3a5f"/>
+  <ellipse cx="430" cy="80" rx="38" ry="18" fill="none" stroke="#1f3a5f" stroke-width="1.2" stroke-dasharray="3 3"/>
+  <circle cx="410" cy="72" r="4" fill="none" stroke="#1f3a5f" stroke-width="1.6"/>
+  <circle cx="452" cy="88" r="4" fill="none" stroke="#1f3a5f" stroke-width="1.6"/>
+  <circle cx="440" cy="68" r="4" fill="none" stroke="#1f3a5f" stroke-width="1.6"/>
+
+  <circle cx="570" cy="120" r="6" fill="#1f3a5f"/>
+  <ellipse cx="570" cy="120" rx="38" ry="18" fill="none" stroke="#1f3a5f" stroke-width="1.2" stroke-dasharray="3 3"/>
+  <circle cx="548" cy="114" r="4" fill="none" stroke="#1f3a5f" stroke-width="1.6"/>
+  <circle cx="590" cy="128" r="4" fill="none" stroke="#1f3a5f" stroke-width="1.6"/>
+
+  <text x="500" y="168" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#4b4f55" text-anchor="middle">타원이 옆으로 긴 것에 주목 — 피처마다 노이즈 크기가 다름</text>
+</svg></div>
+<figcaption>SMOTE는 점과 점 사이를 채우고, feature-wise noise는 각 점 주위로 퍼뜨립니다. 후자는 피처별 표준편차에 비례해 노이즈를 주므로 방향에 따라 퍼짐 정도가 다릅니다.</figcaption>
+</figure>
+
+<h4>Feature-wise Noise</h4>
+
+<p>피처마다 <strong>흩어진 정도(표준편차)가 다르다는 점</strong>을 반영합니다. 거래금액은 범위가 넓고 재시도 횟수는 좁으니, 같은 크기의 노이즈를 주면 안 됩니다.</p>
+
+<pre><code><span class="kw">def</span> <span class="fn">generate_featurewise_noise</span>(X_sc, y, alpha=<span class="n">0.20</span>, n_samples=<span class="n">10000</span>):
+    fraud = X_sc[y == <span class="n">1</span>]
+    sd = fraud.std(axis=<span class="n">0</span>) + <span class="n">1e-8</span>              <span class="cm"># 피처별 표준편차</span>
+    base = fraud[np.random.randint(<span class="n">0</span>, <span class="kw">len</span>(fraud), n_samples)]
+    noise = np.random.randn(n_samples, X_sc.shape[<span class="n">1</span>]) * (alpha * sd)
+    <span class="kw">return</span> base + noise</code></pre>
+
+<p><code>alpha</code>가 노이즈 강도입니다. 너무 작으면 원본 복제에 가까워 과적합하고, 너무 크면 사기와 정상의 경계를 넘어가 오히려 방해가 됩니다. 0.1~0.3 사이에서 조절합니다.</p>
+
+<div class="box key">
+<div class="bt">이 방법의 진짜 강점은 성능이 아니라 비용</div>
+<p>표준편차 계산 한 번이면 끝납니다. <strong>학습이 전혀 필요 없습니다.</strong> 뒤에 나올 확산 모델들이 수 시간의 학습을 요구하는 것과 대비됩니다. 성능이 같기만 해도 의미가 있는 이유입니다.</p>
+</div>
+
+<h3 id="s4-diff">확산 모델 — TabDDPM과 TabDiff</h3>
+
+<p>이미지 생성에서 성공한 확산(diffusion) 모델을 표 데이터에 옮긴 연구들입니다. 원리부터 짚고 갑니다.</p>
+
+<h4>확산 모델의 기본 발상</h4>
+
+<figure>
+<div class="plate"><svg viewBox="0 0 720 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="확산 모델의 forward와 reverse 과정">
+  <text x="20" y="20" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="12.5" font-weight="800" fill="#26292d">Forward — 원본에 노이즈를 조금씩 더해 완전한 잡음으로</text>
+
+  <rect x="30" y="32" width="70" height="40" fill="#E6EBF2" stroke="#1f3a5f" stroke-width="1.4"/>
+  <text x="65" y="57" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" font-weight="700" fill="#16283f" text-anchor="middle">원본</text>
+
+  <rect x="180" y="32" width="70" height="40" fill="#EDF0EE" stroke="#4b4f55" stroke-width="1.4"/>
+  <rect x="330" y="32" width="70" height="40" fill="#F2F3F1" stroke="#6e7378" stroke-width="1.4"/>
+  <rect x="480" y="32" width="70" height="40" fill="#F7F8F6" stroke="#B0B6B1" stroke-width="1.4" stroke-dasharray="3 3"/>
+  <text x="515" y="57" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" font-weight="700" fill="#6e7378" text-anchor="middle">잡음</text>
+
+  <line x1="100" y1="52" x2="176" y2="52" stroke="#4b4f55" stroke-width="1.2" marker-end="url(#ar)"/>
+  <line x1="250" y1="52" x2="326" y2="52" stroke="#4b4f55" stroke-width="1.2" marker-end="url(#ar)"/>
+  <line x1="400" y1="52" x2="476" y2="52" stroke="#4b4f55" stroke-width="1.2" marker-end="url(#ar)"/>
+  <text x="600" y="57" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#6e7378">규칙이 정해져 있음</text>
+
+  <text x="20" y="108" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="12.5" font-weight="800" fill="#9a4a32">Reverse — 잡음에서 원본을 복원하는 법을 신경망이 학습</text>
+
+  <rect x="480" y="120" width="70" height="40" fill="#F7F8F6" stroke="#B0B6B1" stroke-width="1.4" stroke-dasharray="3 3"/>
+  <rect x="330" y="120" width="70" height="40" fill="#F6F0EC" stroke="#B97E66" stroke-width="1.4"/>
+  <rect x="180" y="120" width="70" height="40" fill="#F4EAE5" stroke="#9a4a32" stroke-width="1.4"/>
+  <rect x="30" y="120" width="70" height="40" fill="#F4EAE5" stroke="#9a4a32" stroke-width="1.8"/>
+  <text x="65" y="145" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" font-weight="700" fill="#9a4a32" text-anchor="middle">새 샘플</text>
+
+  <line x1="476" y1="140" x2="404" y2="140" stroke="#9a4a32" stroke-width="1.2" marker-end="url(#ar)"/>
+  <line x1="326" y1="140" x2="254" y2="140" stroke="#9a4a32" stroke-width="1.2" marker-end="url(#ar)"/>
+  <line x1="176" y1="140" x2="104" y2="140" stroke="#9a4a32" stroke-width="1.2" marker-end="url(#ar)"/>
+  <text x="600" y="145" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" fill="#9a4a32">신경망이 학습</text>
+</svg></div>
+<figcaption>노이즈를 더하는 과정은 규칙이 정해져 있으므로, 그 역과정만 신경망에게 가르치면 잡음에서 새로운 데이터를 만들어낼 수 있습니다.</figcaption>
+</figure>
+
+<h4>TabDDPM (ICML 2023) — 표 데이터에 처음 적용</h4>
+
+<ul>
+<li>수치형은 <strong>가우시안 확산</strong>, 범주형은 <strong>다항 확산</strong>으로 나눠 처리</li>
+<li>모든 피처가 <strong>동일한 노이즈 스케줄</strong>을 공유</li>
+<li>이산 시간(T단계로 쪼갬)</li>
+</ul>
+
+<div class="box warn">
+<div class="bt">TabDDPM 논문이 스스로 밝힌 한계</div>
+<p>이 논문에서 가장 실용적인 발견은 자기 모델 자랑이 아닙니다. <strong>SMOTE라는 단순 보간 기법이 GAN/VAE를 압도했고, TabDDPM과도 대등했다</strong>는 것입니다. 논문은 "선행 연구 대부분이 SMOTE와 비교조차 하지 않았는데, 막상 이기기 어려운 베이스라인"이라고 인정합니다.</p>
+<p>TabDDPM이 SMOTE보다 확실히 나은 영역은 <strong>프라이버시</strong>뿐입니다. SMOTE는 실제 데이터를 보간하므로 원본과 너무 가까운 샘플이 나오는데, 확산모델은 그렇지 않습니다. 목적이 분류 성능이라면 이 이점은 무관합니다.</p>
+</div>
+
+<h4>TabDiff (ICLR 2025) — 피처마다 다른 노이즈 스케줄</h4>
+
+<p>핵심 아이디어는 이름 그대로입니다. 표 데이터는 컬럼마다 분포가 완전히 다른데, 왜 모든 컬럼에 같은 노이즈를 주는가?</p>
+
+<div class="tw">
+<table>
+<thead><tr><th></th><th>TabDDPM</th><th>TabDiff</th></tr></thead>
+<tbody>
+<tr><td>시간</td><td>이산 (T단계)</td><td>연속 (t∈[0,1])</td></tr>
+<tr><td>노이즈 스케줄</td><td>전 피처 공통</td><td class="yes">피처마다 학습되는 ρᵢ</td></tr>
+<tr><td>학습 대상</td><td>신경망만</td><td>신경망 + 스케줄 파라미터</td></tr>
+<tr><td>안정성</td><td class="no">고차원·고카디널리티에서 발산</td><td class="yes">비교적 안정</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>TabDiff의 피처별 스케줄은 이렇게 정의됩니다 (논문 Eq.10, power-mean schedule).</p>
+
+<pre><code><span class="kw">class</span> <span class="fn">FeatureWiseNoiseSchedule</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, n_features, sigma_min=<span class="n">0.002</span>, sigma_max=<span class="n">80.0</span>):
+        <span class="kw">super</span>().__init__()
+        <span class="cm"># 피처마다 별도의 학습 가능한 파라미터</span>
+        self.rho_raw = nn.Parameter(torch.full((n_features,), <span class="n">2.0</span>))
+
+    <span class="kw">def</span> <span class="fn">sigma</span>(self, t):
+        rho = F.softplus(self.rho_raw) + <span class="n">1.0</span>
+        lo = self.sigma_min ** (<span class="n">1</span> / rho)
+        hi = self.sigma_max ** (<span class="n">1</span> / rho)
+        <span class="kw">return</span> (lo + t * (hi - lo)) ** rho     <span class="cm"># (batch, n_features)</span>
+
+<span class="cm"># 학습 시: 네트워크와 스케줄을 함께 최적화하는 것이 핵심</span>
+opt = torch.optim.Adam(<span class="kw">list</span>(model.parameters()) + [schedule.rho_raw], <span class="n">1e-3</span>)</code></pre>
+
+<div class="box">
+<div class="bt">세 방법이 하나의 축 위에 놓입니다</div>
+<div class="tw" style="margin:.6rem 0 0">
+<table>
+<thead><tr><th>방법</th><th>피처별 차등</th><th>학습</th><th>비용</th></tr></thead>
+<tbody>
+<tr><td>Feature-wise noise</td><td class="yes">있음 (표준편차, 고정)</td><td class="no">없음</td><td class="yes">거의 0</td></tr>
+<tr><td>TabDDPM</td><td class="no">없음</td><td class="yes">있음</td><td class="no">데이터셋당 튜닝 8~10시간</td></tr>
+<tr><td>TabDiff</td><td class="yes">있음 (학습됨)</td><td class="yes">있음</td><td class="no">8000 에포크 학습</td></tr>
+</tbody>
+</table>
+</div>
+<p style="margin-top:.7rem">"피처마다 노이즈를 다르게 준다"는 같은 아이디어를, feature-wise noise는 <strong>고정된 통계량</strong>으로, TabDiff는 <strong>학습</strong>으로 구현합니다. 비교 실험으로 구성이 깔끔한 이유입니다.</p>
+</div>
+
+<h3 id="s4-truth">증강은 정말 효과가 있나 — 문헌 정리</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th>연구</th><th>발견</th></tr></thead>
+<tbody>
+<tr><td>73개 데이터셋 SMOTE 실험</td><td>XGBoost·CatBoost에서는 개선 없음. 약한 모델에서만 도움</td></tr>
+<tr><td>2026 PFN 불균형 보정</td><td>오버샘플링·생성모델 증강이 <strong>아무것도 안 한 것보다 나빴음</strong></td></tr>
+<tr><td>2026 합성데이터 비교</td><td>충실도와 분류 성능이 <strong>음의 상관</strong>(ρ=−0.30)</td></tr>
+<tr><td>사기탐지 파이프라인</td><td>SMOTE가 F1·PR-AUC·MCC를 모두 떨어뜨림</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="box warn">
+<div class="bt">"충실도가 높다"에 속지 마세요</div>
+<p>TabDiff와 TabDDPM 논문은 Shape, Trend 같은 <strong>통계적 충실도 지표</strong>로 우수성을 주장합니다. 생성된 데이터가 원본과 얼마나 닮았는지를 재는 지표입니다.</p>
+<p>그런데 2026년 비교 연구에서 <strong>충실도와 분류 성능 사이에 약한 음의 상관</strong>이 관찰됐습니다. 가장 충실도가 높았던 Gaussian Copula(0.930)보다, 충실도는 낮지만 SMOTE가 재현율과 F1에서 더 나았습니다.</p>
+<p>생각해보면 당연합니다. 원본과 똑같이 닮은 데이터는 <strong>새로운 정보가 없습니다.</strong> 분류기에게 도움이 되려면 원본에 없던 유용한 변형이 있어야 하는데, 그건 충실도와 반대 방향입니다.</p>
+</div>
+
+<div class="box key">
+<div class="bt">그래서 논문 주장은 이렇게 잡는 게 유리합니다</div>
+<p>"내 증강 방법이 최고다"보다, 문헌 흐름과 정합적이면서 방어하기 쉬운 주장은 이쪽입니다.</p>
+<p class="quote-claim">수백 배의 학습 비용을 요구하는 확산 기반 표 데이터 생성모델이, 학습이 필요 없는 피처별 노이즈 증강 대비 유의미한 이득을 주지 못한다. 나아가 무비용인 임계값 튜닝이 모든 증강 기법을 능가한다.</p>
+<p style="margin-top:.7rem">이 주장은 위에 정리한 연구들이 전부 근거로 붙습니다. 그리고 <strong>각 방법의 소요 시간을 함께 측정</strong>해 성능/비용 트레이드오프로 제시하면 설득력이 더 올라갑니다.</p>
+</div>
+
+
+<!-- ================= 5 ================= -->
+<header class="chapter-head">
+<h2 id="s5"><span class="num">5</span>피처 엔지니어링</h2>
+
+<p class="lede">모델을 바꾸는 것보다 피처를 손보는 편이 효과가 큰 경우가 많습니다. 다만 어떤 모델을 쓰느냐에 따라 효과가 극과 극으로 갈립니다.</p>
+</header>
+
+<h3 id="s5-drop">공선성 제거 — 어떤 모델에 효과가 있나</h3>
+
+<p><strong>다중공선성</strong>은 피처들이 서로 강하게 상관돼 있어 한 피처를 다른 피처들의 조합으로 거의 설명할 수 있는 상태입니다.</p>
+
+<div class="tw">
+<table>
+<thead><tr><th>모델</th><th>공선성 제거 효과</th><th>이유</th></tr></thead>
+<tbody>
+<tr><td>QDA</td><td class="yes">가장 큼</td><td>공분산 역행렬이 특이해지는 원인 자체가 공선성</td></tr>
+<tr><td>Logistic / MLP</td><td class="mid">소폭</td><td>계수 불안정이 완화됨</td></tr>
+<tr><td>XGBoost / LightGBM</td><td class="no">거의 없음, 오히려 하락 가능</td><td>분할 시 상관 변수 중 하나만 골라 쓰므로 이미 강건</td></tr>
+<tr><td>TabPFN / TabM</td><td class="mid">성능은 비슷, 속도는 개선</td><td>피처 수가 연산량에 직결</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>예제 데이터에 실제로 있는 공선성</h4>
+
+<ul>
+<li><strong>Heart</strong>: <code>cholesterol_total</code> ≈ <code>hdl</code> + <code>ldl</code> + <code>triglycerides</code>/5 (Friedewald 공식). 총 콜레스테롤이 나머지 셋의 선형결합에 가까움</li>
+<li><strong>Churn</strong>: <code>TotalCharges</code> ≈ <code>tenure</code> × <code>MonthlyCharges</code>. 그리고 원-핫 후 <code>No internet service</code> 더미 여섯 개가 완전히 동일</li>
+<li><strong>Fraud 2026</strong>: <code>velocity_score</code>가 <code>txn_count_last_24h</code>에서 파생됐을 가능성</li>
+</ul>
+
+<h4>방법 1 — 상관계수 스크리닝</h4>
+
+<pre><code><span class="kw">def</span> <span class="fn">drop_correlated</span>(X, y, threshold=<span class="n">0.95</span>, method=<span class="st">'spearman'</span>):
+    corr = X.corr(method=method).abs()
+    <span class="cm"># 타깃과의 상관을 계산 — 둘 중 어느 쪽을 버릴지 정하는 기준</span>
+    target_corr = X.apply(<span class="kw">lambda</span> c: <span class="kw">abs</span>(np.corrcoef(c, y)[<span class="n">0</span>, <span class="n">1</span>]) <span class="kw">if</span> c.std() &gt; <span class="n">0</span> <span class="kw">else</span> <span class="n">0</span>)
+
+    upper = corr.where(np.triu(np.ones(corr.shape), k=<span class="n">1</span>).astype(<span class="kw">bool</span>))
+    to_drop = <span class="kw">set</span>()
+    <span class="kw">for</span> col <span class="kw">in</span> upper.columns:
+        <span class="kw">for</span> row <span class="kw">in</span> upper.index:
+            val = upper.loc[row, col]
+            <span class="kw">if</span> pd.notna(val) <span class="kw">and</span> val &gt; threshold:
+                <span class="cm"># 타깃과 덜 관련된 쪽을 버림</span>
+                to_drop.add(row <span class="kw">if</span> target_corr[row] &lt; target_corr[col] <span class="kw">else</span> col)
+    <span class="kw">return</span> [c <span class="kw">for</span> c <span class="kw">in</span> X.columns <span class="kw">if</span> c <span class="kw">not</span> <span class="kw">in</span> to_drop]</code></pre>
+
+<p>피어슨은 선형 관계만, 스피어만은 <strong>단조 관계</strong>를 잡습니다. 표 데이터는 비선형 관계가 흔하므로 스피어만이 대체로 안전합니다.</p>
+
+<h4>방법 2 — VIF (분산팽창지수)</h4>
+
+<p>VIF는 "이 피처를 나머지 전부로 회귀했을 때 얼마나 잘 설명되는가"를 잽니다. VIF가 10을 넘으면 심한 공선성으로 봅니다.</p>
+
+<div class="box warn">
+<div class="bt">원-핫 더미에 VIF를 그대로 쓰면 안 됩니다</div>
+<p>더미 컬럼들은 구조적으로 서로 종속돼 있어서(하나가 1이면 나머지는 0) VIF가 무한대로 튑니다. 의미 없는 컬럼이 무더기로 잘려나갑니다. <strong>고유값 3개 이상인 연속형 컬럼에만</strong> 적용하세요.</p>
+</div>
+
+<pre><code><span class="kw">from</span> statsmodels.stats.outliers_influence <span class="kw">import</span> variance_inflation_factor
+
+<span class="kw">def</span> <span class="fn">drop_high_vif</span>(X, cols, vif_threshold=<span class="n">10.0</span>, max_iter=<span class="n">30</span>):
+    <span class="cm"># 더미 제외, 연속형만 대상</span>
+    current = [c <span class="kw">for</span> c <span class="kw">in</span> cols <span class="kw">if</span> X[c].nunique() &gt; <span class="n">2</span>]
+    removed = []
+    <span class="kw">for</span> _ <span class="kw">in</span> <span class="kw">range</span>(max_iter):
+        <span class="kw">if</span> <span class="kw">len</span>(current) &lt; <span class="n">2</span>: <span class="kw">break</span>
+        sub = X[current].values
+        vifs = [variance_inflation_factor(sub, i) <span class="kw">for</span> i <span class="kw">in</span> <span class="kw">range</span>(sub.shape[<span class="n">1</span>])]
+        i = <span class="kw">int</span>(np.argmax(vifs))
+        <span class="kw">if</span> vifs[i] &gt; vif_threshold:
+            removed.append(current.pop(i))      <span class="cm"># 가장 높은 것 하나씩 재귀 제거</span>
+        <span class="kw">else</span>:
+            <span class="kw">break</span>
+    <span class="kw">return</span> [c <span class="kw">for</span> c <span class="kw">in</span> cols <span class="kw">if</span> c <span class="kw">not</span> <span class="kw">in</span> removed], removed</code></pre>
+
+<h3 id="s5-select">중요도 기반 선택</h3>
+
+<h4>Gain 중요도 — 1차 대량 삭제</h4>
+
+<pre><code>model = LGBMClassifier(importance_type=<span class="st">'gain'</span>, verbose=-<span class="n">1</span>)
+model.fit(X[cols], y)
+imp = pd.Series(model.feature_importances_, index=cols).sort_values(ascending=<span class="kw">False</span>)
+
+<span class="cm"># gain이 0인 피처는 트리에서 한 번도 안 쓰였다는 뜻 — 무조건 삭제</span>
+nonzero = imp[imp &gt; <span class="n">0</span>]
+
+<span class="cm"># 개수가 아니라 '누적 기여도'로 자르는 편이 안전</span>
+cumulative = nonzero.cumsum() / nonzero.sum()
+kept = cumulative[cumulative &lt;= <span class="n">0.90</span>].index.tolist()</code></pre>
+
+<div class="box">
+<div class="bt">"상위 N개"보다 "누적 90%"가 나은 이유</div>
+<p>데이터셋마다 중요한 피처의 개수가 다릅니다. 어떤 데이터는 3개가 90%를 차지하고 어떤 데이터는 20개가 필요합니다. 개수를 못 박으면 전자에서는 쓸모없는 피처를 남기고 후자에서는 유용한 피처를 자릅니다. 누적 비율은 분포에 맞춰 자동 조절됩니다.</p>
+</div>
+
+<h4>SHAP 기반 정밀 가지치기</h4>
+
+<pre><code><span class="kw">import</span> shap
+explainer = shap.TreeExplainer(model)
+shap_values = explainer.shap_values(X[cols].sample(<span class="n">5000</span>, random_state=<span class="n">42</span>))
+<span class="kw">if</span> <span class="kw">isinstance</span>(shap_values, <span class="kw">list</span>): shap_values = shap_values[<span class="n">1</span>]
+
+mean_abs = pd.Series(np.abs(shap_values).mean(axis=<span class="n">0</span>), index=cols)
+cumulative = mean_abs.sort_values(ascending=<span class="kw">False</span>).cumsum() / mean_abs.sum()
+kept = cumulative[cumulative &lt;= <span class="n">0.95</span>].index.tolist()</code></pre>
+
+<div class="box warn">
+<div class="bt">Interaction SHAP은 권하지 않습니다</div>
+<p>"단독 중요도는 낮지만 다른 피처와 결합하면 시너지를 내는 변수를 살린다"는 목적은 타당합니다. 하지만 계산량이 <strong>피처 수의 제곱</strong>에 비례합니다. 25개 피처면 수십 배가 됩니다.</p>
+<p>같은 목적에 훨씬 싼 대안은 <strong>permutation importance</strong>나 <strong>null importance</strong>(타깃을 무작위로 섞어 만든 귀무분포와 비교)입니다.</p>
+</div>
+
+<div class="box warn">
+<div class="bt">불균형 데이터에서 특히 조심할 것</div>
+<p>사기가 339건뿐인 데이터에서는 <code>cvv_retry_count</code>처럼 <strong>드물지만 결정적인 신호</strong>가 평균 중요도에서 낮게 나옵니다. 전체 20,000건 중 대부분에서 이 값이 0이니 평균 |SHAP|이 작을 수밖에 없습니다. 그런데 이 피처가 사기 판별에는 핵심일 수 있습니다.</p>
+<p>대책: 양성 클래스에서만 계산한 평균 |SHAP|을 별도로 보거나, 선택 전후를 반드시 실측 비교하세요.</p>
+</div>
+
+<h4>피처 선택의 절대 원칙</h4>
+
+<div class="box">
+<div class="bt">선택은 학습셋에서만, 효과는 반드시 실측</div>
+<ol>
+<li><strong>전체 데이터로 상관·중요도를 계산하지 마세요.</strong> 검증셋 정보가 새어 들어가 성능이 부풀려집니다.</li>
+<li><strong>선택 전/후를 둘 다 돌려보세요.</strong> "Gain 하위 N% 삭제" 같은 임계치는 근거가 없습니다. 실제로 좋아졌을 때만 채택하는 구조여야 합니다.</li>
+<li><strong>±0.005 차이는 노이즈입니다.</strong> 시드를 3~5개 바꿔 돌려 일관되게 개선되는지 확인하세요.</li>
+</ol>
+</div>
+
+<h3 id="s5-auto">자동 파생변수 생성</h3>
+
+<p>사람이 직접 조합을 만드는 대신 알고리즘이 찾게 하는 접근입니다. 두 계열로 나뉩니다.</p>
+
+<h4>OpenFE (ICML 2023) — 데이터 기반</h4>
+
+<p>핵심 난제는 방대한 후보 중 효과적인 것을 효율적으로 찾는 일입니다. OpenFE는 두 가지로 해결합니다.</p>
+
+<ul>
+<li><strong>FeatureBoost</strong>: 새 변수의 효과를 재려고 모델을 매번 재학습하면 불가능할 만큼 느립니다. 기존 예측값 위에 증분 학습만 수행해 훨씬 빠르게 평가합니다.</li>
+<li><strong>2단계 가지치기</strong>: 밴딧 알고리즘으로 유망한 후보에 계산 자원을 몰아주며 거칠게 거르고, 2단계에서 상호작용까지 고려해 정밀 평가합니다.</li>
+</ul>
+
+<div class="box key">
+<div class="bt">사기 탐지 대회에서의 실적</div>
+<p>OpenFE가 만든 변수를 단순한 베이스라인 모델에 넣은 것만으로 <strong>데이터사이언스 팀의 99.3%를 이겼습니다.</strong> 그 대회가 IEEE-CIS Fraud Detection입니다. 49개 데이터셋 중 40개에서 유의미하게 우세했고 평균 정확도 1.9% 개선입니다.</p>
+</div>
+
+<pre><code><span class="kw">from</span> openfe <span class="kw">import</span> OpenFE, transform
+
+ofe = OpenFE()
+features = ofe.fit(data=X_train_df, label=y_train, n_jobs=<span class="n">4</span>)   <span class="cm"># 학습셋에서만</span>
+
+<span class="cm"># 찾은 변환식을 검증/테스트셋에 '적용만'</span>
+tr_new, te_new = transform(X_train_df, X_test_df, features[:<span class="n">10</span>], n_jobs=<span class="n">4</span>)</code></pre>
+
+<h4>LLM-FE (TMLR 2026) — 도메인 지식 활용</h4>
+
+<p>파생변수 생성을 <strong>프로그램 탐색 문제</strong>로 보고, LLM이 변환 프로그램을 반복 제안하면 데이터 기반 피드백이 탐색을 이끕니다. 기존 자동 방법은 고정된 변환 목록에만 의존해 도메인 지식을 놓친다는 문제의식입니다.</p>
+
+<div class="box warn">
+<div class="bt">두 사기 데이터에 정반대 처방이 나옵니다</div>
+<div class="tw" style="margin:.6rem 0 0">
+<table>
+<thead><tr><th>데이터</th><th>OpenFE</th><th>LLM 계열</th></tr></thead>
+<tbody>
+<tr><td>creditcard.csv (V1~V28)</td><td class="yes">유효</td><td class="no">무력 — 컬럼명에 정보가 없음</td></tr>
+<tr><td>credit_card_fraud_2026.csv</td><td class="yes">유효</td><td class="yes">강점 발휘</td></tr>
+</tbody>
+</table>
+</div>
+<p style="margin-top:.7rem">LLM 계열의 강점은 컬럼명에서 도메인 지식을 끌어오는 것입니다. <code>V14</code>에서 LLM이 얻을 정보는 없습니다. 반면 <code>txn_count_last_24h / hours_since_last_txn</code>(거래 속도)이나 <code>distance_from_home_km / card_age_months</code>(신규 카드의 원거리 결제) 같은 조합은 도메인 지식 없이는 나오기 어렵습니다.</p>
+</div>
+
+<h4>2026년 벤치마크가 알려준 것</h4>
+
+<p>LATTEArena는 15개 LLM 기반 파생변수 생성 방법을 6차원으로 해체해 평가했습니다. 실무에 바로 쓸 만한 발견 둘:</p>
+
+<ul>
+<li><strong>피처 선택이 최대 병목</strong>입니다. 선택기를 빼면 지연시간이 48.1% 줄지만 성능이 붕괴합니다. 시간과 성능을 조절하는 주 레버가 여기입니다.</li>
+<li><strong>정보 중복이 심합니다.</strong> 계산값·메타데이터·데이터 샘플을 프롬프트에서 빼면 토큰 비용이 20% 이상 줄어드는데 성능 손실은 미미합니다.</li>
+</ul>
+
+<div class="box warn">
+<div class="bt">재현성 주의</div>
+<p>LLM 출력은 개방적이라 <strong>같은 프롬프트에도 매번 다른 변수가 나옵니다.</strong> 논문에 쓰신다면 여러 시드로 반복해 생성된 변수의 일관성을 함께 보고하는 게 안전합니다.</p>
+</div>
+
+
+<!-- ================= 6 ================= -->
+<header class="chapter-head">
+<h2 id="s6"><span class="num">6</span>XAI: SHAP과 LIME</h2>
+
+<p class="lede">모델이 왜 그렇게 판단했는지 설명하는 일은, 2026년 기준으로 더 이상 선택이 아닙니다. EU AI Act가 완전 시행되면서 고위험 의사결정 AI는 설명할 수 없으면 배포 자체가 불가능한 관할권이 늘고 있습니다.</p>
+</header>
+
+<h3 id="s6-shap">SHAP — 공정한 성과급 배분</h3>
+
+<p>출발점은 협력 게임 이론의 <strong>섀플리 값</strong>입니다. 원래는 "팀으로 낸 성과를 각자에게 어떻게 공정하게 나눌까"를 푸는 문제였습니다.</p>
+
+<p>팀원 A, B, C가 함께 1억을 벌었을 때 공정한 배분은? 모든 조합을 다 따져봅니다. A 혼자면 얼마인가, A+B면 얼마인가, B가 있는 팀에 A가 합류하면 얼마나 늘어나는가. 이 모든 기여 증분을 평균 냅니다.</p>
+
+<p>SHAP은 <strong>피처를 팀원으로, 예측값을 성과로</strong> 놓고 똑같이 계산합니다.</p>
+
+<figure>
+<div class="plate"><svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SHAP 값의 가법성 - 기본값에서 시작해 각 피처 기여가 쌓여 최종 예측이 됨">
+  <text x="20" y="20" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="12.5" font-weight="800" fill="#26292d">SHAP의 핵심: 덧셈이 정확히 맞아떨어진다</text>
+
+  <!-- baseline -->
+  <line x1="70" y1="150" x2="70" y2="45" stroke="#6e7378" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="70" y="168" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#6e7378" text-anchor="middle">기본값</text>
+  <text x="70" y="182" font-family="IBM Plex Mono,monospace" font-size="10" fill="#6e7378" text-anchor="middle">0.017</text>
+
+  <!-- bars -->
+  <rect x="70" y="52" width="150" height="26" fill="#F4EAE5" stroke="#9a4a32" stroke-width="1.4"/>
+  <text x="145" y="70" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" font-weight="700" fill="#9a4a32" text-anchor="middle">cvv_retry_count +0.42</text>
+
+  <rect x="220" y="82" width="115" height="26" fill="#F4EAE5" stroke="#9a4a32" stroke-width="1.4"/>
+  <text x="277" y="100" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" font-weight="700" fill="#9a4a32" text-anchor="middle">ip_mismatch +0.31</text>
+
+  <rect x="317" y="112" width="18" height="26" fill="#E6EBF2" stroke="#1f3a5f" stroke-width="1.4"/>
+  <text x="360" y="130" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" font-weight="700" fill="#16283f">card_age −0.05</text>
+
+  <rect x="335" y="142" width="60" height="26" fill="#F4EAE5" stroke="#9a4a32" stroke-width="1.4"/>
+  <text x="440" y="160" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" font-weight="700" fill="#9a4a32">나머지 +0.19</text>
+
+  <!-- final -->
+  <line x1="395" y1="45" x2="395" y2="175" stroke="#26292d" stroke-width="2"/>
+  <text x="480" y="52" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="12" font-weight="800" fill="#26292d">= 최종 예측 0.89</text>
+  <text x="480" y="72" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#4b4f55">잔여 오차 없이 100% 분해됨</text>
+  <text x="480" y="90" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#4b4f55">→ 규제 대응·심사 근거로 사용 가능</text>
+</svg></div>
+<figcaption>기본값(전체 평균 예측)에서 시작해 각 피처의 기여를 더하면 정확히 이 건의 예측값이 나옵니다. 이 가법성이 SHAP의 결정적 강점입니다.</figcaption>
+</figure>
+
+<div class="box key">
+<div class="bt">왜 이 덧셈이 중요한가</div>
+<p>"사기 확률 89%인데, 평균 1.7%에서 시작해 cvv_retry_count가 +42%p, ip_country_mismatch가 +31%p 올렸다"고 <strong>잔여 오차 없이</strong> 말할 수 있습니다. 대출 거절 사유를 규제기관에 제출해야 하는 상황에서 이게 결정적입니다. LIME은 이 성질이 없습니다.</p>
+</div>
+
+<h4>약점</h4>
+<p>모든 조합을 따지는 게 원리라 계산량이 원래 지수적입니다. 트리 모델에는 <strong>TreeSHAP</strong>이라는 빠른 알고리즘이 있어 실용적이지만, 신경망이나 임의의 모델에는 느립니다.</p>
+
+<h3 id="s6-lime">LIME — 그 지점만 돋보기로 확대</h3>
+
+<p>출발점은 다른 발상입니다. <strong>아무리 구불구불한 곡면도 아주 좁은 범위만 보면 평평합니다.</strong> 지구는 둥글지만 내 방 바닥은 평면인 것과 같습니다.</p>
+
+<figure>
+<div class="plate"><svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LIME의 국소 선형 근사 원리">
+  <!-- complex curve -->
+  <path d="M40,150 Q100,50 160,120 T280,90 Q340,40 400,130 T520,70 Q580,120 640,80"
+        fill="none" stroke="#4b4f55" stroke-width="2"/>
+  <text x="40" y="35" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#4b4f55">모델의 실제 결정 경계 (복잡함)</text>
+
+  <!-- target point -->
+  <circle cx="400" cy="130" r="7" fill="#9a4a32"/>
+  <text x="400" y="185" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11" font-weight="700" fill="#9a4a32" text-anchor="middle">설명하려는 건</text>
+
+  <!-- neighborhood -->
+  <circle cx="400" cy="130" r="52" fill="none" stroke="#B08A3E" stroke-width="1.6" stroke-dasharray="4 3"/>
+
+  <!-- fake samples -->
+  <circle cx="375" cy="110" r="3" fill="#B08A3E"/>
+  <circle cx="425" cy="115" r="3" fill="#B08A3E"/>
+  <circle cx="390" cy="160" r="3" fill="#B08A3E"/>
+  <circle cx="430" cy="150" r="3" fill="#B08A3E"/>
+  <circle cx="360" cy="140" r="3" fill="#B08A3E"/>
+  <circle cx="415" cy="95" r="3" fill="#B08A3E"/>
+
+  <!-- local linear fit -->
+  <line x1="348" y1="105" x2="452" y2="152" stroke="#1f3a5f" stroke-width="2.5"/>
+  <text x="500" y="128" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#1f3a5f">이 근처에서만 통하는</text>
+  <text x="500" y="146" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="11.5" font-weight="700" fill="#1f3a5f">간이 설명서 (선형)</text>
+
+  <text x="240" y="65" font-family="IBM Plex Sans KR,Pretendard,sans-serif" font-size="10.5" fill="#7A5E1E">노란 점 = 주변에 뿌린 가짜 데이터</text>
+</svg></div>
+<figcaption>설명할 건 주위에 가짜 데이터를 뿌리고 모델에게 다 물어본 뒤, 그 답으로 단순한 선형회귀를 학습시킵니다. 그 계수가 곧 설명입니다.</figcaption>
+</figure>
+
+<h4>약점 — 반드시 알아야 할 것</h4>
+
+<ul>
+<li>가짜 데이터를 <strong>무작위로</strong> 뿌리므로 <strong>돌릴 때마다 결과가 조금씩 달라집니다.</strong></li>
+<li>"주변"을 얼마나 넓게 잡느냐(커널 폭)에 따라 설명이 바뀌는데, 정답이 정해져 있지 않습니다.</li>
+<li>개별 건만 설명할 수 있고 전역 중요도는 못 냅니다.</li>
+</ul>
+
+<h3 id="s6-cmp">비교 · 모델 의존성 · 앙상블</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th></th><th>SHAP</th><th>LIME</th></tr></thead>
+<tbody>
+<tr><td>비유</td><td>공정한 성과급 배분</td><td>돋보기로 국소 확대</td></tr>
+<tr><td>원리</td><td>게임이론 기여도</td><td>국소 선형 근사</td></tr>
+<tr><td>합계 = 예측값</td><td class="yes">정확히 맞음</td><td class="no">안 맞음</td></tr>
+<tr><td>재현성</td><td class="yes">TreeExplainer는 항상 동일</td><td class="no">실행마다 조금씩 다름</td></tr>
+<tr><td>전역 해석</td><td class="yes">개별을 쌓으면 됨</td><td class="no">개별만 가능</td></tr>
+<tr><td>속도</td><td>트리는 빠름, 그 외 느림</td><td>항상 중간</td></tr>
+<tr><td>모델 종류</td><td>트리에 최적화</td><td class="yes">아무거나 (블랙박스 OK)</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="box key">
+<div class="bt">외우는 법</div>
+<p><strong>SHA<u>P</u></strong> = <u>P</u>ayout(배분). 정확히 나눠떨어짐.<br>
+<strong><u>L</u>IME</strong> = <u>L</u>ocal. 그 지점 근처만.</p>
+</div>
+
+<h4>모델이 바뀌면 결과도 바뀌나?</h4>
+
+<p>네, 그리고 그게 정상입니다. 세 층위로 나눠 이해해야 합니다.</p>
+
+<div class="tw">
+<table>
+<thead><tr><th>상황</th><th>SHAP</th><th>LIME</th><th>왜</th></tr></thead>
+<tbody>
+<tr><td>다른 모델 종류</td><td colspan="2" style="text-align:center">둘 다 달라짐</td><td>모델이 배운 패턴 자체가 다름</td></tr>
+<tr><td>같은 모델, 재학습</td><td colspan="2" style="text-align:center">둘 다 달라짐</td><td>트리 구조가 바뀜</td></tr>
+<tr><td>학습된 모델, 설명 재실행</td><td class="yes">항상 동일</td><td class="no">매번 다름</td><td>LIME은 무작위 샘플링</td></tr>
+<tr><td>배경 데이터 변경</td><td class="mid">달라짐</td><td class="mid">커널 폭 영향</td><td>"평균이 뭐냐"가 바뀜</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="box">
+<div class="bt">중요한 개념 전환</div>
+<p>SHAP과 LIME은 <strong>데이터를 설명하는 게 아니라 "이 모델이 무엇을 배웠는지"를 설명합니다.</strong> 모델이 틀렸으면 설명도 그 틀린 논리를 정확하게 보여줄 뿐입니다. 그래서 "모델마다 결과가 다르다"는 건 버그가 아니라 도구가 제 역할을 하고 있다는 증거입니다.</p>
+</div>
+
+<h4>앙상블 · 보팅에 쓸 수 있나</h4>
+
+<p>둘 다 가능하지만 방식이 다릅니다.</p>
+
+<div class="tw">
+<table>
+<thead><tr><th>앙상블 종류</th><th>SHAP</th><th>LIME</th></tr></thead>
+<tbody>
+<tr><td>트리 앙상블 (RF, XGB, LGBM)</td><td class="yes">TreeExplainer가 정확히 계산</td><td class="yes">그대로 됨</td></tr>
+<tr><td>이종 모델 보팅</td><td class="mid">KernelExplainer(느림) 또는 개별 계산 후 합산</td><td class="yes">코드 수정 없이 바로</td></tr>
+<tr><td>스태킹</td><td class="mid">동일</td><td class="yes">그대로 됨</td></tr>
+</tbody>
+</table>
+</div>
+
+<pre><code><span class="cm"># 방법 A: 보팅 전체를 블랙박스로 — 느리지만 어떤 조합에도 통함</span>
+explainer = shap.KernelExplainer(voting_model.predict_proba, background_data)
+
+<span class="cm"># 방법 B: 개별 모델을 빠른 Explainer로 계산한 뒤 보팅 가중치대로 합산</span>
+shap_xgb = shap.TreeExplainer(xgb_model).shap_values(X_sample)
+shap_lr  = shap.LinearExplainer(lr_model, background).shap_values(X_sample)
+combined = <span class="n">0.5</span> * shap_xgb + <span class="n">0.5</span> * shap_lr   <span class="cm"># 소프트 보팅이면 수학적으로도 정확</span></code></pre>
+
+<p>앙상블 내부에서 <strong>어느 모델이 최종 결정을 더 크게 좌우했는지</strong>까지 보고 싶다면 방법 B가 유일한 선택지입니다. 통째로 블랙박스 처리하면 그 정보는 사라집니다.</p>
+
+<h3 id="s6-ops">실무 운영</h3>
+
+<h4>① 설명 드리프트를 지표로 관리하기 <span class="tag t-must">가장 중요</span></h4>
+
+<div class="box warn">
+<div class="bt">흔한 실수</div>
+<p>배포 시점에 XAI 분석을 한 번 돌리고 체크박스에 표시한 뒤 끝냅니다. 6개월 뒤 데이터 드리프트로 모델이 <strong>완전히 다른 피처 가중치로 판단</strong>하고 있는데, 컴플라이언스 문서는 여전히 최초의 설명 구조를 참조하고 있습니다.</p>
+</div>
+
+<p>해결책은 설명 드리프트를 일급 MLOps 지표로 취급하는 것입니다. 운영 중인 예측의 롤링 샘플에 주간·월간으로 SHAP 분석을 자동 실행하고, 상위 중요도 순위가 크게 바뀌면 알림을 보냅니다.</p>
+
+<div class="box key">
+<div class="bt">이게 조기 경보 시스템인 이유</div>
+<p>F1이나 PR-AUC는 <strong>정답 라벨이 도착해야</strong> 계산할 수 있습니다. 사기 탐지는 라벨이 몇 주 뒤에 확정됩니다. 반면 <strong>SHAP 중요도 순위는 라벨 없이도 매일 계산됩니다.</strong> 순위가 흔들리면 성능 저하 신호를 미리 잡을 수 있습니다.</p>
+</div>
+
+<pre><code><span class="kw">from</span> scipy.stats <span class="kw">import</span> spearmanr
+
+<span class="cm"># 매주 상위 중요도 순위를 기록하고 기준선과 비교</span>
+rank_corr = spearmanr(baseline_importance, this_week_importance).correlation
+<span class="kw">if</span> rank_corr &lt; <span class="n">0.8</span>:
+    alert(<span class="st">"설명 드리프트 감지 — 모델 점검 필요"</span>)</code></pre>
+
+<h4>② 속도 — 실무 최대 걸림돌</h4>
+
+<p>SHAP이 막히는 이유는 거의 항상 속도입니다. 40k 학습 / 90k 테스트, 400 피처 LightGBM에서 몇 시간을 돌려도 끝나지 않는다는 사례가 대표적입니다.</p>
+
+<div class="tw">
+<table>
+<thead><tr><th>방법</th><th>속도 개선</th><th>대가</th></tr></thead>
+<tbody>
+<tr><td>샘플링 (1,000행)</td><td class="n">수십~수백 배</td><td>개별 설명 불가, 전역만</td></tr>
+<tr><td><code>approximate=True</code></td><td class="n">큼</td><td class="no">일관성 보장이 사라짐</td></tr>
+<tr><td>FastTreeSHAP</td><td class="n">v1 1.5배 / v2 2.5배</td><td>v2는 메모리 증가</td></tr>
+<tr><td>GPU (GPUTreeShap)</td><td class="n">최대 19배 (상호작용은 340배)</td><td>GPU 필요</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>GPU가 가장 극적입니다. <strong>1.4분 걸리던 계산이 1.56초</strong>로 줄어듭니다. 코드 변경은 사실상 한 줄입니다.</p>
+
+<pre><code>model.set_param({<span class="st">"device"</span>: <span class="st">"cuda"</span>})
+explainer = shap.TreeExplainer(model)   <span class="cm"># 자동으로 GPUTreeShap 사용</span></code></pre>
+
+<h4>③ 온라인 vs 오프라인 — 아키텍처 선택</h4>
+
+<div class="tw">
+<table>
+<thead><tr><th>용도</th><th>방식</th><th>이유</th></tr></thead>
+<tbody>
+<tr><td>차단 결정 자체</td><td>설명 불필요</td><td>모델 점수만 있으면 됨</td></tr>
+<tr><td>심사자 화면</td><td>실시간, 상위 5개만</td><td>개별 SHAP 1건은 밀리초 단위</td></tr>
+<tr><td>월간 리포트 · 규제 제출</td><td>배치로 미리 계산해 DB 저장</td><td>시간 여유가 있음</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>④ 도구 선택</h4>
+
+<p>2026년 3월 기준 주요 프레임워크는 SHAP, LIME, Captum, InterpretML이고, MLOps 플랫폼(W&amp;B, Neptune)이 이 기능들을 번들로 제공합니다. Arize와 Fiddler는 프로덕션 모니터링에 특화돼 예측 드리프트·데이터 드리프트·성능을 동시에 봅니다.</p>
+
+<div class="box warn">
+<div class="bt">플랫폼은 초기에 정하세요</div>
+<p>통합형 접근은 나중에 갈아타면 설명 로직을 처음부터 다시 구현해야 합니다.</p>
+</div>
+
+<h4>⑤ 실무 적용 요약</h4>
+
+<div class="box">
+<div class="bt">이 프로젝트에 적용한다면</div>
+<ol>
+<li><strong>SHAP만 프로덕션에, LIME은 개발 단계 검증용으로.</strong> LIME은 실행마다 결과가 달라 감사 근거로 못 씁니다. 대신 개발 중 SHAP 결과를 교차 검증하는 데 씁니다. 원리가 다른 두 방법이 같은 변수를 지목하면 신뢰도가 올라가고, 크게 엇갈리면 그 예측은 불안정한 영역에 있다는 신호입니다.</li>
+<li><strong>주간 SHAP 순위를 로그로 남기세요.</strong> 스피어만 상관 한 줄이면 됩니다.</li>
+<li><strong>GPU가 있으면 <code>device="cuda"</code>부터.</strong></li>
+<li><strong>해석 시연은 피처명이 살아있는 데이터로.</strong> <code>V14</code>는 설명해도 의미가 없지만 <code>cvv_retry_count</code>는 심사자에게 그대로 보여줄 수 있습니다.</li>
+</ol>
+</div>
+
+
+<!-- ================= 7 ================= -->
+<header class="chapter-head">
+<h2 id="s7"><span class="num">7</span>실전 코드</h2>
+
+<p class="lede">앞의 내용을 그대로 실행할 수 있는 형태로 모았습니다. 위에서 아래로 갈수록 복잡해집니다.</p>
+</header>
+
+<h3><span class="sec-num">7.1</span>최소 베이스라인</h3>
+
+<p>모든 작업의 출발점. 이 점수를 이기지 못하면 복잡한 방법을 쓸 이유가 없습니다.</p>
+
+<div class="filename">baseline.py</div>
+<pre><code><span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> accuracy_score, f1_score, average_precision_score
+<span class="kw">from</span> xgboost <span class="kw">import</span> XGBClassifier
+
+df = pd.read_csv(<span class="st">'creditcard.csv'</span>)
+X, y = df.drop(columns=[<span class="st">'Class'</span>]), df[<span class="st">'Class'</span>]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=<span class="n">0.2</span>, random_state=<span class="n">42</span>, stratify=y)
+
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test  = scaler.transform(X_test)      <span class="cm"># fit이 아니라 transform!</span>
+
+model = XGBClassifier(random_state=<span class="n">42</span>, eval_metric=<span class="st">'logloss'</span>)
+model.fit(X_train, y_train)
+
+pred  = model.predict(X_test)
+proba = model.predict_proba(X_test)[:, <span class="n">1</span>]
+
+<span class="kw">print</span>(<span class="st">"Accuracy:"</span>, accuracy_score(y_test, pred))
+<span class="kw">print</span>(<span class="st">"F1:"</span>,       f1_score(y_test, pred))
+<span class="kw">print</span>(<span class="st">"PR-AUC:"</span>,   average_precision_score(y_test, proba))</code></pre>
+
+<div class="box warn">
+<div class="bt">scaler.fit은 학습셋에만</div>
+<p>테스트셋에 <code>fit_transform</code>을 쓰면 테스트셋의 평균과 표준편차 정보가 새어 들어갑니다. <code>transform</code>만 써야 합니다. 아주 흔한 실수입니다.</p>
+</div>
+
+<h3><span class="sec-num">7.2</span>불균형 대응 5가지 비교</h3>
+
+<p>임계값 튜닝이 포함된 공정한 비교 틀입니다. 3장의 원칙이 그대로 구현돼 있습니다.</p>
+
+<div class="filename">imbalance_compare.py</div>
+<pre><code><span class="kw">import</span> numpy <span class="kw">as</span> np, pandas <span class="kw">as</span> pd
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> (accuracy_score, f1_score,
+        average_precision_score, precision_recall_curve)
+<span class="kw">from</span> xgboost <span class="kw">import</span> XGBClassifier
+
+N_SYNTHETIC = <span class="n">10000</span>
+np.random.seed(<span class="n">42</span>)
+
+df = pd.read_csv(<span class="st">'creditcard.csv'</span>)
+X, y = df.drop(columns=[<span class="st">'Class'</span>]), df[<span class="st">'Class'</span>]
+
+<span class="cm"># 3분할: 학습 / 검증(임계값용) / 테스트</span>
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=<span class="n">0.2</span>, random_state=<span class="n">42</span>, stratify=y)
+X_tr, X_val, y_tr, y_val = train_test_split(
+    X_train, y_train, test_size=<span class="n">0.2</span>, random_state=<span class="n">42</span>, stratify=y_train)
+
+scaler = StandardScaler()
+X_tr   = scaler.fit_transform(X_tr)
+X_val  = scaler.transform(X_val)
+X_test = scaler.transform(X_test)
+y_tr, y_val, y_test = y_tr.values, y_val.values, y_test.values
+
+
+<span class="kw">def</span> <span class="fn">generate_featurewise_noise</span>(X_sc, y, alpha=<span class="n">0.20</span>, n=N_SYNTHETIC):
+    fraud = X_sc[y == <span class="n">1</span>]
+    sd = fraud.std(axis=<span class="n">0</span>) + <span class="n">1e-8</span>
+    base = fraud[np.random.randint(<span class="n">0</span>, <span class="kw">len</span>(fraud), n)]
+    <span class="kw">return</span> base + np.random.randn(n, X_sc.shape[<span class="n">1</span>]) * (alpha * sd)
+
+
+<span class="kw">def</span> <span class="fn">downsample</span>(X_sc, y, ratio=<span class="n">1.0</span>):
+    idx_min = np.where(y == <span class="n">1</span>)[<span class="n">0</span>]
+    idx_maj = np.where(y == <span class="n">0</span>)[<span class="n">0</span>]
+    n_keep  = <span class="kw">min</span>(<span class="kw">len</span>(idx_maj), <span class="kw">int</span>(<span class="kw">len</span>(idx_min) / ratio))
+    idx_maj = np.random.choice(idx_maj, n_keep, replace=<span class="kw">False</span>)
+    idx = np.concatenate([idx_min, idx_maj])
+    <span class="kw">return</span> X_sc[idx], y[idx]
+
+
+<span class="kw">def</span> <span class="fn">best_threshold</span>(y_true, proba):
+    prec, rec, thr = precision_recall_curve(y_true, proba)
+    f1 = <span class="n">2</span> * prec * rec / (prec + rec + <span class="n">1e-9</span>)
+    <span class="kw">return</span> thr[np.argmax(f1[:-<span class="n">1</span>])]
+
+
+<span class="kw">def</span> <span class="fn">evaluate</span>(model, X_fit, y_fit, label):
+    model.fit(X_fit, y_fit)
+    p_val  = model.predict_proba(X_val)[:, <span class="n">1</span>]
+    p_test = model.predict_proba(X_test)[:, <span class="n">1</span>]
+
+    tau = best_threshold(y_val, p_val)          <span class="cm"># 검증셋에서 결정</span>
+    pred_05    = (p_test &gt;= <span class="n">0.5</span>).astype(<span class="kw">int</span>)
+    pred_tuned = (p_test &gt;= tau).astype(<span class="kw">int</span>)   <span class="cm"># 테스트셋엔 적용만</span>
+
+    <span class="kw">print</span>(<span class="st">f"\n[{label}]"</span>)
+    <span class="kw">print</span>(<span class="st">f"  정상:사기 = {(y_fit==0).sum()} : {(y_fit==1).sum()}"</span>)
+    <span class="kw">print</span>(<span class="st">f"  PR-AUC          : {average_precision_score(y_test, p_test):.4f}"</span>)
+    <span class="kw">print</span>(<span class="st">f"  F1  @0.5        : {f1_score(y_test, pred_05):.4f}"</span>)
+    <span class="kw">print</span>(<span class="st">f"  F1  @tuned({tau:.4f}): {f1_score(y_test, pred_tuned):.4f}"</span>)
+
+
+<span class="kw">def</span> <span class="fn">xgb</span>(**kw):
+    <span class="kw">return</span> XGBClassifier(random_state=<span class="n">42</span>, eval_metric=<span class="st">'logloss'</span>, **kw)
+
+
+<span class="cm"># 0) 기본</span>
+evaluate(xgb(), X_tr, y_tr, <span class="st">'0. 기본 XGBoost'</span>)
+
+<span class="cm"># 1) 비용민감 학습</span>
+w = (y_tr == <span class="n">0</span>).sum() / (y_tr == <span class="n">1</span>).sum()
+evaluate(xgb(scale_pos_weight=w), X_tr, y_tr, <span class="st">'1. scale_pos_weight'</span>)
+
+<span class="cm"># 2) 다운샘플링</span>
+X_ds, y_ds = downsample(X_tr, y_tr, ratio=<span class="n">0.3</span>)
+evaluate(xgb(), X_ds, y_ds, <span class="st">'2. 다운샘플링 (1:0.3)'</span>)
+
+<span class="cm"># 3) Feature-wise noise 증강</span>
+X_syn = generate_featurewise_noise(X_tr, y_tr)
+X_aug = np.vstack([X_tr, X_syn])
+y_aug = np.concatenate([y_tr, np.ones(<span class="kw">len</span>(X_syn))])
+evaluate(xgb(), X_aug, y_aug, <span class="st">'3. Feature-wise 증강'</span>)
+
+<span class="cm"># 4) TabPFN + 균형 컨텍스트 (리샘플링을 '컨텍스트 구성'으로 사용)</span>
+<span class="kw">try</span>:
+    <span class="kw">from</span> tabpfn <span class="kw">import</span> TabPFNClassifier
+    X_ctx, y_ctx = downsample(X_tr, y_tr, ratio=<span class="n">0.3</span>)
+    evaluate(TabPFNClassifier(), X_ctx, y_ctx, <span class="st">'4. TabPFN + 균형 컨텍스트'</span>)
+<span class="kw">except</span> <span class="kw">ImportError</span>:
+    <span class="kw">print</span>(<span class="st">"\n[4] tabpfn 미설치로 생략"</span>)</code></pre>
+
+<h4>결과 읽는 법</h4>
+
+<div class="box key">
+<div class="bt">예상되는 패턴</div>
+<p><code>F1 @0.5</code>에서는 증강·가중치 쪽이 크게 오르지만, <code>F1 @tuned</code>에서는 <strong>기본 XGBoost와 차이가 거의 없어질</strong> 가능성이 높습니다. PR-AUC는 네 방법 모두 비슷하게 나올 겁니다.</p>
+<p>그 패턴이 나오면 실패가 아니라, 문헌이 말한 현상을 직접 재현한 것입니다. 논문의 근거가 됩니다.</p>
+</div>
+
+<h3><span class="sec-num">7.3</span>여러 데이터셋 × 여러 모델 비교 틀</h3>
+
+<div class="filename">multi_compare.py (핵심 부분)</div>
+<pre><code><span class="kw">def</span> <span class="fn">load_and_preprocess</span>(cfg):
+    df = pd.read_csv(cfg[<span class="st">'file'</span>])
+    <span class="kw">if</span> cfg[<span class="st">'id_col'</span>] <span class="kw">in</span> df.columns:
+        df = df.drop(columns=[cfg[<span class="st">'id_col'</span>]])
+
+    y = df[cfg[<span class="st">'target_col'</span>]]
+    <span class="kw">if</span> y.dtype == <span class="kw">object</span> <span class="kw">or</span> y.dtype == <span class="kw">bool</span>:
+        y = LabelEncoder().fit_transform(y)      <span class="cm"># Yes/No → 1/0</span>
+    X = df.drop(columns=[cfg[<span class="st">'target_col'</span>]])
+
+    <span class="kw">for</span> col <span class="kw">in</span> X.select_dtypes(include=[<span class="st">'bool'</span>]).columns:
+        X[col] = X[col].astype(<span class="kw">int</span>)
+    X = pd.get_dummies(X, drop_first=<span class="kw">True</span>)
+
+    <span class="cm"># TotalCharges처럼 숫자인데 공백이 섞인 컬럼 처리</span>
+    X = X.apply(pd.to_numeric, errors=<span class="st">'coerce'</span>).fillna(X.median()).astype(<span class="kw">float</span>)
+    <span class="kw">return</span> X, y
+
+
+<span class="cm"># 모델별로 스케일링 필요 여부가 다름 → (이름, 모델, 스케일사용) 튜플로 관리</span>
+models = [
+    (<span class="st">'LightGBM'</span>, LGBMClassifier(random_state=<span class="n">42</span>, verbose=-<span class="n">1</span>), <span class="kw">False</span>),
+    (<span class="st">'XGBoost'</span>,  XGBClassifier(random_state=<span class="n">42</span>, eval_metric=<span class="st">'logloss'</span>), <span class="kw">False</span>),
+    (<span class="st">'QDA'</span>,      QuadraticDiscriminantAnalysis(reg_param=<span class="n">0.1</span>), <span class="kw">True</span>),
+    (<span class="st">'MLP'</span>,      MLPClassifier(hidden_layer_sizes=(<span class="n">64</span>, <span class="n">32</span>), max_iter=<span class="n">300</span>), <span class="kw">True</span>),
+]
+
+<span class="cm"># 미설치 패키지는 건너뛰고 나머지는 계속 진행</span>
+<span class="kw">try</span>:
+    <span class="kw">from</span> pytabkit <span class="kw">import</span> TabM_D_Classifier
+    models.append((<span class="st">'TabM'</span>, TabM_D_Classifier(random_state=<span class="n">42</span>), <span class="kw">False</span>))
+<span class="kw">except</span> <span class="kw">ImportError</span>:
+    <span class="kw">pass</span></code></pre>
+
+<div class="box">
+<div class="bt">이 틀의 설계 의도</div>
+<ul>
+<li><strong>스케일링 여부를 모델마다 플래그로</strong> — 트리는 원본, QDA·MLP·Logistic은 스케일링본</li>
+<li><strong>try/except로 감싸기</strong> — 패키지 하나 없다고 전체가 멈추지 않음</li>
+<li><strong><code>astype(float)</code>로 dtype 통일</strong> — get_dummies가 만든 bool이 일부 모델에서 문제를 일으킴</li>
+</ul>
+</div>
+
+<h3><span class="sec-num">7.4</span>피처 선택 전/후 비교</h3>
+
+<div class="filename">feature_selection.py (핵심 부분)</div>
+<pre><code><span class="kw">def</span> <span class="fn">select_features</span>(X_train, y_train):
+    <span class="st">"""반드시 학습셋에서만 호출할 것"""</span>
+    cols = <span class="kw">list</span>(X_train.columns)
+    cols = drop_correlated(X_train, y_train, threshold=<span class="n">0.95</span>)      <span class="cm"># Step 1</span>
+    cols, _ = drop_high_vif(X_train, cols, vif_threshold=<span class="n">10.0</span>)     <span class="cm"># Step 1b</span>
+    cols, _, _ = drop_by_gain(X_train, y_train, cols, keep_ratio=<span class="n">0.90</span>)  <span class="cm"># Step 2</span>
+    cols, _ = drop_by_shap(X_train, y_train, cols, keep_ratio=<span class="n">0.95</span>)    <span class="cm"># Step 3</span>
+    <span class="kw">return</span> cols
+
+
+selected = select_features(X_train, y_train)
+
+<span class="cm"># 전체 피처와 선택된 피처를 둘 다 돌려서 실제 효과를 확인</span>
+<span class="kw">for</span> setting, cols <span class="kw">in</span> [(<span class="st">'full'</span>, <span class="kw">list</span>(X.columns)), (<span class="st">'selected'</span>, selected)]:
+    ...
+
+<span class="cm"># 요약: AUC_diff &gt; 0 이면 채택, ~0 이면 속도만 이득, &lt; 0 이면 전체 유지</span></code></pre>
+
+<h3><span class="sec-num">7.5</span>SHAP + LIME 해석</h3>
+
+<div class="filename">explain.py</div>
+<pre><code><span class="kw">import</span> shap
+<span class="kw">from</span> lime.lime_tabular <span class="kw">import</span> LimeTabularExplainer
+
+model = LGBMClassifier(random_state=<span class="n">42</span>, verbose=-<span class="n">1</span>).fit(X_train, y_train)
+
+<span class="cm"># ---- SHAP 전역 해석 ----</span>
+X_sample = X_test.sample(<span class="kw">min</span>(<span class="n">1000</span>, <span class="kw">len</span>(X_test)), random_state=<span class="n">42</span>)
+explainer = shap.Explainer(model, X_train)
+shap_values = explainer(X_sample)
+
+<span class="cm"># 버전에 따라 (n, features, 2) 형태로 나옴 → 양성 클래스만</span>
+<span class="kw">if</span> shap_values.values.ndim == <span class="n">3</span>:
+    shap_values = shap_values[:, :, <span class="n">1</span>]
+
+shap.plots.bar(shap_values, max_display=<span class="n">15</span>)       <span class="cm"># 중요도 순위</span>
+shap.plots.beeswarm(shap_values, max_display=<span class="n">15</span>)  <span class="cm"># 방향성까지</span>
+
+<span class="cm"># ---- SHAP 개별 해석 ----</span>
+proba = model.predict_proba(X_sample)[:, <span class="n">1</span>]
+idx = <span class="kw">int</span>(np.argmax(proba))                        <span class="cm"># 가장 의심스러운 건</span>
+shap.plots.waterfall(shap_values[idx], max_display=<span class="n">12</span>)
+
+<span class="cm"># ---- LIME 개별 해석 (같은 건을 교차 검증) ----</span>
+lime_exp = LimeTabularExplainer(
+    training_data=X_train.values,
+    feature_names=X_train.columns.tolist(),
+    class_names=[<span class="st">'정상'</span>, <span class="st">'양성'</span>],
+    mode=<span class="st">'classification'</span>, random_state=<span class="n">42</span>)
+
+<span class="cm"># LIME은 numpy를 넘기므로 컬럼명을 되살려주는 래퍼가 필요</span>
+predict_fn = <span class="kw">lambda</span> arr: model.predict_proba(
+    pd.DataFrame(arr, columns=X_train.columns))
+
+exp = lime_exp.explain_instance(
+    data_row=X_sample.iloc[idx].values,
+    predict_fn=predict_fn, num_features=<span class="n">10</span>)
+
+<span class="kw">for</span> rule, weight <span class="kw">in</span> exp.as_list():
+    <span class="kw">print</span>(<span class="st">f"  {rule:45s} {weight:+.4f}"</span>)
+
+exp.save_to_file(<span class="st">'lime_explanation.html'</span>)</code></pre>
+
+<div class="box">
+<div class="bt">출력물 해석</div>
+<ul>
+<li><strong>bar</strong> — 어떤 변수가 중요한지 순위만</li>
+<li><strong>beeswarm</strong> — 방향성까지. <code>cvv_retry_count</code>가 <em>높을 때</em> 사기 확률이 오르는지 내리는지가 색으로 드러납니다. 보고에서 가장 설득력 있는 그림입니다.</li>
+<li><strong>waterfall</strong> — 특정 1건의 판정 근거를 기여도 순으로 분해</li>
+<li><strong>LIME html</strong> — 같은 건의 다른 방식 해석. SHAP과 결론이 일치하는지 확인용</li>
+</ul>
+</div>
+
+
+<!-- ================= 8 ================= -->
+<header class="chapter-head">
+<h2 id="s8"><span class="num">8</span>실수 체크리스트</h2>
+
+<p class="lede">여기 있는 것들은 전부 결과를 조용히 망가뜨립니다. 에러가 나지 않고, 점수는 오히려 좋게 나오기 때문에 발견하기 어렵습니다.</p>
+</header>
+
+<h3>정보 누출 — 가장 위험한 부류</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th>실수</th><th>왜 위험한가</th><th>올바른 방법</th></tr></thead>
+<tbody>
+<tr><td>테스트셋에 <code>fit_transform</code></td><td>테스트셋 평균·표준편차가 새어 들어감</td><td>학습셋만 <code>fit</code>, 나머지는 <code>transform</code></td></tr>
+<tr><td>테스트셋으로 임계값 결정</td><td>정답을 보고 최적값을 고른 뒤 그걸로 평가</td><td>검증셋을 따로 분리</td></tr>
+<tr><td>전체 데이터로 피처 선택</td><td>검증·테스트 정보가 선택에 반영됨</td><td>학습셋에서만 선택</td></tr>
+<tr><td>분할 전에 증강</td><td>합성 샘플의 원본이 검증셋에 들어갈 수 있음</td><td>분할 후 학습셋에만 증강</td></tr>
+<tr><td>검증셋에 SMOTE 적용</td><td>평가 대상이 실제 분포가 아니게 됨</td><td>증강은 학습셋에만</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="box warn">
+<div class="bt">증강은 반드시 분할 후에</div>
+<pre class="in-box"><code><span class="cm"># 잘못됨 — 같은 원본에서 나온 합성 샘플이 학습셋과 검증셋에 흩어짐</span>
+X_aug = augment(X, y)
+train_test_split(X_aug, ...)
+
+<span class="cm"># 올바름</span>
+X_tr, X_val = train_test_split(X, ...)
+X_tr_aug = augment(X_tr, y_tr)      <span class="cm"># 학습셋에만</span></code></pre>
+</div>
+
+<h3>평가 설계</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th>실수</th><th>결과</th></tr></thead>
+<tbody>
+<tr><td>불균형 데이터에 Accuracy 보고</td><td>99.8%가 나오지만 아무 의미 없음</td></tr>
+<tr><td>0.5 임계값에서만 F1 비교</td><td>증강 효과와 임계값 이동 효과가 뒤섞임</td></tr>
+<tr><td>ROC-AUC만 보고</td><td>오탐 문제가 가려짐</td></tr>
+<tr><td><code>stratify</code> 없이 분할</td><td>검증셋에 양성이 0건일 수 있음</td></tr>
+<tr><td>시드 하나로 결론</td><td>±0.005는 노이즈인데 개선으로 착각</td></tr>
+<tr><td>테스트셋을 여러 번 사용</td><td>반복해서 보면 그것도 튜닝이 됨</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>전처리</h3>
+
+<ul>
+<li><strong>원-핫 후 QDA에 그대로 투입</strong> — 동일 더미가 여러 개 생기면 공분산이 특이해집니다</li>
+<li><strong>원-핫 더미에 VIF 적용</strong> — 구조적으로 무한대가 나옵니다</li>
+<li><strong><code>TotalCharges</code> 같은 컬럼을 그냥 두기</strong> — 숫자인데 공백이 섞여 object 타입이 됩니다. <code>pd.to_numeric(errors='coerce')</code> 후 결측 처리</li>
+<li><strong>트리 모델에 스케일링</strong> — 해가 되진 않지만 무의미합니다. 시간 낭비</li>
+<li><strong>get_dummies가 만든 bool을 그대로</strong> — 일부 모델에서 dtype 오류. <code>astype(float)</code>로 통일</li>
+</ul>
+
+<h3>해석</h3>
+
+<ul>
+<li><strong>LIME 결과를 감사 근거로 사용</strong> — 실행마다 값이 달라집니다</li>
+<li><strong>SHAP 중요도를 인과관계로 해석</strong> — "이 변수가 중요하다"는 "이 변수가 원인이다"가 아닙니다. 모델이 그렇게 배웠다는 뜻일 뿐입니다</li>
+<li><strong>익명화된 피처로 해석 시연</strong> — <code>V14</code>를 설명해봐야 의미가 없습니다</li>
+<li><strong>배포 후 설명을 다시 보지 않음</strong> — 6개월 뒤 완전히 다른 근거로 판단하고 있을 수 있습니다</li>
+</ul>
+
+<h3>실험 순서 — 권장</h3>
+
+<div class="box key">
+<div class="bt">이 순서대로 하면 낭비가 적습니다</div>
+<ol>
+<li><strong>베이스라인</strong> — XGBoost 기본값, 3분할, PR-AUC 측정</li>
+<li><strong>임계값 튜닝</strong> — 여기서 대부분의 개선이 나옵니다. 비용은 0</li>
+<li><strong><code>scale_pos_weight</code></strong> — 역시 비용 0. 2번과 중복될 수 있음</li>
+<li><strong>다운샘플링</strong> — 성능 비슷한데 속도가 빨라지면 채택</li>
+<li><strong>피처 선택</strong> — QDA·MLP 계열을 쓴다면 효과 있음</li>
+<li><strong>자동 파생변수(OpenFE)</strong> — 여기부터 시간이 듭니다</li>
+<li><strong>증강</strong> — 1~6번으로 안 되면 시도. 기대치는 낮게</li>
+<li><strong>확산모델 증강</strong> — 논문 비교 목적이 아니라면 권하지 않습니다</li>
+</ol>
+</div>
+
+
+<!-- ================= 9 ================= -->
+<header class="chapter-head">
+<h2 id="s9"><span class="num">9</span>용어 사전</h2>
+</header>
+
+<div class="tw">
+<table>
+<thead><tr><th>용어</th><th>뜻</th></tr></thead>
+<tbody>
+<tr><td>PR-AUC</td><td>정밀도-재현율 곡선 아래 면적. <code>average_precision_score</code>로 계산. 불균형 데이터의 주 지표</td></tr>
+<tr><td>ROC-AUC</td><td>재현율-위양성률 곡선 아래 면적. 불균형에서는 낙관적으로 나옴</td></tr>
+<tr><td>F1 (macro)</td><td>클래스별 F1을 단순 평균. 소수 클래스도 동등하게 취급</td></tr>
+<tr><td>정보 누출 (leakage)</td><td>평가에 쓸 데이터의 정보가 학습·튜닝 과정에 들어가는 것</td></tr>
+<tr><td>stratify</td><td>분할할 때 각 조각의 클래스 비율을 원본과 같게 유지</td></tr>
+<tr><td>scale_pos_weight</td><td>XGBoost에서 양성 클래스 오분류에 주는 가중치</td></tr>
+<tr><td>다중공선성</td><td>피처들이 서로 강하게 상관돼 한 피처를 다른 조합으로 설명 가능한 상태</td></tr>
+<tr><td>VIF</td><td>분산팽창지수. 10 초과면 심한 공선성</td></tr>
+<tr><td>Gain 중요도</td><td>그 피처로 분할했을 때 손실이 줄어든 총량</td></tr>
+<tr><td>SHAP</td><td>게임이론 기여도로 예측을 분해. 합이 예측값과 정확히 일치</td></tr>
+<tr><td>LIME</td><td>한 지점 주변을 선형 모델로 근사해 설명</td></tr>
+<tr><td>TreeSHAP</td><td>트리 모델 전용 고속 SHAP 알고리즘</td></tr>
+<tr><td>설명 드리프트</td><td>시간이 지나며 모델이 참조하는 피처 중요도 순위가 바뀌는 현상</td></tr>
+<tr><td>확산 모델 (diffusion)</td><td>노이즈를 더하는 과정의 역과정을 학습해 새 데이터를 생성</td></tr>
+<tr><td>노이즈 스케줄</td><td>시간에 따라 노이즈를 얼마나 더할지 정한 함수. TabDiff는 피처마다 학습</td></tr>
+<tr><td>in-context learning</td><td>가중치 갱신 없이 입력에 주어진 예시만으로 문제를 푸는 방식. TabPFN의 원리</td></tr>
+<tr><td>충실도 (fidelity)</td><td>합성 데이터가 원본 분포와 얼마나 닮았는지. 분류 성능과는 별개</td></tr>
+<tr><td>SMOTE</td><td>소수 클래스 샘플 사이를 보간해 새 샘플을 만드는 고전 기법</td></tr>
+<tr><td>AFE</td><td>자동 파생변수 생성 (Automated Feature Engineering). OpenFE, LLM-FE 등</td></tr>
+</tbody>
+</table>
+</div>
+
+<hr class="rule">
+
+<div class="box">
+<div class="bt">한 문장으로 요약한다면</div>
+<p>불균형 데이터에서 가장 효과가 큰 것은 <strong>임계값을 검증셋에서 제대로 고르는 일</strong>이고, 가장 과대평가된 것은 <strong>생성모델 기반 증강</strong>이며, 가장 자주 생략되는 것은 <strong>배포 후 설명이 여전히 유효한지 확인하는 일</strong>입니다.</p>
+</div>
+
+<p class="cite" style="margin-top:2.5rem">이 문서는 대화 중 다룬 코드와 논문, 2026년 최신 연구를 정리한 것입니다. 수치와 인용은 각 절에 명시된 연구에서 가져왔습니다.</p>
+
+</main>
+</div>
+<script>
+(function(){
+  var toc = document.querySelector('.toc');
+  var btn = document.querySelector('.toc-toggle');
+  if (btn && toc) {
+    btn.addEventListener('click', function(){
+      var open = toc.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      btn.textContent = open ? '목차 접기' : '목차 펼치기';
+    });
+    toc.querySelectorAll('.toc-links a').forEach(function(a){
+      a.addEventListener('click', function(){
+        if (window.matchMedia('(max-width:960px)').matches) {
+          toc.classList.remove('open');
+          btn.setAttribute('aria-expanded', 'false');
+          btn.textContent = '목차 펼치기';
+        }
+      });
+    });
+  }
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a[href^="#"]'));
+  var targets = links.map(function(a){ return document.getElementById(a.getAttribute('href').slice(1)); });
+  var ticking = false;
+  function update(){
+    ticking = false;
+    var idx = -1;
+    for (var i = 0; i < targets.length; i++) {
+      if (targets[i] && targets[i].getBoundingClientRect().top < 140) idx = i;
+    }
+    links.forEach(function(a, i){ a.classList.toggle('active', i === idx); });
+  }
+  window.addEventListener('scroll', function(){
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
+  }, {passive:true});
+  update();
+})();
+
+</script>
+</body>
+</html>
