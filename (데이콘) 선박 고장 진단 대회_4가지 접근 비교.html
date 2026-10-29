@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>고장 진단 대회 4가지 접근 비교</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@400;500;600;700;900&family=IBM+Plex+Mono:wght@400;500;600&family=Nanum+Gothic+Coding&display=swap" rel="stylesheet">
+<style>
+/* 지면: 차가운 회백색 / 명조 본문 + 고딕 제목 / 본문 44rem, 표·그림 58rem — 교재형 한 단 읽기 흐름 */
+:root{
+  color-scheme: light;
+  --paper:#F5F6F4; --panel:#ffffff; --ink:#26292d; --ink-2:#4b4f55; --ink-3:#6e7378;
+  --rule:#D8DBD5; --rule-strong:#AEB4AF;
+  --accent:#d9472a; --section:#3e44a0; --cap:#5a55b8;
+  --note-bg:#e6efe2; --note-pill:#5b4fa6; --caution-bg:#f8e9e2;
+  --lab:#2d6db5; --tbl-head:#e6ebf3;
+  --code-bg:#1b2733; --code-line:#2b3a4a; --code-edge:#5a84b3;
+  --code-ink:#d6dde6; --code-dim:#7d8a97; --code-num:#55677a;
+  --c-first:#2f7d6d; --c-ms:#b0642a; --c-ma:#6e7378; --c-base:#9aa09b;
+  --serif:"Noto Serif KR","Noto Serif CJK KR","AppleMyungjo","Batang",serif;
+  --sans:"Noto Sans KR","Noto Sans CJK KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono","Nanum Gothic Coding","D2Coding",ui-monospace,monospace;
+  --measure:44rem; --wide:58rem;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:16.5px/1.95 var(--serif);word-break:keep-all;overflow-wrap:break-word}
+main{max-width:var(--measure);margin:0 auto;padding:4rem 1.5rem 6rem}
+
+/* 표지 */
+.hero{margin:0 0 3rem}
+.eyebrow{font:700 13px/1.4 var(--sans);color:var(--accent);letter-spacing:.04em;margin:0 0 .8rem}
+.hero h1{font:900 2.35rem/1.3 var(--sans);margin:0 0 1.1rem;letter-spacing:-.02em;text-wrap:balance}
+.lead{font:400 1.08rem/1.9 var(--serif);color:var(--ink-2);margin:0 0 1.6rem}
+.facts{border-top:2px solid var(--ink);margin:0;padding:.7rem 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.6rem 1.2rem;font:14px/1.5 var(--sans)}
+.facts div{display:flex;flex-direction:column}
+.facts dt{color:var(--ink-3);font-size:12.5px}
+.facts dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums}
+
+/* 목차 */
+nav.toc{border-left:1px solid var(--rule-strong);padding:.2rem 0 .2rem 1rem;margin:0 0 3rem;font:14px/1.9 var(--sans)}
+nav.toc ol{margin:0;padding:0;list-style:none}
+nav.toc a{color:var(--ink-2);text-decoration:none}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--section)}
+nav.toc .tn{color:var(--accent);font-weight:700;display:inline-block;min-width:2.6em}
+
+/* 부 표지 */
+.part-head{margin:5rem 0 2.4rem}
+.part-no{font:900 2.6rem/1 var(--sans);color:var(--accent);text-align:right}
+.part-rule{position:relative;height:2px;background:#eab4a6;margin:.9rem 0 1.1rem}
+.part-rule i{position:absolute;left:0;top:50%;width:14px;height:14px;margin-top:-7px;border-radius:50%;background:var(--accent);box-shadow:8px 0 0 var(--ink)}
+.part-head h2{font:900 1.85rem/1.35 var(--sans);margin:0;text-align:right;color:var(--ink);letter-spacing:-.01em;text-wrap:balance}
+.part-head p{font:400 1rem/1.8 var(--serif);color:var(--ink-2);text-align:right;margin:.6rem 0 0}
+
+/* 제목 */
+h2,h3,h4{font-family:var(--sans);line-height:1.4;letter-spacing:-.01em;text-wrap:balance}
+h2.sec{font-size:1.6rem;font-weight:700;color:var(--section);margin:3.6rem 0 1rem}
+h3{font-size:1.25rem;font-weight:700;color:var(--accent);margin:2.8rem 0 .8rem}
+h4{font-size:1.05rem;font-weight:700;color:var(--ink);margin:2rem 0 .5rem}
+.num{margin-right:.45em}
+
+/* 본문 */
+p{margin:0 0 1.15rem}
+ul,ol{margin:0 0 1.2rem;padding-left:1.3rem}
+li{margin:.25rem 0}
+li::marker{color:var(--ink-3)}
+b,strong{font-family:var(--sans);font-weight:700}
+em{font-style:normal;color:var(--section)}
+:not(pre)>code{font:500 .86em var(--mono);color:#1b1d20;background:#e8ebe8;padding:.08em .32em;border-radius:2px}
+a{color:var(--section)}
+.muted{color:var(--ink-3)}
+
+/* 넓은 요소 */
+.wide{position:relative;left:50%;transform:translateX(-50%);width:min(var(--wide),calc(100vw - 2rem))}
+
+/* 요약 상자 */
+.keybox{background:var(--panel);border-top:2px solid var(--section);border-bottom:1px solid var(--rule);padding:1.2rem 1.4rem .4rem;margin:1.8rem 0;font:15px/1.85 var(--sans)}
+.keybox .kb-title{font:700 13px/1 var(--sans);color:var(--section);letter-spacing:.04em;margin:0 0 .8rem}
+.keybox ol,.keybox ul{padding-left:1.2rem}
+
+/* 수식 */
+.eq{font:500 15px/1.7 var(--mono);background:#e8ebe8;border-left:2px solid var(--section);padding:.6rem .9rem;margin:1rem 0 .4rem;overflow-x:auto;white-space:nowrap}
+.eq-note{font:14px/1.75 var(--sans);color:var(--ink-2);margin:0 0 1.2rem;padding-left:.95rem}
+
+/* 코드 블록 */
+.codeblock{background:var(--code-bg);border:1px solid #0f1821;border-left:3px solid var(--code-edge);margin:1.4rem 0 1.6rem}
+.code-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.5rem .9rem .5rem 1rem;border-bottom:1px solid var(--code-line)}
+.code-name{font:500 12.5px/1.2 var(--mono);color:#9fb0c2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{font:500 12px/1 var(--sans);color:#c5cfda;background:transparent;border:1px solid #3a4b5d;border-radius:3px;padding:.38rem .6rem;cursor:pointer;flex:none}
+.copy:hover{border-color:var(--code-edge);color:#fff}
+.copy:focus-visible{outline:2px solid var(--code-edge);outline-offset:2px}
+.codeblock pre{margin:0;padding:1rem 1.15rem 1.1rem;font:14px/1.75 var(--mono);color:var(--code-ink);white-space:pre;overflow-x:auto;tab-size:4}
+.codeblock pre code{font:inherit;color:inherit;background:none;padding:0}
+.codeblock .k,.codeblock .kn,.codeblock .kd,.codeblock .kr,.codeblock .ow,.codeblock .kc{color:#86b4e8}
+.codeblock .s,.codeblock .s1,.codeblock .s2,.codeblock .sa,.codeblock .se,.codeblock .si,.codeblock .sd,.codeblock .sb{color:#e3b98c}
+.codeblock .m,.codeblock .mi,.codeblock .mf,.codeblock .mh{color:#d9a0d8}
+.codeblock .c,.codeblock .c1,.codeblock .cm,.codeblock .ch{color:var(--code-dim)}
+.codeblock .nf,.codeblock .nc{color:#e8d9a0}
+.codeblock .nd{color:#9fd3c7}
+.codeblock .nb,.codeblock .bp,.codeblock .nn,.codeblock .n,.codeblock .o,.codeblock .p,.codeblock .w{color:var(--code-ink)}
+.codeblock .err{color:var(--code-ink);background:none;border:0}
+
+/* 박스 */
+.callout{font:14.5px/1.85 var(--sans);color:#33363a;margin:1.6rem 0;padding:1rem 1.25rem}
+.callout .pill{display:inline-block;font:700 12px/1 var(--sans);color:#fff;padding:.32rem .65rem;border-radius:999px;margin-right:.55rem;vertical-align:1px;letter-spacing:.02em}
+.callout.note{background:var(--note-bg)}
+.callout.note .pill{background:var(--note-pill)}
+.callout.caution{background:var(--caution-bg)}
+.callout.caution .pill{background:var(--accent)}
+.callout.tip{border-left:2px solid var(--accent);padding:.2rem 0 .2rem 1rem}
+.callout.tip .pill{background:var(--accent)}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+
+/* 그림 · 표 */
+figure{margin:1.8rem 0 2.2rem}
+figure.fig{background:var(--panel);border:1px solid var(--rule);padding:1.2rem 1.2rem 1rem}
+figure.fig svg{display:block;width:100%;height:auto;max-width:100%}
+figure.fig figcaption,figure.tbl figcaption{font:400 14px/1.6 var(--sans);color:var(--cap);text-align:left}
+figure.fig figcaption{margin-top:.9rem}
+figure.tbl figcaption{margin-bottom:.6rem}
+figure .label{color:var(--ink);font-weight:700;margin-right:.45em}
+figure.tbl{overflow-x:auto}
+figure.tbl table{width:100%;border-collapse:collapse;background:var(--panel);font:14px/1.6 var(--sans);font-variant-numeric:tabular-nums}
+figure.tbl thead th{background:var(--tbl-head);font-weight:700;text-align:left;padding:.55rem .8rem;border-top:2px solid #7f95bf;border-bottom:1px solid #b9c6de;white-space:nowrap}
+figure.tbl tbody th{background:var(--tbl-head);font-weight:700;text-align:left;padding:.5rem .8rem;white-space:nowrap}
+figure.tbl td{padding:.5rem .8rem;vertical-align:top}
+figure.tbl tbody tr{border-bottom:1px solid #dde2ea}
+figure.tbl tbody tr:last-child{border-bottom:1px solid #7f95bf}
+td.n,figure.tbl th.n{text-align:right;white-space:nowrap}
+tr.hl td,tr.hl th{background:#eef0fa}
+.tbl-note{font:12.5px/1.6 var(--sans);color:var(--ink-3);margin:.5rem 0 0}
+
+/* 상태 표시: 사각점 + 글자 */
+.st{font:600 13px/1.4 var(--sans);white-space:nowrap}
+.st::before{content:"";display:inline-block;width:.6em;height:.6em;margin-right:.35em;vertical-align:.05em}
+.st.ok::before{background:#3d8a5a}.st.part::before{background:#c99a2e}.st.no::before{background:#b8473a}
+
+/* SVG 색 */
+svg text{font-family:var(--sans);fill:var(--ink-2);font-size:13px}
+svg .t-strong{fill:var(--ink);font-weight:700}
+svg .t-small{font-size:11.5px;fill:var(--ink-3)}
+svg .grid{stroke:#e4e7e3;stroke-width:1}
+svg .axis{stroke:var(--rule-strong);stroke-width:1}
+svg .wall{stroke:var(--accent);stroke-width:1.2;stroke-dasharray:4 4}
+svg .f-opus{fill:var(--section)} svg .s-opus{stroke:var(--section)}
+svg .f-first{fill:var(--c-first)} svg .s-first{stroke:var(--c-first)}
+svg .f-ms{fill:var(--c-ms)} svg .s-ms{stroke:var(--c-ms)}
+svg .f-ma{fill:var(--c-ma)} svg .s-ma{stroke:var(--c-ma)}
+svg .f-base{fill:var(--c-base)}
+svg .hollow{fill:var(--panel);stroke-width:2.2}
+
+/* 접기 문제 */
+.quiz{border-top:2px solid var(--ink);margin:1.4rem 0}
+.quiz details{border-bottom:1px solid var(--rule);padding:.8rem 0}
+.quiz summary{font:600 15.5px/1.7 var(--sans);cursor:pointer;list-style-position:outside}
+.quiz summary:focus-visible{outline:2px solid var(--section);outline-offset:3px}
+.quiz details > div{padding:.6rem 0 0 .2rem}
+
+.sources{font:13.5px/1.8 var(--sans);color:var(--ink-2)}
+.sources li{margin:.3rem 0}
+footer{margin-top:4rem;font:12.5px/1.7 var(--sans);color:var(--ink-3);border-top:1px solid var(--rule);padding-top:1rem}
+
+@media (max-width:640px){
+  body{font-size:15.5px}
+  main{padding:2.5rem 1.1rem 4rem}
+  .hero h1{font-size:1.75rem}
+  .part-no{font-size:2.1rem}
+  .part-head h2{font-size:1.45rem}
+  .codeblock pre{font-size:13px;padding:.85rem .9rem}
+  figure.fig{padding:.8rem .6rem}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+@media print{body{background:#fff}main{max-width:none;padding:0}.copy{display:none}.codeblock pre{white-space:pre-wrap}.wide{left:auto;transform:none;width:auto}figure,.callout{break-inside:avoid}}
+</style>
+</head>
+<body>
+<main>
+
+<header class="hero">
+  <p class="eyebrow">사례 연구 · 장비 센서 고장 진단 · 21개 클래스 · Macro-F1</p>
+  <h1>같은 대회, 네 가지 풀이: 무엇이 순위를 갈랐나</h1>
+  <p class="lead">Claude Opus 단일 모델, 대회 1등 팀, 석사 1년차 팀, Sonnet 멀티에이전트가 같은 데이터를 풀었습니다. 네 방식의 코드와 실행 로그를 대조해 순위의 원인, 1등 팀이 딥러닝을 고른 이유, 각 방식이 막힌 지점, 앞으로 분석 프로세스를 만들 때 챙길 점을 정리했습니다.</p>
+  <dl class="facts">
+    <div><dt>train</dt><dd>21,693행 × 센서 52개</dd></div>
+    <div><dt>클래스</dt><dd>21개 × 1,033행 (완전 균등)</dd></div>
+    <div><dt>test</dt><dd>15,004행</dd></div>
+    <div><dt>결측</dt><dd>0%</dd></div>
+    <div><dt>평가 지표</dt><dd>Macro-F1</dd></div>
+  </dl>
+</header>
+
+<nav class="toc" aria-label="목차">
+  <ol>
+    <li><a href="#summary"><span class="tn">0</span>한눈에 보기</a></li>
+    <li><a href="#part1"><span class="tn">1부</span>순위는 왜 이렇게 나왔나</a></li>
+    <li><a href="#part2"><span class="tn">2부</span>대회 1등 팀 코드 검토: 왜 딥러닝이었나</a></li>
+    <li><a href="#part3"><span class="tn">3부</span>방식별 강점, 병목, 한계</a></li>
+    <li><a href="#part4"><span class="tn">4부</span>인사이트와 제언</a></li>
+    <li><a href="#quiz"><span class="tn">확인</span>셀프 테스트와 핵심 요약</a></li>
+    <li><a href="#sources"><span class="tn">출처</span>자료와 참고문헌</a></li>
+  </ol>
+</nav>
+
+<!-- ============ 0 요약 ============ -->
+<h2 class="sec" id="summary"><span class="num">0</span>한눈에 보기</h2>
+
+<div class="keybox">
+  <p class="kb-title">핵심 결론</p>
+  <ol>
+    <li>순위는 두 질문으로 거의 설명됩니다. <strong>① 고장 신호가 개별 값이 아니라 변수 사이의 관계에 있다는 점을 모델이 잡았나</strong>, <strong>② train에 없는 '고장 직후' 샘플이 test에 섞인 분포 이동을 처리했나.</strong></li>
+    <li>Opus는 두 질문을 모두 명시적으로 풀었고, 1등 팀은 둘 다 암묵적으로 풀었습니다(신경망의 선형층, 헝가리안 균등 할당). 석사 팀은 ①의 단서(QDA)를 찾고도 끝까지 밀지 않았고, 멀티에이전트는 ①과 ②의 신호를 측정하고도 트리 계열 안에서만 움직였습니다.</li>
+    <li>이 순위를 "단일 에이전트가 멀티에이전트보다 낫다"는 증거로 쓰기는 어렵습니다. 모델 차이(Opus 대 Sonnet), 리더보드 피드백, 실행 시점, 1회 실행이라는 교란 요인이 섞여 있습니다(<a href="#s1-5">1.5절</a>).</li>
+  </ol>
+</div>
+
+<figure class="tbl wide">
+  <figcaption>표 0. 네 방식 요약. 점수는 제공 자료에서 확인된 값만 적었습니다.</figcaption>
+  <table>
+    <thead><tr><th>순위</th><th>방식</th><th>최종 모델</th><th>확인된 점수</th><th>① 관계 신호</th><th>② 분포 이동</th></tr></thead>
+    <tbody>
+      <tr><td class="n">1</td><td>Opus 단일</td><td>RDA(클래스별 가우시안) → LightGBM 스태킹 + 과도구간 보정</td><td>CV 0.905<br>LB 0.9018 / 0.8995<br><span class="muted">보정 전 LB 약 0.83</span></td><td><span class="st ok">명시적</span><br>클래스별 공분산, 화이트닝</td><td><span class="st ok">명시적</span><br>진단 → 쌍 검정 → EM</td></tr>
+      <tr><td class="n">2</td><td>대회 1등 팀</td><td>TabNet + MLP 2종 + AutoGluon 균등 평균 → 헝가리안 균등 할당</td><td>MLP fold 검증 F1 0.868~0.874<br>TabNet 검증 정확도 0.851<br><span class="muted">LB는 자료에 없음</span></td><td><span class="st ok">암묵적</span><br>선형층이 관계 방향을 학습</td><td><span class="st part">암묵적</span><br>test 클래스 수를 같게 강제</td></tr>
+      <tr><td class="n">3</td><td>석사 1년차 팀</td><td>LightGBM 게이트 → 쉬운 그룹 LightGBM / 어려운 그룹 스태킹</td><td>검증 LightGBM 0.795<br>어려운 그룹 QDA 0.781 대 LightGBM 0.650<br><span class="muted">LB 0.8410 (파일명 기준 추정)</span></td><td><span class="st part">부분적</span><br>QDA를 후보 중 하나로만</td><td><span class="st no">없음</span></td></tr>
+      <tr><td class="n">4</td><td>멀티에이전트 (Sonnet)</td><td>HistGradientBoosting + 센서 차이 21개 + LDA, 시드 3개 평균</td><td>CV 0.8137 ± 0.0057<br><span class="muted">LB는 자료에 없음</span></td><td><span class="st no">약함</span><br>공통 공분산(LDA), 고른 7개 센서 차이</td><td><span class="st no">측정만</span><br>적대적 검증 AUC 0.742</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-note">CV는 방식마다 분할과 계산 방식이 달라 소수 셋째 자리 비교는 의미가 작습니다. 석사 팀 LB는 노트북 파일명(20250923_0.8410)에서 읽은 값이라 추정으로 표시했습니다.</p>
+</figure>
+
+<figure class="fig wide">
+  <svg viewBox="0 0 960 320" role="img" aria-label="네 방식의 점수 사다리. 트리 기본값 0.79에서 Opus 최종 0.8995까지">
+    <g>
+      <circle cx="232" cy="16" r="6" class="f-opus"/><text x="244" y="20">교차검증·검증 점수</text>
+      <rect x="386" y="10" width="12" height="12" class="hollow s-opus"/><text x="406" y="20">리더보드 점수</text>
+    </g>
+    <line x1="220" y1="34" x2="220" y2="292" class="grid"/><line x1="380" y1="34" x2="380" y2="292" class="grid"/><line x1="540" y1="34" x2="540" y2="292" class="grid"/><line x1="700" y1="34" x2="700" y2="292" class="grid"/><line x1="860" y1="34" x2="860" y2="292" class="grid"/>
+    <line x1="360" y1="34" x2="360" y2="292" class="wall"/>
+    <text x="364" y="46" class="t-small" style="fill:var(--accent)">트리의 벽 0.79</text>
+    <line x1="220" y1="292" x2="860" y2="292" class="axis"/>
+    <text x="220" y="312" text-anchor="middle" class="t-small">0.76</text><text x="380" y="312" text-anchor="middle" class="t-small">0.80</text><text x="540" y="312" text-anchor="middle" class="t-small">0.84</text><text x="700" y="312" text-anchor="middle" class="t-small">0.88</text><text x="860" y="312" text-anchor="middle" class="t-small">0.92</text>
+
+    <text x="205" y="68" text-anchor="end" class="t-strong">트리 기본값 (3곳 공통)</text>
+    <circle cx="348" cy="64" r="6" class="f-base"/><circle cx="360" cy="64" r="6" class="f-base"/>
+    <text x="374" y="68" class="t-small">0.792~0.795</text>
+
+    <text x="205" y="106" text-anchor="end" class="t-strong">멀티에이전트 최종</text>
+    <circle cx="435" cy="102" r="6" class="f-ma"/>
+    <text x="448" y="106">CV 0.814</text>
+
+    <text x="205" y="144" text-anchor="end" class="t-strong">석사 팀</text>
+    <rect x="538" y="134" width="12" height="12" class="hollow s-ms"/>
+    <text x="560" y="144">LB 0.841 (추정)</text>
+
+    <text x="205" y="182" text-anchor="end" class="t-strong">1등 팀 MLP 단일</text>
+    <line x1="652" y1="178" x2="676" y2="178" class="s-first" stroke-width="2"/>
+    <circle cx="652" cy="178" r="6" class="f-first"/><circle cx="676" cy="178" r="6" class="f-first"/>
+    <text x="690" y="182">fold 검증 F1 0.868~0.874</text>
+
+    <text x="205" y="226" text-anchor="end" class="t-strong">Opus 모델 단계 (CV)</text>
+    <line x1="696" y1="222" x2="800" y2="222" class="s-opus" stroke-width="2"/>
+    <circle cx="696" cy="222" r="6" class="f-opus"/><circle cx="720" cy="222" r="6" class="f-opus"/><circle cx="800" cy="222" r="6" class="f-opus"/>
+    <text x="686" y="226" text-anchor="end">QDA 0.879</text>
+    <text x="720" y="207" text-anchor="middle">RDA 0.885</text>
+    <text x="812" y="226">스태킹 0.905</text>
+
+    <text x="205" y="270" text-anchor="end" class="t-strong">Opus 리더보드</text>
+    <line x1="508" y1="266" x2="768" y2="266" class="s-opus" stroke-width="1.5" stroke-dasharray="3 3"/>
+    <rect x="494" y="260" width="12" height="12" class="hollow s-opus"/><rect x="772" y="260" width="12" height="12" class="hollow s-opus"/>
+    <text x="486" y="270" text-anchor="end">보정 전 약 0.83</text>
+    <text x="794" y="270">보정 후 0.8995</text>
+  </svg>
+  <figcaption><span class="label">그림 1</span>점수 사다리. 세 곳 모두 트리 기본값 0.79에서 출발했습니다. Opus의 CV(0.905)와 보정 전 LB(약 0.83)의 차이가 분포 이동의 크기입니다. 1등 팀 MLP 점수는 fold마다 가장 좋은 epoch를 고른 값이라 다소 낙관적입니다. Opus LB는 Private 기준입니다(Public 0.9018).</figcaption>
+</figure>
+
+<!-- ============ 1부 ============ -->
+<section id="part1">
+<div class="part-head">
+  <div class="part-no">1부</div>
+  <div class="part-rule"><i></i></div>
+  <h2>순위는 왜 이렇게 나왔나</h2>
+  <p>같은 출발점, 두 개의 축, 그리고 순위를 읽을 때의 주의점</p>
+</div>
+
+<h3 id="s1-1"><span class="num">1.1</span>출발점은 모두 같았다: 트리의 벽 0.79</h3>
+<ul>
+  <li>LightGBM·HGB 기본값 점수: Opus CV 0.792, 석사 팀 검증 0.795, 멀티에이전트 기준 모델 0.7948.</li>
+  <li>세 곳이 독립적으로 같은 값에 닿았다면 튜닝 부족이 아니라 <strong>모델 가정의 한계</strong>를 의심해야 합니다.</li>
+  <li>그래서 질문은 "누가 어떻게 이 벽을 넘었나"로 바뀝니다.</li>
+</ul>
+
+<h3 id="s1-2"><span class="num">1.2</span>승부를 가른 두 개의 축</h3>
+<figure class="tbl">
+  <figcaption>표 1. 두 축으로 본 순위. 두 축을 모두 푼 방식이 1·2위, 하나도 제대로 풀지 못한 방식이 4위입니다.</figcaption>
+  <table>
+    <thead><tr><th></th><th>① 관계 신호를 잡음</th><th>① 관계 신호가 약함</th></tr></thead>
+    <tbody>
+      <tr><th>② 분포 이동 처리</th><td>1위 Opus (둘 다 명시적)<br>2위 1등 팀 (둘 다 암묵적)</td><td class="muted">해당 없음</td></tr>
+      <tr><th>② 분포 이동 미처리</th><td>3위 석사 팀 (①을 부분적으로)</td><td>4위 멀티에이전트</td></tr>
+    </tbody>
+  </table>
+</figure>
+
+<h3 id="s1-3"><span class="num">1.3</span>축 ①: 왜 '관계'가 신호였나</h3>
+<p>이 데이터의 형태(측정 변수 52개, 정상 1개와 고장 20개)는 화학공정 벤치마크인 Tennessee Eastman Process(TEP)와 같습니다. 공정에는 제어 루프와 물질수지가 있어서, 정상 운전 중에는 여러 변수 사이에 <em>거의 정확히 지켜지는 선형 관계</em>가 생깁니다. 고장은 개별 센서 값을 크게 바꾸기보다 이 관계를 깨뜨립니다.</p>
+<p>근거는 세 갈래에서 나왔습니다.</p>
+<ul>
+  <li><strong>고유값</strong>: 정상 클래스 공분산(표준화 후)의 작은 고유값이 0.0000986, 0.000295 수준입니다. 분산이 1인 변수들인데 어떤 방향은 1만분의 1밖에 흔들리지 않습니다.</li>
+  <li><strong>잔차 실험</strong>: 트리에 "다른 변수로 설명되지 않는 부분(회귀 잔차)"만 추가해도 0.792 → 0.822로 올랐습니다(Opus).</li>
+  <li><strong>모델 계열 차이</strong>: 석사 팀의 어려운 그룹에서 QDA 0.781, LightGBM 0.650. 클래스별 공분산을 보는 모델이 0.13 앞섰습니다.</li>
+</ul>
+
+<h4>관계를 고려한 거리: 마할라노비스 거리</h4>
+<div class="eq">d²(x) = (x − m)ᵀ C⁻¹ (x − m)</div>
+<p class="eq-note">m: 클래스 평균, C: 클래스 공분산(변수 간 관계표). 직관: "이 클래스가 평소 지키는 관계에서 얼마나 벗어났나". 정상일 때 거의 안 움직이는 방향으로 조금만 움직여도 거리가 크게 나옵니다.</p>
+
+<p><strong>손계산.</strong> 상관 0.99인 두 변수, C = [[1, 0.99], [0.99, 1]]. 고유값은 1.99(대각선 방향)와 0.01(반대 대각선 방향)입니다.</p>
+<ol>
+  <li>점 (1, 1): 대각선 방향 성분² 2 ÷ 분산 1.99 = <strong>1.005</strong></li>
+  <li>점 (1, −1): 반대 대각선 방향 성분² 2 ÷ 분산 0.01 = <strong>200</strong></li>
+  <li>해석: 유클리드 거리²는 둘 다 2인데 마할라노비스 거리²는 약 200배 차이 납니다.</li>
+</ol>
+<p class="muted">검산: numpy로 p @ inv(C) @ p를 계산하면 1.00503, 200.000으로 일치합니다.</p>
+
+<figure class="fig wide">
+  <svg viewBox="0 0 840 410" role="img" aria-label="왼쪽: 트리의 계단형 분할이 대각선 경계를 근사. 오른쪽: 정상 데이터 타원과 그 밖의 고장 점">
+    <g>
+      <rect x="40" y="30" width="320" height="320" fill="none" class="axis"/>
+      <line x1="40" y1="350" x2="360" y2="30" class="s-ma" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <path d="M40 318 H104 V254 H168 V190 H232 V126 H296 V62 H360" fill="none" class="s-opus" stroke-width="2.4"/>
+      <text x="70" y="70" class="t-strong">A</text><text x="320" y="330" class="t-strong">B</text>
+      <text x="200" y="378" text-anchor="middle" class="t-strong">트리: 축에 평행한 분할로만 자른다</text>
+      <text x="200" y="398" text-anchor="middle" class="t-small">점선(진짜 경계)을 5단 계단으로 근사하면 오분류 면적 5%</text>
+    </g>
+    <g transform="translate(440,0)">
+      <line x1="40" y1="30" x2="40" y2="350" class="axis"/><line x1="40" y1="350" x2="360" y2="350" class="axis"/>
+      <text x="350" y="342" text-anchor="end" class="t-small">변수 a</text><text x="48" y="44" class="t-small">변수 b</text>
+      <line x1="112" y1="350" x2="288" y2="350" class="s-ma" stroke-width="6" opacity=".35"/>
+      <line x1="40" y1="102" x2="40" y2="278" class="s-ma" stroke-width="6" opacity=".35"/>
+      <ellipse cx="200" cy="190" rx="150" ry="20" transform="rotate(-45 200 190)" fill="none" class="s-opus" stroke-width="1.8"/>
+      <circle cx="149.8" cy="232.4" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="217.3" cy="170.5" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="222.9" cy="168.4" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="259.9" cy="130.6" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="158.8" cy="233.9" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="208.7" cy="209.2" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="253.5" cy="124.5" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="139.1" cy="252.7" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="227.3" cy="169.6" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="238.8" cy="143.5" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="236.9" cy="166.3" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="218.9" cy="176.7" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="173.2" cy="233.5" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="196.8" cy="196.5" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="243.5" cy="156.2" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="269.8" cy="110.9" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="182.9" cy="210.0" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="272.6" cy="108.6" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="268.9" cy="124.9" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="151.3" cy="241.3" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="276.8" cy="102.2" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="167.2" cy="227.5" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="198.3" cy="185.7" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="217.6" cy="177.6" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="220.2" cy="180.4" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="272.2" cy="110.5" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="269.3" cy="133.3" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="140.1" cy="249.2" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="272.7" cy="135.2" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="210.2" cy="175.8" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="239.7" cy="154.1" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="220.8" cy="184.8" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="169.7" cy="235.7" r="3.6" class="f-opus" opacity=".55"/>
+      <circle cx="289.8" cy="106.6" r="3.6" class="f-opus" opacity=".55"/>
+      <rect x="234" y="218" width="13" height="13" class="hollow s-ms"/>
+      <line x1="240" y1="231" x2="240" y2="346" class="s-ms" stroke-width="1" stroke-dasharray="3 3"/>
+      <line x1="44" y1="224" x2="234" y2="224" class="s-ms" stroke-width="1" stroke-dasharray="3 3"/>
+      <text x="256" y="236" class="t-small">고장 샘플</text>
+      <text x="200" y="378" text-anchor="middle" class="t-strong">가우시안: 관계(타원)에서 벗어난 정도를 본다</text>
+      <text x="200" y="398" text-anchor="middle" class="t-small">고장 점은 각 축 범위(굵은 회색 띠) 안이지만 타원 밖</text>
+    </g>
+  </svg>
+  <figcaption><span class="label">그림 2</span>트리와 가우시안 분류기가 보는 방식. 트리는 사선 경계를 계단으로만 흉내 내고, 축별로는 정상 범위인 고장 샘플을 걸러내지 못합니다.</figcaption>
+</figure>
+
+<p><strong>손계산: 트리가 사선 경계에 약한 정도.</strong> 단위 정사각형에서 대각 경계(x₂ = x₁)를 k단 계단으로 근사하면, 각 단에서 변의 길이가 1/(2k)인 직각삼각형 두 개가 틀립니다.</p>
+<div class="eq">오분류 면적 = k × 2 × ½ × (1/(2k))² = 1/(4k)</div>
+<p class="eq-note">k = 5 → 5%, k = 10 → 2.5%, k = 50 → 0.5%. 좌표를 u = x₂ − x₁로 돌리면 분할 한 번에 오차 0입니다. 직관: 트리는 "좋은 축"이 주어져야 강합니다. Opus가 넣은 정상 기준 화이트닝 피처 50개가 바로 그 축입니다.</p>
+<p class="muted">검산: 균일 난수 200만 점 시뮬레이션에서 0.0499, 0.0249, 0.0050으로 일치합니다.</p>
+
+<div class="codeblock">
+  <div class="code-head" data-ui><span class="code-name">fault_diagnosis.py · RDA.fit (Opus)</span><button class="copy" type="button">복사</button></div>
+  <pre><code><span class="n">C0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">Z</span><span class="p">[</span><span class="n">y</span> <span class="o">==</span> <span class="mi">0</span><span class="p">],</span> <span class="n">rowvar</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>          <span class="c1"># 정상 클래스 공분산</span>
+<span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">G</span> <span class="ow">in</span> <span class="n">groups</span><span class="p">:</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">rowvar</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">C0</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cholesky</span><span class="p">(</span><span class="n">C</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ridge</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">Z</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span></code></pre>
+</div>
+<p>정상 공분산 쪽으로 40% 당기는 수축(α = 0.4)과 아주 작은 릿지(λ = 10⁻⁶)가 핵심입니다. Opus의 λ 스윕에서 λ를 3e-3으로 키우면 0.773, 1e-6에서 0.879였습니다. 보통 정규화는 클수록 안전하다고 여기지만, 여기서는 신호가 <em>가장 작은 분산 방향</em>에 있어서 큰 λ가 신호를 지웠습니다.</p>
+
+<h3 id="s1-4"><span class="num">1.4</span>축 ②: train에 없는 '고장 직후' 샘플</h3>
+<p>공개 TEP 데이터에서는 고장이 학습용 데이터에서는 1시간, 테스트용 데이터에서는 8시간 시점에 투입됩니다. 그래서 테스트 쪽에는 고장 직후 값이 변해 가는 구간이 더 많이 들어갈 수 있습니다. 이 대회 데이터가 그 구조를 그대로 따랐는지는 자료로 확인되지 않지만, Opus의 진단 결과와 들어맞습니다.</p>
+
+<figure class="fig wide">
+  <svg viewBox="0 0 840 230" role="img" aria-label="고장 발생 후 대표 변수가 0에서 약 44시그마까지 올라가는 개념도. 상승 구간은 test에만 있음">
+    <rect x="270" y="24" width="220" height="166" fill="#f8e9e2"/>
+    <rect x="490" y="24" width="300" height="166" fill="#e6ebf3"/>
+    <text x="380" y="44" text-anchor="middle" class="t-strong">과도구간: test에만</text>
+    <text x="640" y="44" text-anchor="middle" class="t-strong">정상상태: train에 있음</text>
+    <line x1="70" y1="190" x2="790" y2="190" class="axis"/>
+    <line x1="70" y1="24" x2="70" y2="190" class="axis"/>
+    <text x="790" y="212" text-anchor="end" class="t-small">시간 →</text>
+    <text x="62" y="174" text-anchor="end" class="t-small">0σ</text>
+    <text x="62" y="76" text-anchor="end" class="t-small">약 44σ</text>
+    <path d="M70 170 H270 C330 170 380 80 490 72 H790" fill="none" class="s-opus" stroke-width="2.6"/>
+    <line x1="270" y1="24" x2="270" y2="190" class="wall"/>
+    <text x="262" y="208" text-anchor="end" class="t-small" style="fill:var(--accent)">고장 발생</text>
+    <text x="150" y="160" text-anchor="middle" class="t-small">정상 운전</text>
+  </svg>
+  <figcaption><span class="label">그림 3</span>고장 7의 대표 변수 X_36 개념도(Opus 해설 기반 추정). train에는 X_36이 40σ 이상인 정상상태 샘플만 있는데, test에는 20~40σ로 올라가는 중인 샘플이 섞여 있습니다.</figcaption>
+</figure>
+
+<ul>
+  <li><strong>증상</strong>: CV에서 F1 1.0이던 고장 2·5·7이 test에서 416·387·361개로 예측됐고, 분산이 넓은 랜덤 변동형 고장 12·8은 1,427·1,048개였습니다. 균등하다면 클래스당 약 714개입니다.</li>
+  <li><strong>원인</strong>: 처음 보는 과도구간 샘플을 분포가 넓은 클래스(8, 12)가 흡수했습니다. TEP 문헌에서도 고장 8·12는 랜덤 변동형, 1~7은 계단형으로 분류됩니다.</li>
+  <li><strong>크기</strong>: Opus CV 0.905 → 보정 전 LB 약 0.83, 차이 0.075. 멀티에이전트가 10회 반복으로 얻은 개선(+0.019)의 약 4배입니다.</li>
+  <li><strong>반사실</strong>: 보정이 없었다면 Opus(약 0.83)는 석사 팀 추정 LB(0.841)보다 낮았습니다. 1위를 만든 결정적 단계는 모델보다 분포 이동 처리였습니다.</li>
+</ul>
+
+<h4>1등 팀은 같은 문제를 어떻게 피했나: 헝가리안 균등 할당</h4>
+<p>1등 팀은 앙상블 확률을 그대로 argmax하지 않고, "test의 클래스별 개수가 같다"는 가정 아래 전체 로그확률 합이 최대가 되도록 배정했습니다. 12로 몰린 샘플 중 다른 클래스 확률이 상대적으로 높은 샘플이 정원이 빈 2·5·7로 옮겨지므로, 같은 문제를 간접적으로 완화했을 가능성이 큽니다. 다만 제출 비교 자료가 없어 효과 크기는 추정입니다.</p>
+
+<div class="eq">최소화: Σᵢ −log p(i, cᵢ) &nbsp; 조건: 클래스 c마다 배정 수 = quota(c)</div>
+<p class="eq-note">p(i, c): 샘플 i가 클래스 c일 앙상블 확률. quota: test 수 ÷ 21(약 714). 직관: "정원이 정해진 반 배정" 문제로 바꿔, 확신이 낮은 샘플부터 다른 반으로 보낸다.</p>
+
+<figure class="tbl">
+  <figcaption>표 2. 손계산: 샘플 3개, 클래스 3개, 정원 각 1명</figcaption>
+  <table>
+    <thead><tr><th>샘플</th><th class="n">p(클래스 0)</th><th class="n">p(클래스 1)</th><th class="n">p(클래스 2)</th><th>argmax</th><th>균등 할당</th></tr></thead>
+    <tbody>
+      <tr><td>A</td><td class="n">0.60</td><td class="n">0.30</td><td class="n">0.10</td><td>0</td><td>0</td></tr>
+      <tr><td>B</td><td class="n">0.55</td><td class="n">0.40</td><td class="n">0.05</td><td>0</td><td>1</td></tr>
+      <tr><td>C</td><td class="n">0.50</td><td class="n">0.10</td><td class="n">0.40</td><td>0</td><td>2</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-note">6가지 배정의 비용(−log 합) 중 최소는 (A→0, B→1, C→2) 2.343, 다음은 (B→0, A→1, C→2) 2.718. 검산: scipy linear_sum_assignment 결과와 일치.</p>
+</figure>
+
+<div class="codeblock">
+  <div class="code-head" data-ui><span class="code-name">ensemble_pipeline_final.py · 균등 할당 (1등 팀)</span><button class="copy" type="button">복사</button></div>
+  <pre><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_quota</span><span class="p">(</span><span class="n">probs</span><span class="p">):</span>
+    <span class="n">N</span><span class="p">,</span><span class="n">C</span><span class="o">=</span><span class="n">probs</span><span class="o">.</span><span class="n">shape</span><span class="p">;</span> <span class="n">base</span><span class="o">=</span><span class="n">N</span><span class="o">//</span><span class="n">C</span><span class="p">;</span> <span class="n">rem</span><span class="o">=</span><span class="n">N</span><span class="o">%</span><span class="n">C</span>
+    <span class="n">quota</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">C</span><span class="p">,</span><span class="n">base</span><span class="p">,</span><span class="nb">int</span><span class="p">)</span>
+    <span class="n">strength</span><span class="o">=</span><span class="n">probs</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span> <span class="n">order</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="o">-</span><span class="n">strength</span><span class="p">)</span>
+    <span class="n">quota</span><span class="p">[</span><span class="n">order</span><span class="p">[:</span><span class="n">rem</span><span class="p">]]</span><span class="o">+=</span><span class="mi">1</span>
+    <span class="k">return</span> <span class="n">quota</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">balanced_assign_hungarian</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">quota</span><span class="p">):</span>
+    <span class="n">eps</span><span class="o">=</span><span class="mf">1e-15</span><span class="p">;</span> <span class="n">N</span><span class="p">,</span><span class="n">C</span><span class="o">=</span><span class="n">probs</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">cols</span><span class="o">=</span><span class="p">[];</span> <span class="n">col_to_class</span><span class="o">=</span><span class="p">[]</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">C</span><span class="p">):</span>
+        <span class="n">q</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">quota</span><span class="p">[</span><span class="n">c</span><span class="p">])</span>
+        <span class="n">cost_c</span><span class="o">=-</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">probs</span><span class="p">[:,</span><span class="n">c</span><span class="p">]</span><span class="o">+</span><span class="n">eps</span><span class="p">)</span>
+        <span class="n">cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">cost_c</span><span class="p">[:,</span><span class="kc">None</span><span class="p">],</span><span class="n">q</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">col_to_class</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">c</span><span class="p">]</span><span class="o">*</span><span class="n">q</span><span class="p">)</span>
+    <span class="n">cost</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">row_ind</span><span class="p">,</span><span class="n">col_ind</span><span class="o">=</span><span class="n">linear_sum_assignment</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span>
+    <span class="n">pred</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="nb">int</span><span class="p">);</span> <span class="n">pred</span><span class="p">[</span><span class="n">row_ind</span><span class="p">]</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">col_to_class</span><span class="p">)[</span><span class="n">col_ind</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">pred</span></code></pre>
+</div>
+
+<aside class="callout caution"><span class="pill">주의</span>Opus는 train OOF에서 예측 개수를 균등하게 맞추면 0.9035 → 0.9006으로 <strong>나빠진다</strong>고 확인하고 이 방법을 버렸습니다. train CV에는 분포 이동이 없기 때문입니다. CV로만 판단하면 버려질 기법이 이동이 있는 test에서는 이득일 수 있습니다. 반대로 클래스 비율이 균등하지 않은 실제 현장에서는 이 가정이 위험합니다.</aside>
+
+<h3 id="s1-5"><span class="num">1.5</span>순위를 읽을 때 주의할 점</h3>
+<ul>
+  <li><strong>모델 차이</strong>: 멀티에이전트는 Sonnet, 단일 방식은 Opus입니다. 구조의 효과와 모델 능력의 효과가 섞여 있습니다.</li>
+  <li><strong>리더보드 피드백</strong>: Opus의 과도구간 분석은 사용자가 제출해 본 LB(약 0.83)와 CV의 차이에서 출발했습니다. 대회 참가팀도 LB를 볼 수 있었으니 불공정은 아니지만, 사람의 피드백이 결정적 계기였습니다.</li>
+  <li><strong>시점</strong>: Opus 풀이는 대회 이후, TEP 문헌을 아는 상태에서 진행된 것으로 보입니다. 대회 팀은 기한 안에서 풀었습니다.</li>
+  <li><strong>test 사용 방식</strong>: Opus의 보정과 1등 팀의 균등 할당은 모두 test 전체 분포를 쓰는 transductive 방법입니다. 허용 여부는 대회 규칙마다 다릅니다.</li>
+  <li><strong>1회 실행</strong>: 각 방식의 결과는 한 번의 실행입니다. 1등 팀과 멀티에이전트의 LB 점수는 제공 자료에 없습니다.</li>
+</ul>
+</section>
+
+<!-- ============ 2부 ============ -->
+<section id="part2">
+<div class="part-head">
+  <div class="part-no">2부</div>
+  <div class="part-rule"><i></i></div>
+  <h2>대회 1등 팀 코드 검토: 왜 딥러닝이었나</h2>
+  <p>정형 데이터인데도 트리 대신 신경망을 앞세운 이유</p>
+</div>
+
+<h3 id="s2-1"><span class="num">2.1</span>무엇으로 구성됐나</h3>
+<figure class="tbl wide">
+  <figcaption>표 3. 1등 팀 파이프라인 구성과 노트북 로그의 검증 결과</figcaption>
+  <table>
+    <thead><tr><th>구성요소</th><th>설정</th><th>로그의 검증 결과</th></tr></thead>
+    <tbody>
+      <tr><td>TabNet</td><td>n_d 32, n_steps 3, sparsemax, 80/20 단일 분할, 조기 종료 30</td><td>최고 검증 정확도 0.851 (epoch 104)</td></tr>
+      <tr><td>MLP-ReLU</td><td>잔차 블록 2개, 임베딩 128, 손실 = CE(라벨 스무딩 0.05) + 0.5·SupCon + 0.1·Center, 5-fold × 100 epoch</td><td>fold별 최고 검증 F1 평균 0.868</td></tr>
+      <tr><td>MLP-GELU</td><td>같은 구조, 활성함수만 GELU</td><td>fold별 최고 검증 F1 평균 0.874</td></tr>
+      <tr><td>AutoGluon</td><td>best_quality, 1시간, log_loss 기준, 2단 스태킹</td><td>최종 WeightedEnsemble_L3 검증 log_loss 0.278</td></tr>
+      <tr><td>앙상블</td><td>네 확률을 0.25씩 평균 → 헝가리안 균등 할당</td><td>앙상블 자체의 CV는 계산하지 않음</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-note">가중치 기준 75%가 직접 만든 신경망입니다. 나머지 25%인 AutoGluon 안에서도 신경망 계열이 1단 모델 상위를 차지했습니다(표 4).</p>
+</figure>
+
+<h3 id="s2-2"><span class="num">2.2</span>정형 데이터에서는 보통 트리가 이기는데, 왜 신경망이었나</h3>
+<p>대규모 벤치마크 연구(Grinsztajn 외, NeurIPS 2022)는 약 1만 행 규모의 일반적인 정형 데이터에서 트리 모델이 여전히 우세하다고 보고했습니다. 이 데이터는 그 "일반적" 조건에서 몇 가지 점이 벗어나 있습니다.</p>
+
+<h4>(1) 실증 근거: 같은 데이터에서 신경망이 log_loss를 약 40% 낮췄다</h4>
+<figure class="tbl">
+  <figcaption>표 4. AutoGluon 본 학습의 1단 모델 검증 log_loss (낮을수록 좋음, 1등 팀 로그)</figcaption>
+  <table>
+    <thead><tr><th>계열</th><th>모델</th><th class="n">log_loss</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td>신경망</td><td>NeuralNetFastAI_r102</td><td class="n">0.326</td></tr>
+      <tr class="hl"><td>신경망</td><td>NeuralNetFastAI_r191</td><td class="n">0.328</td></tr>
+      <tr class="hl"><td>신경망</td><td>NeuralNetFastAI</td><td class="n">0.341</td></tr>
+      <tr class="hl"><td>신경망</td><td>NeuralNetTorch_r79</td><td class="n">0.359</td></tr>
+      <tr><td>부스팅</td><td>LightGBM</td><td class="n">0.538</td></tr>
+      <tr><td>부스팅</td><td>XGBoost</td><td class="n">0.542</td></tr>
+      <tr><td>부스팅</td><td>CatBoost</td><td class="n">0.555</td></tr>
+      <tr><td>배깅</td><td>RandomForestGini</td><td class="n">0.705</td></tr>
+      <tr><td>배깅</td><td>ExtraTreesGini</td><td class="n">0.836</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-note">최고 신경망 0.326 ÷ 최고 부스팅 0.538 = 0.61. 나머지 모델은 생략했습니다.</p>
+</figure>
+
+<h4>(2) 구조 근거: 신호가 '이미 회전된' 방향에 있다</h4>
+<p>같은 연구는 트리가 원래 좌표축(나이, 소득 같은 개별 컬럼)에 의미가 있는 데이터에서 강하고, 데이터를 무작위로 회전시키면 순위가 뒤집혀 신경망이 트리를 앞선다고 보고했습니다. 이 데이터의 고장 신호는 개별 컬럼이 아니라 변수의 선형결합 방향에 있습니다. 데이터가 처음부터 "회전된" 상태라서 트리의 장점이 사라지고, 신경망의 첫 선형층이 그 방향을 직접 학습할 수 있습니다.</p>
+<div class="eq">h = W x + b</div>
+<p class="eq-note">W의 각 행은 하나의 투영 방향입니다. 직관: Opus가 계산식으로 만든 화이트닝 행렬을 신경망은 데이터에서 학습합니다. 1.3절 손계산의 "좌표를 u = x₂ − x₁로 돌리기"를 모델이 스스로 하는 셈입니다.</p>
+
+<h4>(3) 데이터 성질이 신경망에 불리하지 않다</h4>
+<ul>
+  <li>연속형 센서 52개, 결측 0%, 범주형 없음, 클래스 완전 균등. 신경망이 흔히 약한 조건(범주형, 결측, 불규칙한 함수)이 적습니다.</li>
+  <li>입력은 StandardScaler로 표준화했습니다. 석사 팀의 MLP가 실패한 원인(0~100 단위 변수 혼재, 3.3절)을 피했습니다.</li>
+</ul>
+
+<h4>(4) 손실 설계가 문제 구조와 맞는다</h4>
+<ul>
+  <li><strong>Center loss</strong>: 같은 클래스 임베딩을 한 중심 주위로 모읍니다. "클래스마다 한 덩어리"라는 가우시안 가정과 같은 방향입니다.</li>
+  <li><strong>SupCon</strong>: 같은 클래스끼리는 가깝게, 다른 클래스는 멀게 만들어 클래스 간 경계를 넓힙니다.</li>
+</ul>
+
+<h4>(5) 앙상블 다양성</h4>
+<p>신경망과 AutoGluon 내부의 트리 모델은 틀리는 패턴이 달라서, 평균을 내면 서로의 실수를 일부 상쇄합니다.</p>
+
+<aside class="callout note"><span class="pill">판단</span>코드에는 "왜 딥러닝인가"를 적은 주석이 없습니다. 표 4처럼 신경망 우세를 실험으로 확인하고 직접 구현을 강화했다는 해석이 가장 자연스럽습니다. 공분산 구조를 이론적으로 의식했다는 근거는 코드에서 찾을 수 없으므로 (2)는 결과에 대한 설명이지 팀의 의도로 확인된 것은 아닙니다.</aside>
+
+<h3 id="s2-3"><span class="num">2.3</span>전제 점검: '딥러닝 덕분에 1등'인가</h3>
+<ul>
+  <li>딥러닝은 축 ①을 풀어 0.79 벽을 넘게 했습니다(단일 MLP 0.87 안팎).</li>
+  <li>그러나 CV 0.87~0.90 수준의 모델도 분포 이동 때문에 LB에서 크게 깎일 수 있습니다(Opus: 0.905 → 약 0.83).</li>
+  <li>따라서 1등의 결정적 요인 중 하나가 헝가리안 균등 할당이었을 가능성을 배제할 수 없습니다. 검증되지 않은 추정이며, 같은 확률로 "argmax 제출"과 "균등 할당 제출"을 비교하면 확인됩니다.</li>
+</ul>
+
+<h3 id="s2-4"><span class="num">2.4</span>코드 리뷰 메모</h3>
+<figure class="tbl wide">
+  <figcaption>표 5. 1등 팀 코드에서 확인한 문제와 개선 방법</figcaption>
+  <table>
+    <thead><tr><th>위치</th><th>내용</th><th>영향</th><th>개선</th></tr></thead>
+    <tbody>
+      <tr><td><code>best_state = model.state_dict()</code></td><td>state_dict는 파라미터와 저장공간을 공유합니다. 학습이 계속되면 값이 바뀌어 사실상 마지막 epoch 가중치가 로드됩니다.</td><td>검증 F1이 정체 구간이라 영향은 작았을 것</td><td><code>copy.deepcopy</code>로 복사</td></tr>
+      <tr><td>epoch 선택</td><td>같은 검증 fold로 epoch를 고르고 그 F1을 보고</td><td>점수가 낙관적</td><td>OOF 예측을 따로 평가</td></tr>
+      <tr><td>앙상블 가중치</td><td>0.25 고정, OOF 확률을 저장하지 않음</td><td>앙상블 성능을 측정할 수 없음</td><td>모델별 OOF 저장 후 가중치 탐색</td></tr>
+      <tr><td>TabNet</td><td>다른 모델과 달리 80/20 단일 분할</td><td>학습 데이터 20% 미사용</td><td>5-fold로 통일</td></tr>
+      <tr><td>헝가리안</td><td>비용 행렬 15,004 × 15,004 (float64 약 1.8GB), 계산량 O(n³)</td><td>메모리·시간 부담</td><td>클래스 단위 최소비용 흐름 또는 탐욕 할당</td></tr>
+      <tr><td><code>compute_quota</code></td><td>test가 균등하다고 가정</td><td>이 대회에는 맞지만 현장에서는 위험</td><td>test 사전확률을 추정해 정원 설정</td></tr>
+    </tbody>
+  </table>
+</figure>
+
+<div class="codeblock">
+  <div class="code-head" data-ui><span class="code-name">python · 체크포인트 고정</span><button class="copy" type="button">복사</button></div>
+  <pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+
+<span class="c1"># 원본: best_state = model.state_dict()  → 이후 학습으로 값이 계속 바뀜</span>
+<span class="k">if</span> <span class="n">f1</span> <span class="o">&gt;</span> <span class="n">best_f1</span><span class="p">:</span>
+    <span class="n">best_f1</span> <span class="o">=</span> <span class="n">f1</span>
+    <span class="n">best_state</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>  <span class="c1"># 그 시점 가중치를 복사해 고정</span></code></pre>
+</div>
+</section>
+
+<!-- ============ 3부 ============ -->
+<section id="part3">
+<div class="part-head">
+  <div class="part-no">3부</div>
+  <div class="part-rule"><i></i></div>
+  <h2>방식별 강점, 병목, 한계</h2>
+  <p>각 방식이 잘한 것과 더 오르지 못한 이유</p>
+</div>
+
+<h3 id="s3-1"><span class="num">3.1</span>Opus 단일 모델</h3>
+<h4>강점</h4>
+<ul>
+  <li><strong>모델보다 데이터 먼저</strong>: 형태(TEP와 일치), 행 순서(인접 행 라벨 일치율 0.046, 무작위 기댓값 1/21 ≈ 0.048), 이웃 구조, 중복 변수(r = 1.000 두 쌍)를 학습 전에 확인했습니다.</li>
+  <li><strong>가설마다 반증 실험</strong>: 잔차 피처 실험, λ 스윕, α 스윕, 학습곡선(데이터 50→75→100%에서 0.872→0.883→0.884로 포화)으로 "데이터를 더 모아도 이득이 적다"까지 확인했습니다.</li>
+  <li><strong>누수 차단과 단순화</strong>: 스태킹 입력을 OOF로 만들었고, 이득 없는 XGBoost를 빼고 피처를 142개에서 92개로 줄였습니다.</li>
+</ul>
+<h4>병목: 클래스 0·9·15</h4>
+<ul>
+  <li>고장 9·15는 정상과의 효과 크기 d = 0.09(두 분포가 96% 이상 겹침), 최종 F1 0.39~0.52.</li>
+  <li>TEP 문헌도 고장 3·9·15는 평균·분산 변화가 거의 없어 검출이 어렵다고 보고합니다. 행 순서가 섞여 있어 시계열 정보로도 풀 수 없습니다. 이 구간은 데이터가 정한 한계에 가깝습니다.</li>
+</ul>
+<h4>한계</h4>
+<ul>
+  <li>과도구간 보정은 test를 한꺼번에 모아야 작동하므로 샘플이 하나씩 들어오는 현장에서는 쓸 수 없습니다.</li>
+  <li>보정 효과는 CV로 측정할 수 없고 LB로만 확인됩니다.</li>
+  <li>첫 버전에는 test를 보고 사람이 정한 숫자(대상 고장 2·5·7, 오분류 클래스 8·12)가 있었습니다. 최종 버전은 train 기준 규칙으로 바꿨습니다.</li>
+</ul>
+
+<h3 id="s3-2"><span class="num">3.2</span>대회 1등 팀</h3>
+<h4>강점</h4>
+<ul>
+  <li>범용 표현 학습으로 관계 신호를 자동으로 잡았고, 이질적인 모델을 섞어 안정성을 얻었습니다.</li>
+  <li>균등 할당이라는 단순한 사전 정보로 분포 이동을 간접 완화했습니다(추정).</li>
+</ul>
+<h4>병목: 단일 모델 0.87 안팎에서 정체</h4>
+<ul>
+  <li>분산이 1만분의 1인 방향 같은 미세한 신호를 경사하강법이 스스로 찾아야 합니다. 명시적으로 공분산을 쓴 RDA 단독(0.885)이 단일 MLP와 비슷하거나 높았습니다.</li>
+  <li>앙상블 OOF를 측정하지 않아 어느 모델·가중치가 기여하는지 근거를 갖고 개선할 수 없었습니다.</li>
+</ul>
+<h4>한계</h4>
+<ul>
+  <li>연산 비용(AutoGluon 1시간 + 신경망 10회 학습 + TabNet, GPU 필요), 해석의 어려움, 균등 가정 의존, 체크포인트 버그(2.4절).</li>
+</ul>
+
+<h3 id="s3-3"><span class="num">3.3</span>석사 1년차 팀</h3>
+<h4>강점</h4>
+<ul>
+  <li><strong>계층 분해 아이디어</strong>: 쉬운 고장 그룹(1, 2, 4, 5, 6, 7, 17, 18, 20)을 떼어 내자 그룹 내 F1이 1.0이었습니다. TEP의 계단형 고장 1~7과 상당 부분 겹칩니다. 데이터 구조를 경험적으로 찾아낸 셈입니다.</li>
+  <li>11개 이상의 모델을 시도해 어려운 그룹에서 <strong>QDA가 트리보다 0.13 높다</strong>는 핵심 단서를 찾았습니다.</li>
+</ul>
+<h4>병목</h4>
+<ul>
+  <li><strong>단서를 구조 신호로 읽지 못함</strong>: QDA의 큰 우위를 "왜?"로 파고들지 않고 스태킹 후보 중 하나로 넣었습니다. 정규화 없는 QDA(reg_param = 0)를 썼고, 상관 1.0인 중복 변수도 제거하지 않았습니다.</li>
+  <li><strong>스케일링 없는 비교</strong>: 원자료 그대로 비교한 SVC 0.125, 로지스틱 0.237, KNN 0.346, MLP 0.427이 나왔습니다. 0~100 단위 변수(X_11, X_19, X_37, X_40)가 거리와 경사를 지배한 결과로 보이며, 모델이 나쁜 것이 아니라 전처리가 비교를 왜곡했습니다. 같은 MLP 계열이 표준화 후 1등 팀에서 0.87 수준을 냈습니다(평가 범위는 다름).</li>
+  <li><strong>단일 80/20 분할</strong>로 모델과 그룹 구성까지 정해 검증셋 과적합 위험이 있습니다.</li>
+  <li><strong>하드 스위칭</strong>: 게이트의 재현율이 0.956이면 쉬운 그룹 샘플 약 4.4%가 잘못된 모델로 갑니다. 게이트 오류는 뒤 단계에서 복구되지 않습니다.</li>
+  <li><strong>노트북 상태 의존</strong>: special_classes가 셀마다 16개, 9개로 바뀌고, 출력에는 코드에 없는 12개 목록이 찍혀 있어 제출 파일 재현이 어렵습니다.</li>
+  <li>분포 이동 분석이 없었습니다.</li>
+</ul>
+
+<h3 id="s3-4"><span class="num">3.4</span>멀티에이전트 (Sonnet)</h3>
+<h4>강점</h4>
+<ul>
+  <li>검증 규율이 가장 엄격했습니다: 시드를 바꾼 재확인, 5/5 fold 일관성, t 검정, 비판 기록, 재현 코드 검증(원본과 예측 일치 1.0).</li>
+  <li>보고서가 "코드 계산"과 "해석"을 구분해 투명합니다.</li>
+</ul>
+<h4>병목</h4>
+<ul>
+  <li><strong>가설 공간이 처음부터 고정</strong>: 출발 템플릿이 HGB였고, 팀장 메모부터 "상호작용 피처와 트리 부스팅 계열이 우선 후보"였습니다.</li>
+  <li><strong>국소 탐색</strong>: '한 루프에 변경 하나'와 최대 10루프. 얻은 개선은 차이 피처 +0.0028, 시드 평균 +0.0099, LDA +0.0061로 합계 +0.0188입니다.</li>
+  <li><strong>단변량 렌즈</strong>: EDA 도구가 크러스컬-왈리스 검정과 단일 컬럼 정확도였습니다. 관계에 있는 신호는 이 렌즈로 보이지 않습니다.</li>
+  <li><strong>신호를 보고도 연결하지 못함</strong>: 상관 1.0 쌍, 공분산 구조를 쓰는 LDA가 효과를 낸 사실, 적대적 검증 AUC 0.742가 모두 기록됐지만 "남은 위험" 칸에서 끝났습니다.</li>
+  <li><strong>비판의 방향</strong>: 비판가는 시드 잡음, 누수, 진단표 해석 같은 통계 위생에 집중했습니다. "이 모델 계열의 가정이 데이터와 맞나?"라는 질문은 나오지 않았습니다.</li>
+  <li><strong>도구 오류</strong>: 홀드아웃 평가, 설명(permutation importance·PDP), 최종 예측 실행이 오류로 실패한 기록이 남아 있습니다.</li>
+</ul>
+<h4>한계</h4>
+<ul>
+  <li>보수적인 채택 규칙은 거짓 개선을 막지만 큰 도약도 막습니다. 역할 사이에 요약만 오가면 맥락이 줄어듭니다.</li>
+  <li>F1은 올랐지만 log_loss는 0.5815 → 0.6842로 나빠져 확률 품질은 떨어졌습니다.</li>
+</ul>
+
+<h3 id="s3-5"><span class="num">3.5</span>한눈에 비교</h3>
+<figure class="tbl wide">
+  <figcaption>표 6. 네 방식의 과정 비교</figcaption>
+  <table>
+    <thead><tr><th>항목</th><th>Opus 단일</th><th>1등 팀</th><th>석사 팀</th><th>멀티에이전트</th></tr></thead>
+    <tbody>
+      <tr><th>출발 가설</th><td>데이터 생성 과정(TEP)</td><td>강한 범용 학습기</td><td>클래스 그룹 구조</td><td>트리 부스팅</td></tr>
+      <tr><th>탐색 방식</th><td>가설 → 반증 실험의 연쇄</td><td>모델 다양화</td><td>모델 나열 비교</td><td>한 번에 하나 변경</td></tr>
+      <tr><th>검증</th><td>5-fold OOF, 스윕</td><td>fold 검증(낙관적)</td><td>단일 분할</td><td>엄격(시드·fold·t 검정)</td></tr>
+      <tr><th>분포 이동</th><td><span class="st ok">진단·보정</span></td><td><span class="st part">균등 할당</span></td><td><span class="st no">없음</span></td><td><span class="st no">측정만</span></td></tr>
+      <tr><th>재현성</th><td>단일 스크립트</td><td>보통</td><td>낮음</td><td>높음</td></tr>
+      <tr><th>연산 비용</th><td>낮음(CPU)</td><td>높음(GPU, 1시간 이상)</td><td>중간</td><td>중간</td></tr>
+      <tr><th>현장 적용</th><td>기본 모델은 가능, 보정은 불가</td><td>균등 가정 제거 필요</td><td>게이트 오류 위험</td><td>가능하나 성능 낮음</td></tr>
+    </tbody>
+  </table>
+</figure>
+</section>
+
+<!-- ============ 4부 ============ -->
+<section id="part4">
+<div class="part-head">
+  <div class="part-no">4부</div>
+  <div class="part-rule"><i></i></div>
+  <h2>인사이트와 제언</h2>
+  <p>분석 프로세스를 만들 때 가져갈 것</p>
+</div>
+
+<h3 id="s4-1"><span class="num">4.1</span>가장 큰 이득은 어디서 나왔나</h3>
+<figure class="tbl">
+  <figcaption>표 7. 단계별 개선 폭 비교</figcaption>
+  <table>
+    <thead><tr><th>변화</th><th>누가</th><th class="n">개선 폭</th></tr></thead>
+    <tbody>
+      <tr><td>트리 안에서 튜닝·피처 10회</td><td>멀티에이전트</td><td class="n">+0.019</td></tr>
+      <tr class="hl"><td>모델 가정 전환: LightGBM → QDA</td><td>Opus</td><td class="n">+0.087</td></tr>
+      <tr><td>QDA → RDA(공분산 수축)</td><td>Opus</td><td class="n">+0.006</td></tr>
+      <tr><td>RDA → LightGBM 스태킹</td><td>Opus</td><td class="n">+0.020</td></tr>
+      <tr class="hl"><td>분포 이동 보정 (LB 기준)</td><td>Opus</td><td class="n">약 +0.07</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-note">앞의 네 줄은 CV, 마지막 줄은 LB(0.83 → 0.8995) 기준이라 직접 더할 수 없습니다.</p>
+</figure>
+<p>큰 이득 두 개는 "같은 모델을 더 잘 쓰기"가 아니라 <strong>문제를 다시 정의하기</strong>에서 나왔습니다. 하나는 "신호가 관계에 있다"는 재정의, 다른 하나는 "test가 train과 다르다"는 재정의입니다.</p>
+
+<h3 id="s4-2"><span class="num">4.2</span>왜 단일 Opus가 멀티에이전트·석사 팀보다 높았나</h3>
+<ol>
+  <li><strong>모델 선택을 데이터 생성 과정에 대한 가설로 다뤘다.</strong> 형태에서 TEP를 알아보고, "제어되는 공정이면 관계가 신호"라는 가설에서 가우시안 분류기를 골랐습니다.</li>
+  <li><strong>추론 사슬이 끊기지 않았다.</strong> 잔차 실험 → 관계 가설 → QDA → λ 스윕 → RDA → 스태킹 → 예측 개수 이상 → 적대적 검증 → 과도구간 보정. 앞 결과가 다음 질문을 만들었습니다. 멀티에이전트는 역할 사이에 요약이 오가며 맥락이 줄고, 규칙이 도약을 막았습니다.</li>
+  <li><strong>이상 신호를 끝까지 추적했다.</strong> 같은 분포 차이 신호(AUC 0.74~0.76)를 Opus는 원인 분석으로, 멀티에이전트는 위험 목록으로 처리했습니다.</li>
+  <li><strong>반직관적인 결과를 숫자로 받아들였다.</strong> "λ가 클수록 나빠진다"를 신호가 작은 분산 방향에 있다는 이해로 연결했습니다.</li>
+  <li><strong>버릴 것을 버렸다.</strong> 혼합 가우시안, MLP 스태커, XGBoost, 예측 개수 균등화처럼 이득이 없는 것을 근거와 함께 뺐습니다.</li>
+</ol>
+<aside class="callout caution"><span class="pill">해석 범위</span>이 비교에서 "멀티에이전트 구조 자체가 나쁘다"는 결론은 나오지 않습니다. 모델 차이(Sonnet)와 설계(트리 템플릿, 변경 하나 규칙, 단변량 도구)가 원인일 가능성이 큽니다. 자료로 말할 수 있는 결론은 <strong>"누가 탐색 공간을 정했는가와 추론의 깊이가 결과를 정했다"</strong>까지입니다. 석사 팀도 1년 전 모델과 함께 작업했으므로 같은 교란이 있습니다.</aside>
+
+<h3 id="s4-3"><span class="num">4.3</span>분석 프로세스 설계 제언</h3>
+<h4>A. 모델을 돌리기 전에 진단 체크리스트</h4>
+<ol>
+  <li><strong>형태·도메인</strong>: 변수 수, 클래스 수, 클래스당 개수가 알려진 벤치마크나 공정과 맞는가.</li>
+  <li><strong>행 독립성</strong>: 인접 행 라벨 일치율, 1-최근접이웃 정확도로 시간 순서나 실험 단위 누수 확인.</li>
+  <li><strong>공선성과 고유값</strong>: |r| ≈ 1 쌍, 공분산 고유값 스펙트럼. 아주 작은 고유값은 "거의 지켜지는 관계"입니다.</li>
+  <li><strong>모델 계열 스윕</strong>: 같은 전처리·같은 fold로 트리, 로지스틱, LDA, 정규화 QDA, kNN, MLP를 비교. 계열 간 0.05 이상 차이는 후보 순위가 아니라 구조 신호로 해석합니다.</li>
+  <li><strong>분포 이동</strong>: 적대적 검증, 그리고 test 예측 개수와 기대 분포 비교.</li>
+</ol>
+<h4>B. CV와 LB의 차이를 1순위 지표로</h4>
+<ul>
+  <li>차이가 fold 표준편차의 몇 배인지 기록하고, 원인을 찾기 전에는 튜닝을 멈춥니다. 이번 사례에서 차이(0.075)는 튜닝 10회의 이득보다 4배 컸습니다.</li>
+</ul>
+<h4>C. 멀티에이전트를 쓴다면</h4>
+<ul>
+  <li><strong>탐색 단계와 수렴 단계 분리</strong>: 초반 루프는 서로 다른 모델 계열과 가설을 병렬로 시험하고, "한 번에 하나 변경"은 수렴 단계에서만 적용합니다.</li>
+  <li><strong>패러다임 비판가</strong>: 매 루프 "현재 모델 계열의 가정이 데이터와 맞나?"를 묻는 역할을 둡니다.</li>
+  <li><strong>미해결 이상 신호 게시판</strong>: AUC 0.742 같은 신호는 위험 칸이 아니라 다음 루프의 과제로 올립니다.</li>
+  <li><strong>다변량 진단 도구 제공</strong>: 고유값 스펙트럼, 잔차 피처 실험, 계열 스윕을 하네스 기본 도구로 넣습니다.</li>
+  <li><strong>원자료 전달</strong>: 역할 사이에 요약만이 아니라 수치표를 넘깁니다.</li>
+  <li><strong>공정한 비교</strong>: 같은 모델(Opus)로 다시 돌려 구조의 효과와 모델의 효과를 분리합니다.</li>
+</ul>
+<h4>D. 사람이 맡을 일</h4>
+<ul>
+  <li>규칙 해석(test 분포를 써도 되는가), 도메인 맥락 제공, LB 피드백을 튜닝이 아니라 진단에 쓰기.</li>
+</ul>
+<h4>E. 실무에 옮길 때</h4>
+<ul>
+  <li>transductive 보정 대신 고장 직후 데이터를 수집·라벨링해 학습에 포함합니다.</li>
+  <li>F1과 함께 확률 품질(log_loss)도 관리합니다. 운영에서는 확률로 경보 임계값을 정하는 경우가 많습니다.</li>
+</ul>
+
+<h3 id="s4-4"><span class="num">4.4</span>다음에 해볼 실험</h3>
+<ul>
+  <li><strong>1등 팀 코드</strong>: argmax 제출과 균등 할당 제출을 비교해 균등 할당의 기여를 정량화.</li>
+  <li><strong>석사 팀 코드</strong>: 전체 표준화 + 중복 변수 제거 후, 어려운 그룹에 RDA(α = 0.4, λ = 10⁻⁶)를 넣고 5-fold로 재평가.</li>
+  <li><strong>멀티에이전트</strong>: 4.3절 A의 진단 도구를 하네스에 추가하고 Opus로 재실행.</li>
+</ul>
+</section>
+
+<!-- ============ 확인 ============ -->
+<section id="quiz">
+<h2 class="sec"><span class="num">확인</span>셀프 테스트</h2>
+<div class="quiz">
+  <details>
+    <summary>Q1. 세 팀이 독립적으로 LightGBM 기본값 0.79 근처에 머문 사실은 무엇을 시사하나?</summary>
+    <div><p>튜닝 부족보다 모델 가정의 한계를 시사합니다. 축에 평행한 분할로는 변수 간 관계에 있는 신호를 효율적으로 잡지 못합니다(1.1, 1.3절).</p></div>
+  </details>
+  <details>
+    <summary>Q2. 대각 경계를 10단 계단으로 근사할 때 오분류 면적은? 좌표를 u = x₂ − x₁로 돌리면?</summary>
+    <div><p>1/(4k) = 1/40 = 0.025, 즉 2.5%입니다. 좌표를 돌리면 분할 한 번으로 오차 0입니다. 신경망의 선형층과 Opus의 화이트닝이 이 "좌표 돌리기"를 합니다.</p></div>
+  </details>
+  <details>
+    <summary>Q3. 예측 개수 균등화가 train CV에서는 손해인데 LB에서는 이득일 수 있는 이유는?</summary>
+    <div><p>train CV에는 분포 이동이 없어 억지로 개수를 맞추면 맞던 예측까지 흔들립니다. test에서는 과도구간 샘플이 특정 클래스(8, 12)로 쏠리므로 정원 제약이 그 쏠림을 되돌립니다(1.4절).</p></div>
+  </details>
+  <details>
+    <summary>Q4. 실무 시나리오: 에이전트가 "적대적 검증 AUC 0.74"를 보고했다. 다음 루프에 무엇을 지시하겠나?</summary>
+    <div><p>튜닝을 멈추고 ① test 예측 개수와 기대 분포 비교, ② 클래스별로 어떤 변수가 이동했는지 확인, ③ "train에 없는 상태가 test에 있다" 같은 원인 가설을 세워 train 데이터로 검정하도록 지시합니다. 위험 목록에만 적고 넘어가지 않습니다.</p></div>
+  </details>
+</div>
+
+<h2 class="sec" id="summary-3"><span class="num">요약</span>핵심 세 줄</h2>
+<div class="keybox">
+  <ol>
+    <li>순위는 "변수 간 관계 신호를 잡았나"와 "train에 없는 test 샘플을 처리했나" 두 질문으로 거의 설명된다.</li>
+    <li>1등 팀의 딥러닝은 선형층이 관계 방향을 학습해 트리의 0.79 벽을 넘었고, 헝가리안 균등 할당이 분포 이동을 간접 완화했을 가능성이 크다(추정).</li>
+    <li>가장 큰 개선은 튜닝이 아니라 문제 재정의(+0.087)와 분포 이동 진단(약 +0.07)에서 나왔다. 분석 프로세스는 이 두 질문을 반드시 묻도록 설계해야 한다.</li>
+  </ol>
+</div>
+</section>
+
+<section id="sources">
+<h2 class="sec"><span class="num">출처</span>자료와 참고문헌</h2>
+<ol class="sources">
+  <li>제공 자료: Opus 해설(opus 해설.txt)과 코드(fault_diagnosis.py), 1등 팀 노트북(TabNet·MLP·AutoGluon 앙상블), 석사 팀 노트북(20250923_0.8410_testing), 멀티에이전트 보고서(report.html)와 코드(final_model.py).</li>
+  <li><a href="https://arxiv.org/abs/2207.08815">Grinsztajn, Oyallon, Varoquaux. Why do tree-based models still outperform deep learning on tabular data? NeurIPS 2022 (arXiv 2207.08815)</a></li>
+  <li><a href="https://arxiv.org/pdf/2101.06993">Deep Compression of Neural Networks for Fault Detection on Tennessee Eastman Chemical Processes (arXiv 2101.06993): TEP 52개 측정값, 21개 클래스, 고장 유형표</a></li>
+  <li><a href="https://arxiv.org/pdf/2012.03861">Hierarchical Deep Recurrent Neural Network based Method for Fault Detection and Diagnosis (arXiv 2012.03861): 고장 3·9·15의 관측 어려움</a></li>
+  <li><a href="https://medium.com/@mrunal68/tennessee-eastman-process-simulation-data-for-anomaly-detection-evaluation-d719dc133a7f">Tennessee Eastman Process simulation data 설명 글(Medium): 학습 1시간, 테스트 8시간 고장 투입</a></li>
+</ol>
+</section>
+
+<footer>숫자는 제공된 코드·로그·보고서에서 옮기거나 직접 다시 계산한 값입니다. "추정"이라고 적은 부분은 자료로 확인되지 않은 해석입니다.</footer>
+</main>
+<script>
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest("button.copy"); if (!btn) return;
+  const code = btn.closest(".codeblock").querySelector("pre code").cloneNode(true);
+  const text = code.textContent.replace(/\n+$/, "\n");
+  try { await navigator.clipboard.writeText(text); }
+  catch { const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t);
+          t.select(); try { document.execCommand("copy"); } catch {} t.remove(); }
+  const old = btn.textContent; btn.textContent = "복사됨";
+  setTimeout(() => { btn.textContent = old; }, 1400);
+});
+</script>
+</body>
+</html>
